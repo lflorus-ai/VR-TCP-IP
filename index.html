@@ -75,6 +75,7 @@
   <div id="hud">
     <div class="hud-tag">&#9632; Tutorial &middot; Lern-Szenario 1</div>
     <div class="task" id="task-text">Klicke ins Spiel, dann Fadenkreuz auf ein Paket richten und E drücken.</div>
+    <div id="binary-display" style="display:none;font-size:10px;color:#88aacc;font-family:monospace;margin-top:5px;letter-spacing:0.4px;"></div>
     <div class="progress-row" id="progress-pips"></div>
   </div>
 
@@ -83,11 +84,44 @@
       <div class="bat-bar"><div class="bat-fill"></div></div>75%
     </div>
     <div class="hud-pill" id="score-pill">&#9733; 0 Punkte</div>
+    <div class="hud-pill" id="timer-pill">&#9201; 00:00</div>
   </div>
 
-  <div id="controls-hint">W A S D &middot; Klick zum Maus sperren &middot; ESC zum Lösen &middot; E zum Interagieren</div>
+  <div id="controls-hint">W A S D &middot; Leertaste = Springen &middot; E = Interagieren &middot; Klick zum Maus sperren</div>
   <div id="selected-badge"></div>
   <div id="flash"></div>
+
+  <script>
+    AFRAME.registerComponent('jump-controls', {
+      schema: { jumpForce: {default: 8.5}, gravity: {default: -16} },
+      init() {
+        this.vy = 0;
+        this.grounded = true;
+        this.groundY = 0;
+        this.onKeyDown = (e) => {
+          if (e.code === 'Space' && this.grounded) {
+            e.preventDefault();
+            this.vy = this.data.jumpForce;
+            this.grounded = false;
+          }
+        };
+        window.addEventListener('keydown', this.onKeyDown);
+      },
+      remove() { window.removeEventListener('keydown', this.onKeyDown); },
+      tick(t, dt) {
+        if (this.grounded) return;
+        const s = Math.min(dt, 50) / 1000;
+        this.vy += this.data.gravity * s;
+        const p = this.el.object3D.position;
+        p.y += this.vy * s;
+        if (p.y <= this.groundY) {
+          p.y = this.groundY;
+          this.vy = 0;
+          this.grounded = true;
+        }
+      }
+    });
+  </script>
 
   <a-scene
     background="color: #1a2030"
@@ -108,7 +142,7 @@
     </a-assets>
 
     <!-- KAMERA -->
-    <a-entity id="player" position="0 0 5">
+    <a-entity id="player" position="0 0 5" jump-controls>
       <a-camera wasd-controls="acceleration:22" look-controls="pointerLockEnabled:true" height="1.65">
         <a-cursor
           raycaster="objects: .interactable; far: 12"
@@ -247,7 +281,10 @@
               data-ip="192.168.1.10" data-id="24513"
               geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
               material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-entity look-at="[camera]" position="0 0.30 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.58" height="0.14"></a-plane>
+        <a-text value="192.168.1.10" color="#a8d8ff" scale="0.65 0.65 0.65" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.1" height="0.03" depth="0.52"></a-box>
     </a-entity>
@@ -255,28 +292,40 @@
               data-ip="10.0.0.5" data-id="24514"
               geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#b09050;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="10.0.0.5" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-entity look-at="[camera]" position="0 0.30 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.58" height="0.14"></a-plane>
+        <a-text value="10.0.0.5" color="#a8d8ff" scale="0.65 0.65 0.65" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.59" height="0.03" depth="0.1"></a-box>
     </a-entity>
     <a-entity class="interactable paket" id="paket-A3" position="-8.7 1.22 -8.4"
               data-ip="172.16.5.3" data-id="24515"
               geometry="primitive:box;width:0.65;height:0.52;depth:0.52"
               material="color:#d0a850;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="172.16.5.3" color="#fff" scale="0.5 0.5 0.5" position="0 0.29 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-entity look-at="[camera]" position="0 0.32 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.58" height="0.14"></a-plane>
+        <a-text value="172.16.5.3" color="#a8d8ff" scale="0.65 0.65 0.65" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.265 0" width="0.69" height="0.03" depth="0.12"></a-box>
     </a-entity>
     <a-entity class="interactable paket" id="paket-A4" position="-8.1 2.42 -7.3"
               data-ip="192.168.1.10" data-id="24516"
               geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
               material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-entity look-at="[camera]" position="0 0.30 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.58" height="0.14"></a-plane>
+        <a-text value="192.168.1.10" color="#a8d8ff" scale="0.65 0.65 0.65" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
     </a-entity>
     <a-entity class="interactable paket" id="paket-A5" position="-8.6 2.42 -9.3"
               data-ip="10.0.0.5" data-id="24517"
               geometry="primitive:box;width:0.6;height:0.5;depth:0.5"
               material="color:#b09050;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="10.0.0.5" color="#fff" scale="0.5 0.5 0.5" position="0 0.28 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-entity look-at="[camera]" position="0 0.32 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.58" height="0.14"></a-plane>
+        <a-text value="10.0.0.5" color="#a8d8ff" scale="0.65 0.65 0.65" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
       <a-box material="color:#e8d060;roughness:0.8" position="0 0.255 0" width="0.64" height="0.03" depth="0.1"></a-box>
     </a-entity>
     <!-- Füller Regal A -->
@@ -298,20 +347,8 @@
     <a-box mixin="m-regal-b" position="8 3.25 -9" width="3.4" height="0.06" depth="6.6"></a-box>
     <a-box material="color:#1a1e26;roughness:0.9" position="9.65 3.0 -9" width="0.04" height="5.2" depth="6.6"></a-box>
 
-    <a-entity class="interactable paket" id="paket-B1" position="8 1.2 -6.8"
-              data-ip="172.16.5.3" data-id="24518"
-              geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
-              material="color:#d0a850;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="172.16.5.3" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
-      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
-    </a-entity>
-    <a-entity class="interactable paket" id="paket-B2" position="7.4 1.2 -8.0"
-              data-ip="192.168.1.10" data-id="24519"
-              geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
-              material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
-      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
-      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.59" height="0.03" depth="0.1"></a-box>
-    </a-entity>
+    <a-box mixin="m-paket" position="8 1.2 -6.8"   width="0.58" height="0.48" depth="0.48" shadow="cast:true;receive:true"></a-box>
+    <a-box mixin="m-paket" position="7.4 1.2 -8.0" width="0.55" height="0.48" depth="0.48" shadow="cast:true;receive:true"></a-box>
     <!-- Füller Regal B -->
     <a-box mixin="m-paket" position="8.8 1.2 -9.5"  width="0.55" height="0.46" depth="0.46"></a-box>
     <a-box mixin="m-paket" position="7.5 1.2 -10.8" width="0.6"  height="0.5"  depth="0.5"></a-box>
@@ -329,10 +366,11 @@
       <a-box material="color:#1b2d55;roughness:0.6;metalness:0.4"
              class="interactable palette-zone" id="palette-1" data-network="192.168.1"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box material="color:#3060dd;emissive:#3060dd;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 1"       color="#88aaff" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.4"></a-text>
-        <a-text value="192.168.1.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="ABLADEN"     color="#4488ff"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#4488ff;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-1" material="color:#3060dd;emissive:#3060dd;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 1"        color="#88aaff" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.4"></a-text>
+        <a-text value="192.168.1.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="255.255.255.0" color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
+        <a-text id="pal-status-1" value="ABLADEN" color="#4488ff" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#4488ff;emissiveIntensity:0.3"></a-text>
       </a-box>
     </a-entity>
 
@@ -345,10 +383,11 @@
       <a-box material="color:#1a3322;roughness:0.6;metalness:0.4"
              class="interactable palette-zone" id="palette-2" data-network="10.0.0"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box material="color:#206640;emissive:#206640;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 2"    color="#88ffaa" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#88ffaa;emissiveIntensity:0.4"></a-text>
-        <a-text value="10.0.0.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="ABLADEN"  color="#44cc66"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#44cc66;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-2" material="color:#206640;emissive:#206640;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 2"     color="#88ffaa" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#88ffaa;emissiveIntensity:0.4"></a-text>
+        <a-text value="10.0.0.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="255.0.0.0"  color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
+        <a-text id="pal-status-2" value="ABLADEN" color="#44cc66" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#44cc66;emissiveIntensity:0.3"></a-text>
       </a-box>
     </a-entity>
 
@@ -361,10 +400,11 @@
       <a-box material="color:#332211;roughness:0.6;metalness:0.4"
              class="interactable palette-zone" id="palette-3" data-network="172.16.5"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box material="color:#884420;emissive:#884420;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 3"      color="#ffaa44" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.4"></a-text>
-        <a-text value="172.16.5.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="ABLADEN"    color="#ff8833"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#ff8833;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-3" material="color:#884420;emissive:#884420;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 3"      color="#ffaa44" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.4"></a-text>
+        <a-text value="172.16.5.x" color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="255.255.0.0" color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
+        <a-text id="pal-status-3" value="ABLADEN" color="#ff8833" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#ff8833;emissiveIntensity:0.3"></a-text>
       </a-box>
     </a-entity>
 
@@ -412,12 +452,37 @@
   </a-scene>
 
   <script>
-    const lieferschein = [
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    const lieferschein = shuffle([
       { id:'24513', ip:'192.168.1.10', network:'192.168.1', done:false },
       { id:'24514', ip:'10.0.0.5',     network:'10.0.0',    done:false },
       { id:'24515', ip:'172.16.5.3',   network:'172.16.5',  done:false },
       { id:'24516', ip:'192.168.1.10', network:'192.168.1', done:false },
       { id:'24517', ip:'10.0.0.5',     network:'10.0.0',    done:false },
+    ]);
+
+    const slotPool = [
+      // Regal A – unten
+      [-8.8,1.2,-6.8], [-7.4,1.2,-6.8], [-8.8,1.2,-8.0], [-7.4,1.2,-8.0],
+      [-8.8,1.2,-9.5], [-7.4,1.2,-9.5], [-8.8,1.2,-11.0],[-7.4,1.2,-11.0],
+      // Regal A – mitte
+      [-8.8,2.42,-7.0],[-7.4,2.42,-7.0],[-8.8,2.42,-9.0],[-7.4,2.42,-9.0],[-8.8,2.42,-11.0],
+      // Regal A – oben
+      [-8.0,3.62,-7.5],[-8.0,3.62,-10.0],
+      // Regal B – unten
+      [7.5,1.2,-6.8],[8.8,1.2,-6.8],[7.5,1.2,-8.5],[8.8,1.2,-8.5],
+      [7.5,1.2,-10.5],[8.8,1.2,-10.5],
+      // Regal B – mitte
+      [7.5,2.42,-7.5],[8.8,2.42,-9.0],
+      // Regal B – oben
+      [8.0,3.62,-8.5],
     ];
     const netzwerkMap = { '192.168.1':'palette-1', '10.0.0':'palette-2', '172.16.5':'palette-3' };
     let selectedPaket = null;
@@ -456,6 +521,58 @@
       pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
     });
 
+    // B: Netzklasse ermitteln
+    function getNetClass(ip) {
+      const first = parseInt(ip.split('.')[0]);
+      if (first === 10)  return 'Klasse A · Private';
+      if (first === 172) return 'Klasse B · Private';
+      if (first === 192) return 'Klasse C · Private';
+      return '';
+    }
+
+    // E: IP in Binär umwandeln
+    function ipToBinary(ip) {
+      return ip.split('.').map(o => parseInt(o).toString(2).padStart(8,'0')).join('.');
+    }
+
+    // C: Timer
+    let timerInterval = null, timerSeconds = 0, timerStarted = false;
+    function startTimer() {
+      if (timerStarted) return;
+      timerStarted = true;
+      timerInterval = setInterval(() => {
+        timerSeconds++;
+        const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
+        const s = String(timerSeconds%60).padStart(2,'0');
+        document.getElementById('timer-pill').textContent = '⏱ ' + m + ':' + s;
+      }, 1000);
+    }
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    // D: Palette als "voll" markieren
+    function checkPaletteComplete(palId) {
+      const relevant = lieferschein.filter(e => netzwerkMap[e.network] === palId);
+      if (relevant.length > 0 && relevant.every(e => e.done)) markPaletteFull(palId);
+    }
+    function markPaletteFull(palId) {
+      const n = palId.split('-')[1];
+      const statusEl = document.getElementById('pal-status-' + n);
+      const bgEl     = document.getElementById('pal-bg-' + n);
+      if (statusEl) {
+        statusEl.setAttribute('value', 'FERTIG');
+        statusEl.setAttribute('color', '#22cc55');
+        statusEl.setAttribute('material', 'shader:flat;emissive:#22cc55;emissiveIntensity:0.7');
+      }
+      if (bgEl) {
+        bgEl.setAttribute('material', 'color:#22cc55;emissive:#22cc55;emissiveIntensity:0.6');
+        bgEl.setAttribute('animation__pulse',
+          'property:material.emissiveIntensity;from:0.3;to:0.9;dur:500;dir:alternate;loop:4;easing:easeInOutSine');
+      }
+    }
+
     function interactWithPaket(el) {
       const ip   = el.getAttribute('data-ip');
       const pkid = el.getAttribute('data-id');
@@ -468,10 +585,55 @@
       selectedPaket = el;
       el.setAttribute('material','emissive','#f0c030');
       el.setAttribute('material','emissiveIntensity','0.6');
+      startTimer();
       const badge = document.getElementById('selected-badge');
-      badge.textContent = '📦 Paket ' + pkid + ' — IP: ' + ip;
+      badge.innerHTML = '&#128230; Paket ' + pkid + ' &mdash; ' + ip + '<br><span style="font-size:10px;opacity:0.7">' + getNetClass(ip) + '</span>';
       badge.classList.add('visible');
       document.getElementById('task-text').textContent = 'Paket ' + pkid + ' ausgewählt — lege es auf die richtige Palette!';
+      const binEl = document.getElementById('binary-display');
+      binEl.textContent = ipToBinary(ip);
+      binEl.style.display = 'block';
+    }
+
+    const paletteDeliveries = { 'palette-1': 0, 'palette-2': 0, 'palette-3': 0 };
+    const palettePosMap = { 'palette-1': [-5, 1.5], 'palette-2': [0, 1.5], 'palette-3': [5, 1.5] };
+
+    function spawnDeliveredBox(palId, ip) {
+      const count = paletteDeliveries[palId];
+      const [px, pz] = palettePosMap[palId];
+      const col = count % 2;
+      const row = Math.floor(count / 2);
+      const x = px + (col - 0.5) * 0.38;
+      const y = 0.20 + row * 0.26;
+      const z = pz + 0.36;
+
+      const box = document.createElement('a-entity');
+      box.setAttribute('geometry', 'primitive:box;width:0.32;height:0.22;depth:0.28');
+      box.setAttribute('material', 'color:#c8a060;roughness:0.9');
+      box.setAttribute('position', `${x} ${y} ${z}`);
+      box.setAttribute('scale', '0.01 0.01 0.01');
+      box.setAttribute('animation__appear', 'property:scale;to:1 1 1;dur:500;easing:easeOutBack');
+
+      const label = document.createElement('a-text');
+      label.setAttribute('value', ip);
+      label.setAttribute('color', '#fff');
+      label.setAttribute('scale', '0.3 0.3 0.3');
+      label.setAttribute('position', '0 0 0.15');
+      label.setAttribute('align', 'center');
+      label.setAttribute('material', 'shader:flat');
+      box.appendChild(label);
+
+      const check = document.createElement('a-text');
+      check.setAttribute('value', 'ok');
+      check.setAttribute('color', '#22cc55');
+      check.setAttribute('scale', '0.45 0.45 0.45');
+      check.setAttribute('position', '0 0.14 0.15');
+      check.setAttribute('align', 'center');
+      check.setAttribute('material', 'shader:flat');
+      box.appendChild(check);
+
+      document.querySelector('a-scene').appendChild(box);
+      paletteDeliveries[palId]++;
     }
 
     function interactWithPalette(pal) {
@@ -492,13 +654,19 @@
         selectedPaket.setAttribute('material','emissive','#000000');
         selectedPaket = null;
         document.getElementById('selected-badge').classList.remove('visible');
+        document.getElementById('binary-display').style.display = 'none';
         document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
         updateLieferschein(); updatePips();
+        spawnDeliveredBox(palId, paketIp);
+        checkPaletteComplete(palId);
         showFeedback('✅ Paket ' + paketId + ' korrekt zugestellt! +100', true);
         triggerFlash(true);
         if (lieferschein.every(x=>x.done)) {
+          stopTimer();
           setTimeout(() => {
-            document.getElementById('task-text').textContent = '🎉 Alle Pakete zugestellt! Ausgezeichnet!';
+            const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
+            const s = String(timerSeconds%60).padStart(2,'0');
+            document.getElementById('task-text').textContent = '🎉 Alle Pakete zugestellt! Zeit: ' + m + ':' + s + ' — Ausgezeichnet!';
             document.getElementById('task-text').style.color = '#4cff88';
           }, 2400);
         }
@@ -536,11 +704,11 @@
     }
 
     function updateLieferschein() {
-      const z = lieferschein.map(e =>
-        (e.done ? ' OK  ' : '     ') + e.id + '  ' + e.ip
+      const rows = lieferschein.map(e =>
+        e.done ? '  Erledigt          ' : '      ' + e.id + '  ' + e.ip
       ).join('\n');
       const th = document.getElementById('ls-text-hand');
-      if (th) th.setAttribute('value', 'MusterFirma GmbH\n14.01.2026\n\nID      IP\n' + z);
+      if (th) th.setAttribute('value', 'MusterFirma GmbH\n14.01.2026\n\nID      IP\n' + rows);
     }
 
     function showFeedback(msg, ok) {
@@ -562,6 +730,11 @@
 
     document.querySelector('a-scene').addEventListener('loaded', () => {
       updateLieferschein();
+      shuffle(slotPool);
+      document.querySelectorAll('.interactable.paket').forEach((el, i) => {
+        const [x, y, z] = slotPool[i];
+        el.setAttribute('position', `${x} ${y} ${z}`);
+      });
     });
   </script>
 </body>
