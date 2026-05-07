@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>TCP/IP Lagerhalle</title>
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    #hud {
+      position: fixed; top: 20px; left: 20px; z-index: 999;
+      background: linear-gradient(135deg, rgba(15,20,30,0.88) 0%, rgba(25,35,55,0.82) 100%);
+      border: 1px solid rgba(100,160,255,0.25);
+      color: #fff; font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px; padding: 14px 18px; border-radius: 12px;
+      max-width: 300px; line-height: 1.55; pointer-events: none;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.07);
+    }
+    #hud .hud-tag {
+      font-size: 10px; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; color: #64a0ff; margin-bottom: 6px;
+    }
+    #hud .task { font-size: 13px; color: #e8edf5; transition: color .3s; }
+    #hud .progress-row { display: flex; gap: 5px; margin-top: 10px; }
+    .pip { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); transition: background .4s; }
+    .pip.done   { background: #4cff88; box-shadow: 0 0 6px #4cff88; }
+    .pip.active { background: #64a0ff; }
+
+    #hud-right {
+      position: fixed; top: 20px; right: 20px; z-index: 999;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .hud-pill {
+      background: rgba(15,20,30,0.82);
+      border: 1px solid rgba(100,160,255,0.2);
+      color: #c8d8f0; font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 12px; padding: 7px 13px; border-radius: 20px;
+      display: flex; align-items: center; gap: 8px;
+      backdrop-filter: blur(8px);
+    }
+    .bat-bar { width: 30px; height: 11px; border: 1.5px solid #c8d8f0; border-radius: 3px; position: relative; }
+    .bat-bar::after { content: ''; position: absolute; right: -4px; top: 50%;
+      transform: translateY(-50%); width: 3px; height: 6px;
+      background: #c8d8f0; border-radius: 0 2px 2px 0; }
+    .bat-fill { height: 100%; background: #4cff88; border-radius: 2px; width: 75%; }
+
+    #controls-hint {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 999; pointer-events: none;
+      background: rgba(15,20,30,0.75); backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(200,210,230,0.8); font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 11px; padding: 7px 16px; border-radius: 20px; letter-spacing: 0.5px;
+    }
+
+    #selected-badge {
+      position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+      z-index: 999; pointer-events: none;
+      background: rgba(20,60,120,0.9); backdrop-filter: blur(6px);
+      border: 1px solid rgba(100,160,255,0.5);
+      color: #a8d0ff; font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px; padding: 8px 20px; border-radius: 20px;
+      display: none;
+    }
+    #selected-badge.visible { display: block; }
+
+    #flash { position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .15s; }
+    #flash.good { background: rgba(0,200,80,0.18); opacity: 1; }
+    #flash.bad  { background: rgba(200,30,30,0.22); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="hud">
+    <div class="hud-tag">&#9632; Tutorial &middot; Lern-Szenario 1</div>
+    <div class="task" id="task-text">Klicke ins Spiel, dann Fadenkreuz auf ein Paket richten und E drücken.</div>
+    <div class="progress-row" id="progress-pips"></div>
+  </div>
+
+  <div id="hud-right">
+    <div class="hud-pill">
+      <div class="bat-bar"><div class="bat-fill"></div></div>75%
+    </div>
+    <div class="hud-pill" id="score-pill">&#9733; 0 Punkte</div>
+  </div>
+
+  <div id="controls-hint">W A S D &middot; Klick zum Maus sperren &middot; ESC zum Lösen &middot; E zum Interagieren</div>
+  <div id="selected-badge"></div>
+  <div id="flash"></div>
+
+  <a-scene
+    background="color: #1a2030"
+    fog="type: linear; color: #1a2030; near: 18; far: 38"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+    shadow="type: pcfsoft; enabled: true"
+  >
+    <a-assets>
+      <a-mixin id="m-boden"   material="roughness:0.85;metalness:0.0;color:#3d3428"></a-mixin>
+      <a-mixin id="m-wand"    material="roughness:0.9;metalness:0.0;color:#2a2e38"></a-mixin>
+      <a-mixin id="m-decke"   material="roughness:1.0;metalness:0.0;color:#1c1f28"></a-mixin>
+      <a-mixin id="m-pfeiler" material="roughness:0.7;metalness:0.1;color:#2e3240"></a-mixin>
+      <a-mixin id="m-regal-s" material="roughness:0.4;metalness:0.7;color:#607080"></a-mixin>
+      <a-mixin id="m-regal-b" material="roughness:0.7;metalness:0.3;color:#8b7040"></a-mixin>
+      <a-mixin id="m-paket"   material="roughness:0.9;metalness:0.0;color:#c8a060"></a-mixin>
+      <a-mixin id="m-palette" material="roughness:0.9;metalness:0.0;color:#7a5c28"></a-mixin>
+      <a-mixin id="m-stripe"  material="roughness:1.0;color:#f0c030;emissive:#f0c030;emissiveIntensity:0.15"></a-mixin>
+    </a-assets>
+
+    <!-- KAMERA -->
+    <a-entity id="player" position="0 0 5">
+      <a-camera wasd-controls="acceleration:22" look-controls="pointerLockEnabled:true" height="1.65">
+        <a-cursor
+          raycaster="objects: .interactable; far: 12"
+          geometry="primitive:ring; radiusInner:0.008; radiusOuter:0.013"
+          material="color:#64a0ff; shader:flat; opacity:0.85"
+          position="0 0 -1"
+        ></a-cursor>
+
+        <!-- RECHTE HAND – Scanner -->
+        <a-entity position="0.38 -0.38 -0.62">
+          <!-- Hand -->
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.072" height="0.11" depth="0.14" position="0 -0.13 0.04" rotation="-10 0 0"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.055" depth="0.014" position="-0.028 -0.068 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.062" depth="0.014" position="-0.01 -0.062 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.06"  depth="0.014" position=" 0.01 -0.064 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.048" depth="0.014" position=" 0.028 -0.072 -0.03"></a-box>
+          <!-- Scanner-Körper -->
+          <a-box material="color:#f0a030;roughness:0.4;metalness:0.35" width="0.055" height="0.115" depth="0.21"></a-box>
+          <a-box material="color:#003344;emissive:#00e5ff;emissiveIntensity:0.9;roughness:0.1;metalness:0.6" width="0.038" height="0.022" depth="0.003" position="0 0.018 -0.107"></a-box>
+          <a-box material="color:#00ffff;emissive:#00ffff;emissiveIntensity:1.5;shader:flat;opacity:0.6" width="0.036" height="0.002" depth="0.3" position="0 0.018 -0.26"
+                 animation="property:material.opacity;from:0.6;to:0.1;dur:400;dir:alternate;loop:true"></a-box>
+          <a-box material="color:#c07820;roughness:0.6;metalness:0.2" width="0.048" height="0.095" depth="0.076" position="0 -0.105 0.03" rotation="12 0 0"></a-box>
+        </a-entity>
+
+        <!-- LINKE HAND – Klemmbrett mit Lieferschein -->
+        <a-entity position="-0.4 -0.3 -0.58" rotation="-48 8 0">
+          <!-- Hand -->
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.072" height="0.11" depth="0.14" position="0 -0.18 0.04" rotation="15 0 0"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.052" depth="0.014" position="-0.028 -0.122 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.058" depth="0.014" position="-0.010 -0.116 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.056" depth="0.014" position=" 0.010 -0.118 -0.03"></a-box>
+          <a-box material="color:#e8c49a;roughness:0.8" width="0.014" height="0.044" depth="0.014" position=" 0.028 -0.126 -0.03"></a-box>
+          <!-- Klemmbrett -->
+          <a-box material="color:#5c3d1e;roughness:0.7;metalness:0.05" width="0.23" height="0.30" depth="0.009" position="0 0.02 0"></a-box>
+          <!-- Klemme oben -->
+          <a-box material="color:#999;metalness:0.8;roughness:0.2" width="0.07" height="0.025" depth="0.014" position="0 0.155 0.006"></a-box>
+          <a-box material="color:#bbb;metalness:0.9;roughness:0.1" width="0.03" height="0.01"  depth="0.016" position="0 0.162 0.007"></a-box>
+          <!-- Papier -->
+          <a-plane material="color:#f5f0e0;roughness:1.0;side:front" width="0.21" height="0.28" position="0 0.015 0.007"></a-plane>
+          <!-- Kopfzeile -->
+          <a-plane material="color:#2244aa;roughness:0.8" width="0.21" height="0.038" position="0 0.14 0.008"></a-plane>
+          <a-text value="LIEFERSCHEIN" color="#fff" scale="0.052 0.052 0.052"
+                  position="-0.1 0.141 0.01" align="left" baseline="center" material="shader:flat"></a-text>
+          <!-- Lieferschein-Text (live) -->
+          <a-text id="ls-text-hand"
+                  value="" color="#222"
+                  scale="0.048 0.048 0.048"
+                  position="-0.1 0.118 0.009"
+                  align="left" baseline="top" wrap-count="26" material="shader:flat;color:#222"></a-text>
+        </a-entity>
+      </a-camera>
+    </a-entity>
+
+    <!-- LICHT -->
+    <a-light type="ambient"      color="#c8d8ff" intensity="0.18"></a-light>
+    <a-light type="directional"  color="#fff0d8" intensity="0.55" position="4 10 5"
+             cast-shadow="true"
+             shadow-camera-left="-16" shadow-camera-right="16"
+             shadow-camera-top="16"   shadow-camera-bottom="-16"
+             shadow-map-width="2048"  shadow-map-height="2048"
+             shadow-bias="-0.0005"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position="-4 5.6 -4"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position=" 4 5.6 -4"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="2.0" distance="10" decay="2" position=" 0 5.6 -10"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="1.8" distance="9"  decay="2" position="-4 5.6 -13"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="1.8" distance="9"  decay="2" position=" 4 5.6 -13"></a-light>
+    <a-light type="hemisphere" color="#6080a0" groundColor="#302820" intensity="0.25"></a-light>
+    <a-light type="spot" color="#88aaff" intensity="1.2" angle="30" penumbra="0.4"
+             position="0 5 2" target="#pal-target"></a-light>
+    <a-entity id="pal-target" position="0 0 1.5"></a-entity>
+
+    <!-- BODEN -->
+    <a-plane mixin="m-boden" rotation="-90 0 0" width="24" height="32" receive-shadow="true"></a-plane>
+    <!-- Sicherheitsstreifen -->
+    <a-box mixin="m-stripe" position="0 0.005 -6"   width="0.08" height="0.01" depth="24"></a-box>
+    <a-box mixin="m-stripe" position="0 0.005 2.5"   width="14"   height="0.01" depth="0.06"></a-box>
+    <a-box mixin="m-stripe" position="0 0.005 0.2"   width="14"   height="0.01" depth="0.06"></a-box>
+    <a-box mixin="m-stripe" position="-7 0.005 1.35" width="0.06" height="0.01" depth="2.3"></a-box>
+    <a-box mixin="m-stripe" position=" 7 0.005 1.35" width="0.06" height="0.01" depth="2.3"></a-box>
+    <a-box mixin="m-stripe" position="-6.2 0.005 -9" width="0.06" height="0.01" depth="7"></a-box>
+    <a-box mixin="m-stripe" position="-9.8 0.005 -9" width="0.06" height="0.01" depth="7"></a-box>
+    <a-box mixin="m-stripe" position=" 6.2 0.005 -9" width="0.06" height="0.01" depth="7"></a-box>
+    <a-box mixin="m-stripe" position=" 9.8 0.005 -9" width="0.06" height="0.01" depth="7"></a-box>
+
+    <!-- WÄNDE & DECKE -->
+    <a-box mixin="m-wand"    position="0 3 -16"   width="24"   height="6.1" depth="0.3"  receive-shadow="true"></a-box>
+    <a-box mixin="m-wand"    position="-12 3 -6"  width="0.3"  height="6.1" depth="20.1" receive-shadow="true"></a-box>
+    <a-box mixin="m-wand"    position=" 12 3 -6"  width="0.3"  height="6.1" depth="20.1" receive-shadow="true"></a-box>
+    <a-box mixin="m-decke"   position="0 6.15 -6" width="24"   height="0.3" depth="20"></a-box>
+    <a-box mixin="m-pfeiler" position="0 5.8  0"  width="24"   height="0.3" depth="0.4"></a-box>
+    <a-box mixin="m-pfeiler" position="0 5.8 -8"  width="24"   height="0.3" depth="0.4"></a-box>
+    <a-box mixin="m-pfeiler" position="0 5.8 -16" width="24"   height="0.3" depth="0.4"></a-box>
+    <!-- Stützpfeiler -->
+    <a-box mixin="m-pfeiler" position="-10 3  0"  width="0.45" height="6" depth="0.45"></a-box>
+    <a-box mixin="m-pfeiler" position=" 10 3  0"  width="0.45" height="6" depth="0.45"></a-box>
+    <a-box mixin="m-pfeiler" position="-10 3 -8"  width="0.45" height="6" depth="0.45"></a-box>
+    <a-box mixin="m-pfeiler" position=" 10 3 -8"  width="0.45" height="6" depth="0.45"></a-box>
+    <!-- Sockelleisten -->
+    <a-box material="roughness:0.8;metalness:0.1;color:#1a1e26" position="-12 0.15 -6" width="0.28" height="0.3" depth="20"></a-box>
+    <a-box material="roughness:0.8;metalness:0.1;color:#1a1e26" position=" 12 0.15 -6" width="0.28" height="0.3" depth="20"></a-box>
+
+    <!-- Deckenlampen-Körper -->
+    <a-entity position="-4 5.95 -4">
+      <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
+      <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
+    </a-entity>
+    <a-entity position=" 4 5.95 -4">
+      <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
+      <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
+    </a-entity>
+    <a-entity position=" 0 5.95 -10">
+      <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
+      <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
+    </a-entity>
+    <a-cylinder material="color:#ccc;emissive:#ffffcc;emissiveIntensity:0.9;roughness:0.2" radius="0.22" height="0.08" position="-4 5.95 -13"></a-cylinder>
+    <a-cylinder material="color:#ccc;emissive:#ffffcc;emissiveIntensity:0.9;roughness:0.2" radius="0.22" height="0.08" position=" 4 5.95 -13"></a-cylinder>
+    <!-- Kabel -->
+    <a-cylinder material="color:#222" radius="0.01" height="0.35" position="-4 6.05 -4"></a-cylinder>
+    <a-cylinder material="color:#222" radius="0.01" height="0.35" position=" 4 6.05 -4"></a-cylinder>
+    <a-cylinder material="color:#222" radius="0.01" height="0.35" position=" 0 6.05 -10"></a-cylinder>
+
+    <!-- REGAL A – LINKS -->
+    <a-box mixin="m-regal-s" position="-9.6 2.6 -5.8"  width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="-6.4 2.6 -5.8"  width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="-9.6 2.6 -12.2" width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="-6.4 2.6 -12.2" width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="-9.6 2.6 -9" width="0.04" height="0.04" depth="6.6"></a-box>
+    <a-box mixin="m-regal-s" position="-6.4 2.6 -9" width="0.04" height="0.04" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="-8 0.85 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="-8 2.05 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="-8 3.25 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box material="color:#1a1e26;roughness:0.9" position="-9.65 3.0 -9" width="0.04" height="5.2" depth="6.6"></a-box>
+
+    <!-- Pakete Regal A (interaktiv) -->
+    <a-entity class="interactable paket" id="paket-A1" position="-8.5 1.2 -6.8"
+              data-ip="192.168.1.10" data-id="24513"
+              geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
+              material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.1" height="0.03" depth="0.52"></a-box>
+    </a-entity>
+    <a-entity class="interactable paket" id="paket-A2" position="-7.5 1.2 -7.6"
+              data-ip="10.0.0.5" data-id="24514"
+              geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              material="color:#b09050;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="10.0.0.5" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.59" height="0.03" depth="0.1"></a-box>
+    </a-entity>
+    <a-entity class="interactable paket" id="paket-A3" position="-8.7 1.22 -8.4"
+              data-ip="172.16.5.3" data-id="24515"
+              geometry="primitive:box;width:0.65;height:0.52;depth:0.52"
+              material="color:#d0a850;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="172.16.5.3" color="#fff" scale="0.5 0.5 0.5" position="0 0.29 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.265 0" width="0.69" height="0.03" depth="0.12"></a-box>
+    </a-entity>
+    <a-entity class="interactable paket" id="paket-A4" position="-8.1 2.42 -7.3"
+              data-ip="192.168.1.10" data-id="24516"
+              geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
+              material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
+    </a-entity>
+    <a-entity class="interactable paket" id="paket-A5" position="-8.6 2.42 -9.3"
+              data-ip="10.0.0.5" data-id="24517"
+              geometry="primitive:box;width:0.6;height:0.5;depth:0.5"
+              material="color:#b09050;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="10.0.0.5" color="#fff" scale="0.5 0.5 0.5" position="0 0.28 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.255 0" width="0.64" height="0.03" depth="0.1"></a-box>
+    </a-entity>
+    <!-- Füller Regal A -->
+    <a-box mixin="m-paket" position="-7.5 1.2 -10.5" width="0.5" height="0.42" depth="0.42" shadow="cast:true"></a-box>
+    <a-box mixin="m-paket" position="-9.1 1.2 -11.2" width="0.6" height="0.5"  depth="0.5"  shadow="cast:true"></a-box>
+    <a-box mixin="m-paket" position="-8.3 2.42 -11"  width="0.55" height="0.46" depth="0.46" shadow="cast:true"></a-box>
+    <a-box mixin="m-paket" position="-7.8 3.62 -8"   width="0.58" height="0.48" depth="0.48" shadow="cast:true"></a-box>
+    <a-box mixin="m-paket" position="-8.8 3.62 -9.5" width="0.52" height="0.44" depth="0.44" shadow="cast:true"></a-box>
+
+    <!-- REGAL B – RECHTS -->
+    <a-box mixin="m-regal-s" position="6.4 2.6 -5.8"  width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="9.6 2.6 -5.8"  width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="6.4 2.6 -12.2" width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="9.6 2.6 -12.2" width="0.07" height="5.2" depth="0.07"></a-box>
+    <a-box mixin="m-regal-s" position="6.4 2.6 -9" width="0.04" height="0.04" depth="6.6"></a-box>
+    <a-box mixin="m-regal-s" position="9.6 2.6 -9" width="0.04" height="0.04" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="8 0.85 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="8 2.05 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box mixin="m-regal-b" position="8 3.25 -9" width="3.4" height="0.06" depth="6.6"></a-box>
+    <a-box material="color:#1a1e26;roughness:0.9" position="9.65 3.0 -9" width="0.04" height="5.2" depth="6.6"></a-box>
+
+    <a-entity class="interactable paket" id="paket-B1" position="8 1.2 -6.8"
+              data-ip="172.16.5.3" data-id="24518"
+              geometry="primitive:box;width:0.58;height:0.48;depth:0.48"
+              material="color:#d0a850;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="172.16.5.3" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.62" height="0.03" depth="0.1"></a-box>
+    </a-entity>
+    <a-entity class="interactable paket" id="paket-B2" position="7.4 1.2 -8.0"
+              data-ip="192.168.1.10" data-id="24519"
+              geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              material="color:#c8a060;roughness:0.9" shadow="cast:true;receive:true">
+      <a-text value="192.168.1.10" color="#fff" scale="0.5 0.5 0.5" position="0 0.27 0" align="center" look-at="[camera]" material="shader:flat"></a-text>
+      <a-box material="color:#e8d060;roughness:0.8" position="0 0.245 0" width="0.59" height="0.03" depth="0.1"></a-box>
+    </a-entity>
+    <!-- Füller Regal B -->
+    <a-box mixin="m-paket" position="8.8 1.2 -9.5"  width="0.55" height="0.46" depth="0.46"></a-box>
+    <a-box mixin="m-paket" position="7.5 1.2 -10.8" width="0.6"  height="0.5"  depth="0.5"></a-box>
+    <a-box mixin="m-paket" position="8.5 2.42 -7.8" width="0.52" height="0.44" depth="0.44"></a-box>
+    <a-box mixin="m-paket" position="7.8 2.42 -11"  width="0.58" height="0.48" depth="0.48"></a-box>
+    <a-box mixin="m-paket" position="9   3.62 -9"   width="0.6"  height="0.5"  depth="0.5"></a-box>
+
+    <!-- PALETTEN-ZONE -->
+    <!-- Palette 1 – blau – 192.168.1.x -->
+    <a-entity position="-5 0 1.5">
+      <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
+      <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box material="color:#1b2d55;roughness:0.6;metalness:0.4"
+             class="interactable palette-zone" id="palette-1" data-network="192.168.1"
+             position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
+        <a-box material="color:#3060dd;emissive:#3060dd;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 1"       color="#88aaff" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.4"></a-text>
+        <a-text value="192.168.1.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="ABLADEN"     color="#4488ff"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#4488ff;emissiveIntensity:0.3"></a-text>
+      </a-box>
+    </a-entity>
+
+    <!-- Palette 2 – grün – 10.0.0.x -->
+    <a-entity position="0 0 1.5">
+      <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
+      <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box material="color:#1a3322;roughness:0.6;metalness:0.4"
+             class="interactable palette-zone" id="palette-2" data-network="10.0.0"
+             position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
+        <a-box material="color:#206640;emissive:#206640;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 2"    color="#88ffaa" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#88ffaa;emissiveIntensity:0.4"></a-text>
+        <a-text value="10.0.0.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="ABLADEN"  color="#44cc66"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#44cc66;emissiveIntensity:0.3"></a-text>
+      </a-box>
+    </a-entity>
+
+    <!-- Palette 3 – orange – 172.16.5.x -->
+    <a-entity position="5 0 1.5">
+      <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
+      <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
+      <a-box material="color:#332211;roughness:0.6;metalness:0.4"
+             class="interactable palette-zone" id="palette-3" data-network="172.16.5"
+             position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
+        <a-box material="color:#884420;emissive:#884420;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
+        <a-text value="LKW 3"      color="#ffaa44" scale="0.7 0.7 0.7" position="0  0.22 0.04" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.4"></a-text>
+        <a-text value="172.16.5.x" color="#ffffff"  scale="0.5 0.5 0.5" position="0  0.02 0.04" align="center" material="shader:flat"></a-text>
+        <a-text value="ABLADEN"    color="#ff8833"  scale="0.35 0.35 0.35" position="0 -0.2 0.04" align="center" material="shader:flat;emissive:#ff8833;emissiveIntensity:0.3"></a-text>
+      </a-box>
+    </a-entity>
+
+    <!-- GABELSTAPLER (Deko) -->
+    <a-entity position="-9.2 0 -13.5" rotation="0 30 0">
+      <a-box material="color:#f0a020;roughness:0.5;metalness:0.3" position="0 0.72 0" width="1.15" height="1.44" depth="1.75"></a-box>
+      <a-box material="color:#222" position="0 0.18 0" width="1.2" height="0.36" depth="2.0"></a-box>
+      <a-box material="color:#88ccff;opacity:0.35;roughness:0.1" position="0 1.25 0.45" width="0.9" height="0.7" depth="0.04"></a-box>
+      <a-box material="color:#666;metalness:0.85;roughness:0.2" position="-0.24 0.46 -1.55" width="0.1" height="0.07" depth="1.1"></a-box>
+      <a-box material="color:#666;metalness:0.85;roughness:0.2" position=" 0.24 0.46 -1.55" width="0.1" height="0.07" depth="1.1"></a-box>
+      <a-box material="color:#999;metalness:0.7" position="-0.38 1.6 -0.82" width="0.08" height="2.2" depth="0.08"></a-box>
+      <a-box material="color:#999;metalness:0.7" position=" 0.38 1.6 -0.82" width="0.08" height="2.2" depth="0.08"></a-box>
+      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position="-0.56 0.24  0.55"></a-cylinder>
+      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position=" 0.56 0.24  0.55"></a-cylinder>
+      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position="-0.56 0.24 -0.55"></a-cylinder>
+      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position=" 0.56 0.24 -0.55"></a-cylinder>
+    </a-entity>
+
+    <!-- PALETTENTURM (Deko) -->
+    <a-entity position="9.2 0 -12">
+      <a-box mixin="m-palette" position="0 0.07 0" width="1.22" height="0.13" depth="0.88"></a-box>
+      <a-box mixin="m-palette" position="0 0.22 0" width="1.22" height="0.13" depth="0.88"></a-box>
+      <a-box mixin="m-palette" position="0 0.37 0" width="1.22" height="0.13" depth="0.88"></a-box>
+      <a-box mixin="m-palette" position="0 0.52 0" width="1.22" height="0.13" depth="0.88"></a-box>
+    </a-entity>
+
+    <!-- FEUERLÖSCHER -->
+    <a-entity position="-11.6 1.3 -2">
+      <a-cylinder material="color:#cc2222;roughness:0.4;metalness:0.5" radius="0.1" height="0.55"></a-cylinder>
+      <a-cylinder material="color:#aaa;roughness:0.3;metalness:0.8"    radius="0.06" height="0.1" position="0 0.32 0"></a-cylinder>
+      <a-cylinder material="color:#555;roughness:0.5;metalness:0.6"    radius="0.015" height="0.2" position="0 0.45 0"></a-cylinder>
+    </a-entity>
+
+    <!-- WANDSCHILDER -->
+    <a-plane material="color:#f0c030;roughness:0.8" width="0.8" height="0.3" position="-11.7 2.8 -6" rotation="0 90 0">
+      <a-text value="VERSANDZONE" color="#222" scale="0.38 0.38 0.38" position="0 0 0.02" align="center" material="shader:flat"></a-text>
+    </a-plane>
+    <a-plane material="color:#2a2e38;roughness:0.9" width="0.5" height="0.22" position="-8 4.5 -5.7">
+      <a-text value="REGAL A" color="#88aaff" scale="0.36 0.36 0.36" position="0 0 0.01" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.3"></a-text>
+    </a-plane>
+    <a-plane material="color:#2a2e38;roughness:0.9" width="0.5" height="0.22" position=" 8 4.5 -5.7">
+      <a-text value="REGAL B" color="#ffaa44" scale="0.36 0.36 0.36" position="0 0 0.01" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.3"></a-text>
+    </a-plane>
+
+  </a-scene>
+
+  <script>
+    const lieferschein = [
+      { id:'24513', ip:'192.168.1.10', network:'192.168.1', done:false },
+      { id:'24514', ip:'10.0.0.5',     network:'10.0.0',    done:false },
+      { id:'24515', ip:'172.16.5.3',   network:'172.16.5',  done:false },
+      { id:'24516', ip:'192.168.1.10', network:'192.168.1', done:false },
+      { id:'24517', ip:'10.0.0.5',     network:'10.0.0',    done:false },
+    ];
+    const netzwerkMap = { '192.168.1':'palette-1', '10.0.0':'palette-2', '172.16.5':'palette-3' };
+    let selectedPaket = null;
+    let score = 0;
+
+    // Progress Pips
+    const pipsEl = document.getElementById('progress-pips');
+    lieferschein.forEach((_,i) => {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (i===0?' active':'');
+      pip.id = 'pip-'+i;
+      pipsEl.appendChild(pip);
+    });
+
+    let hoveredEl = null;
+
+    document.querySelectorAll('.paket').forEach(p => {
+      p.addEventListener('mouseenter', () => {
+        hoveredEl = p;
+        if (p !== selectedPaket) {
+          p.setAttribute('material','emissive','#8b6a20');
+          p.setAttribute('material','emissiveIntensity','0.35');
+        }
+      });
+      p.addEventListener('mouseleave', () => {
+        if (hoveredEl === p) hoveredEl = null;
+        if (p !== selectedPaket) {
+          p.setAttribute('material','emissive','#000000');
+          p.setAttribute('material','emissiveIntensity','0');
+        }
+      });
+    });
+
+    document.querySelectorAll('.palette-zone').forEach(pal => {
+      pal.addEventListener('mouseenter', () => { hoveredEl = pal; });
+      pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
+    });
+
+    function interactWithPaket(el) {
+      const ip   = el.getAttribute('data-ip');
+      const pkid = el.getAttribute('data-id');
+      const eintrag = lieferschein.find(e => e.id===pkid && !e.done);
+      if (!eintrag) { showFeedback('Dieses Paket ist bereits erledigt!', false); return; }
+      if (selectedPaket && selectedPaket !== el) {
+        selectedPaket.setAttribute('material','emissive','#000000');
+        selectedPaket.setAttribute('material','emissiveIntensity','0');
+      }
+      selectedPaket = el;
+      el.setAttribute('material','emissive','#f0c030');
+      el.setAttribute('material','emissiveIntensity','0.6');
+      const badge = document.getElementById('selected-badge');
+      badge.textContent = '📦 Paket ' + pkid + ' — IP: ' + ip;
+      badge.classList.add('visible');
+      document.getElementById('task-text').textContent = 'Paket ' + pkid + ' ausgewählt — lege es auf die richtige Palette!';
+    }
+
+    function interactWithPalette(pal) {
+      if (!selectedPaket) { showFeedback('Wähle zuerst ein Paket aus dem Regal!', false); return; }
+      const paketIp = selectedPaket.getAttribute('data-ip');
+      const paketId = selectedPaket.getAttribute('data-id');
+      const palId   = pal.getAttribute('id');
+      const net     = paketIp.split('.').slice(0,3).join('.');
+      if (netzwerkMap[net] === palId) {
+        const e = lieferschein.find(x => x.id===paketId && !x.done);
+        if (e) e.done = true;
+        const pos = selectedPaket.getAttribute('position');
+        selectedPaket.setAttribute('animation__up',
+          'property:position;to:'+pos.x+' '+(pos.y+1.3)+' '+pos.z+';dur:380;easing:easeInQuad');
+        const pEl = selectedPaket;
+        setTimeout(() => pEl.setAttribute('visible', false), 400);
+        score += 100;
+        selectedPaket.setAttribute('material','emissive','#000000');
+        selectedPaket = null;
+        document.getElementById('selected-badge').classList.remove('visible');
+        document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
+        updateLieferschein(); updatePips();
+        showFeedback('✅ Paket ' + paketId + ' korrekt zugestellt! +100', true);
+        triggerFlash(true);
+        if (lieferschein.every(x=>x.done)) {
+          setTimeout(() => {
+            document.getElementById('task-text').textContent = '🎉 Alle Pakete zugestellt! Ausgezeichnet!';
+            document.getElementById('task-text').style.color = '#4cff88';
+          }, 2400);
+        }
+      } else {
+        showFeedback('❌ Falsche Palette! ' + paketIp + ' gehört nicht in dieses Netz.', false);
+        triggerFlash(false);
+        score = Math.max(0, score-20);
+        document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
+        selectedPaket.setAttribute('material','emissive','#ff2020');
+        selectedPaket.setAttribute('material','emissiveIntensity','0.7');
+        const pEl = selectedPaket;
+        setTimeout(() => {
+          if (pEl === selectedPaket) {
+            pEl.setAttribute('material','emissive','#f0c030');
+            pEl.setAttribute('material','emissiveIntensity','0.6');
+          }
+        }, 600);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'e' && e.key !== 'E') return;
+      if (!hoveredEl) return;
+      if (hoveredEl.classList.contains('paket')) interactWithPaket(hoveredEl);
+      else if (hoveredEl.classList.contains('palette-zone')) interactWithPalette(hoveredEl);
+    });
+
+    function updatePips() {
+      const nextOpen = lieferschein.findIndex(x => !x.done);
+      lieferschein.forEach((e,i) => {
+        const pip = document.getElementById('pip-'+i);
+        if (!pip) return;
+        pip.className = 'pip' + (e.done ? ' done' : (i===nextOpen ? ' active' : ''));
+      });
+    }
+
+    function updateLieferschein() {
+      const z = lieferschein.map(e =>
+        (e.done ? ' OK  ' : '     ') + e.id + '  ' + e.ip
+      ).join('\n');
+      const th = document.getElementById('ls-text-hand');
+      if (th) th.setAttribute('value', 'MusterFirma GmbH\n14.01.2026\n\nID      IP\n' + z);
+    }
+
+    function showFeedback(msg, ok) {
+      const t = document.getElementById('task-text');
+      t.style.color = ok ? '#4cff88' : '#ff5555';
+      t.textContent = msg;
+      setTimeout(() => {
+        t.style.color = '#e8edf5';
+        const offen = lieferschein.find(e => !e.done);
+        if (offen) t.textContent = 'Nächstes Paket: ' + offen.id + ' (' + offen.ip + ') — richtige Palette wählen.';
+      }, 2200);
+    }
+
+    function triggerFlash(ok) {
+      const f = document.getElementById('flash');
+      f.className = ok ? 'good' : 'bad';
+      setTimeout(() => { f.className = ''; }, 350);
+    }
+
+    document.querySelector('a-scene').addEventListener('loaded', () => {
+      updateLieferschein();
+    });
+  </script>
+</body>
+</html>
