@@ -92,6 +92,37 @@
   <div id="flash"></div>
 
   <script>
+    AFRAME.registerComponent('collision-walls', {
+      init() {
+        this.r = 0.38;
+        this.boxes = [
+          { xmin:-20,    xmax:-11.85, zmin:-20,    zmax: 10    },
+          { xmin: 11.85, xmax: 20,    zmin:-20,    zmax: 10    },
+          { xmin:-20,    xmax: 20,    zmin:-20,    zmax:-15.85 },
+          { xmin:-9.8,   xmax:-6.2,   zmin:-12.3,  zmax:-5.7   },
+          { xmin: 6.2,   xmax: 9.8,   zmin:-12.3,  zmax:-5.7   },
+        ];
+        this._wp = new AFRAME.THREE.Vector3();
+      },
+      tick() {
+        this.el.object3D.getWorldPosition(this._wp);
+        const wx = this._wp.x, wz = this._wp.z;
+        const lp = this.el.object3D.position;
+        const r = this.r;
+        for (const b of this.boxes) {
+          if (wx <= b.xmin-r || wx >= b.xmax+r ||
+              wz <= b.zmin-r || wz >= b.zmax+r) continue;
+          const dL = wx-(b.xmin-r), dR = (b.xmax+r)-wx;
+          const dF = wz-(b.zmin-r), dB = (b.zmax+r)-wz;
+          const m = Math.min(dL, dR, dF, dB);
+          if      (m===dL) lp.x -= dL;
+          else if (m===dR) lp.x += dR;
+          else if (m===dF) lp.z -= dF;
+          else             lp.z += dB;
+        }
+      }
+    });
+
     AFRAME.registerComponent('jump-controls', {
       schema: { jumpForce: {default: 8.5}, gravity: {default: -16} },
       init() {
@@ -126,7 +157,7 @@
   <a-scene
     background="color: #1a2030"
     fog="type: linear; color: #1a2030; near: 18; far: 38"
-    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.1"
     shadow="type: pcfsoft; enabled: true"
   >
     <a-assets>
@@ -143,7 +174,7 @@
 
     <!-- KAMERA -->
     <a-entity id="player" position="0 0 5" jump-controls>
-      <a-camera wasd-controls="acceleration:22" look-controls="pointerLockEnabled:true" height="1.65">
+      <a-camera wasd-controls="acceleration:22" look-controls="pointerLockEnabled:true" height="1.65" collision-walls>
         <a-cursor
           raycaster="objects: .interactable; far: 12"
           geometry="primitive:ring; radiusInner:0.008; radiusOuter:0.013"
@@ -202,7 +233,7 @@
              cast-shadow="true"
              shadow-camera-left="-16" shadow-camera-right="16"
              shadow-camera-top="16"   shadow-camera-bottom="-16"
-             shadow-map-width="2048"  shadow-map-height="2048"
+             shadow-map-width="4096"  shadow-map-height="4096"
              shadow-bias="-0.0005"></a-light>
     <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position="-4 5.6 -4"></a-light>
     <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position=" 4 5.6 -4"></a-light>
@@ -728,6 +759,73 @@
       setTimeout(() => { f.className = ''; }, 350);
     }
 
+    function mkConcreteCanvas(baseHex, tileSize) {
+      const c = document.createElement('canvas');
+      c.width = c.height = tileSize;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = baseHex;
+      ctx.fillRect(0, 0, tileSize, tileSize);
+      for (let i = 0; i < tileSize * tileSize * 0.25; i++) {
+        ctx.globalAlpha = Math.random() * 0.1;
+        ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000';
+        const x = Math.random() * tileSize | 0, y = Math.random() * tileSize | 0;
+        ctx.fillRect(x, y, 1 + (Math.random() * 2 | 0), 1 + (Math.random() * 2 | 0));
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * tileSize;
+        ctx.beginPath(); ctx.moveTo(x, 0);
+        ctx.lineTo(x + (Math.random() - 0.5) * 15, tileSize); ctx.stroke();
+      }
+      const tex = new AFRAME.THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = AFRAME.THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function mkWoodCanvas(baseHex, tileSize) {
+      const c = document.createElement('canvas');
+      c.width = tileSize; c.height = tileSize >> 1;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = baseHex;
+      ctx.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < 28; i++) {
+        const y0 = (i / 28) * c.height;
+        ctx.strokeStyle = i % 3 === 0 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 0.7 + Math.random() * 1.1;
+        ctx.beginPath(); ctx.moveTo(0, y0);
+        for (let x = 0; x <= c.width; x += 16) ctx.lineTo(x, y0 + (Math.random() - 0.5) * 2);
+        ctx.stroke();
+      }
+      const tex = new AFRAME.THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = AFRAME.THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function applyProceduralTextures() {
+      const floorTex = mkConcreteCanvas('#5a4e3a', 512); floorTex.repeat.set(8, 10);
+      const wallTex  = mkConcreteCanvas('#32364a', 512); wallTex.repeat.set(5, 2);
+      const ceilTex  = mkConcreteCanvas('#22253a', 512); ceilTex.repeat.set(8, 6);
+      const woodTex  = mkWoodCanvas('#9a7c42', 512);     woodTex.repeat.set(4, 1);
+      const palTex   = mkWoodCanvas('#8a6628', 512);     palTex.repeat.set(2, 2);
+
+      function applyTex(el, tex) {
+        el.object3D.traverse(node => {
+          if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
+            node.material.map = tex;
+            node.material.color.set(0xffffff);
+            node.material.needsUpdate = true;
+          }
+        });
+      }
+
+      document.querySelectorAll('[mixin~="m-boden"]').forEach(el  => applyTex(el, floorTex));
+      document.querySelectorAll('[mixin~="m-wand"]').forEach(el   => applyTex(el, wallTex));
+      document.querySelectorAll('[mixin~="m-decke"]').forEach(el  => applyTex(el, ceilTex));
+      document.querySelectorAll('[mixin~="m-regal-b"]').forEach(el => applyTex(el, woodTex));
+      document.querySelectorAll('[mixin~="m-palette"]').forEach(el => applyTex(el, palTex));
+    }
+
     document.querySelector('a-scene').addEventListener('loaded', () => {
       updateLieferschein();
       shuffle(slotPool);
@@ -735,6 +833,7 @@
         const [x, y, z] = slotPool[i];
         el.setAttribute('position', `${x} ${y} ${z}`);
       });
+      applyProceduralTextures();
     });
   </script>
 </body>
