@@ -68,6 +68,32 @@
     #flash { position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity .15s; }
     #flash.good { background: rgba(0,200,80,0.18); opacity: 1; }
     #flash.bad  { background: rgba(200,30,30,0.22); opacity: 1; }
+
+    #intro-overlay, #complete-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf5;
+    }
+    #intro-overlay.hidden, #complete-overlay.hidden { display: none; }
+    .overlay-box {
+      background: linear-gradient(145deg, rgba(12,22,42,0.98), rgba(18,32,58,0.98));
+      border: 1px solid rgba(100,160,255,0.28); border-radius: 20px;
+      padding: 48px 52px; max-width: 540px; width: 90%;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.06);
+      text-align: center;
+    }
+    .overlay-tag { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #64a0ff; margin-bottom: 12px; }
+    .overlay-avatar { font-size: 52px; margin: 4px 0 16px; }
+    .overlay-title { font-size: 24px; font-weight: 700; margin-bottom: 14px; }
+    .overlay-body { font-size: 13.5px; color: #9ab0cc; line-height: 1.72; margin-bottom: 28px; }
+    .overlay-controls { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; text-align: left; margin: 0 auto 32px; max-width: 340px; font-size: 13px; align-items: center; }
+    .ctrl-key { background: rgba(100,160,255,0.12); border: 1px solid rgba(100,160,255,0.3); color: #88aaee; font-family: monospace; font-size: 12px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; display: inline-block; }
+    .overlay-btn { background: linear-gradient(135deg, #1a4a8a, #2a6acc); border: 1px solid rgba(100,160,255,0.5); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; font-weight: 600; padding: 13px 36px; border-radius: 30px; cursor: pointer; letter-spacing: 0.4px; transition: transform .15s, box-shadow .15s; box-shadow: 0 4px 16px rgba(40,100,200,0.4); margin-top: 4px; }
+    .overlay-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(40,100,200,0.55); }
+    .overlay-stats { display: flex; justify-content: center; gap: 48px; margin: 8px 0 24px; }
+    .overlay-stats span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 26px; font-weight: 700; }
+    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #64a0ff; }
   </style>
 </head>
 <body>
@@ -91,16 +117,95 @@
   <div id="selected-badge"></div>
   <div id="flash"></div>
 
+  <!-- Steuer-Szenario: Einführung -->
+  <div id="intro-overlay">
+    <div class="overlay-box">
+      <div class="overlay-tag">Steuer-Szenario &middot; Einführung</div>
+      <div class="overlay-avatar">&#128119;</div>
+      <div class="overlay-title">Willkommen im TCP/IP-Lagerhaus!</div>
+      <div class="overlay-body">
+        Ich bin <strong>Max</strong>, dein Lagerleiter. Heute lernst du, wie Datenpakete im TCP/IP-Modell adressiert und zugestellt werden &mdash; anschaulich als Lagerlogistik.<br><br>
+        Lies den <strong>Lieferschein</strong> in deiner Hand, greife Pakete aus den Regalen und lege sie auf die richtige Palette &mdash; sortiert nach IP-Netzwerk.
+      </div>
+      <div class="overlay-controls">
+        <span class="ctrl-key">W A S D</span><span>Bewegen</span>
+        <span class="ctrl-key">Maus</span><span>Umsehen &mdash; Klick zum Sperren</span>
+        <span class="ctrl-key">E</span><span>Paket greifen &amp; Palette wählen</span>
+        <span class="ctrl-key">Leertaste</span><span>Springen</span>
+      </div>
+      <button id="intro-start-btn" class="overlay-btn">Los geht&#39;s &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Lern-Szenario 1: Abschluss -->
+  <div id="complete-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 1 &middot; Abgeschlossen</div>
+      <div class="overlay-avatar">&#127881;</div>
+      <div class="overlay-title">Alle Pakete zugestellt!</div>
+      <div class="overlay-stats">
+        <span><span class="stat-label">Punkte</span><span id="co-score">—</span></span>
+        <span><span class="stat-label">Zeit</span><span id="co-time">—</span></span>
+      </div>
+      <div class="overlay-body">
+        Du hast alle IP-Adressen korrekt ihrem Netzwerk zugeordnet.<br>
+        Das Grundprinzip: Aus den ersten Oktetten einer IP-Adresse l&auml;sst sich das Zielnetz ableiten &mdash; genau wie eine Postleitzahl die Region bestimmt.
+      </div>
+      <button id="complete-btn" class="overlay-btn">Weiter zu Szenario 2 &rarr;</button>
+    </div>
+  </div>
+
   <script>
+    AFRAME.registerComponent('proximity-dialog', {
+      init() {
+        this._cp = new AFRAME.THREE.Vector3();
+        this._np = new AFRAME.THREE.Vector3();
+        this.triggered = false;
+      },
+      tick() {
+        if (this.triggered) return;
+        const cam = this.el.sceneEl.camera;
+        if (!cam) return;
+        cam.getWorldPosition(this._cp);
+        this.el.object3D.getWorldPosition(this._np);
+        if (this._cp.distanceTo(this._np) < 4.5) {
+          this.triggered = true;
+          showNPCBriefing();
+        }
+      }
+    });
+
     AFRAME.registerComponent('collision-walls', {
       init() {
         this.r = 0.38;
+        // AABB: { xmin, xmax, zmin, zmax }
+        // OBB:  { cx, cz, hw, hd, rot }  rot in Grad
         this.boxes = [
-          { xmin:-20,    xmax:-11.85, zmin:-20,    zmax: 10    },
-          { xmin: 11.85, xmax: 20,    zmin:-20,    zmax: 10    },
-          { xmin:-20,    xmax: 20,    zmin:-20,    zmax:-15.85 },
-          { xmin:-9.8,   xmax:-6.2,   zmin:-12.3,  zmax:-5.7   },
-          { xmin: 6.2,   xmax: 9.8,   zmin:-12.3,  zmax:-5.7   },
+          // Linke Wand — südlich des Büros
+          { xmin:-20,   xmax:-11.85, zmin:-20,   zmax:-10   },
+          // Linke Wand — Wandstärke neben Büro, oberhalb Tür (z=-10 bis -8)
+          { xmin:-12.2, xmax:-11.85, zmin:-10,   zmax:-8    },
+          // Türöffnung z=-8 bis z=-5: offen
+          // Linke Wand — Wandstärke neben Büro, unterhalb Tür (z=-5 bis -2)
+          { xmin:-12.2, xmax:-11.85, zmin:-5,    zmax:-2    },
+          // Linke Wand — nördlich des Büros
+          { xmin:-20,   xmax:-11.85, zmin:-2,    zmax:38    },
+          // Rechte Wand
+          { xmin:11.85, xmax:20,     zmin:-20,   zmax:38    },
+          // Rückwand
+          { xmin:-20,   xmax:20,     zmin:-20,   zmax:-15.85},
+          // Fassade z=0 — Lücke x=-2..x=2 (Eingang)
+          { xmin:-12,   xmax:-2,     zmin:-0.3,  zmax:0.3   },
+          { xmin:2,     xmax:12,     zmin:-0.3,  zmax:0.3   },
+          // Regale
+          { xmin:-9.8,  xmax:-6.2,   zmin:-12.3, zmax:-5.7  },
+          { xmin:6.2,   xmax:9.8,    zmin:-12.3, zmax:-5.7  },
+          // Büro-Wände
+          { xmin:-22.2, xmax:-22,    zmin:-10,   zmax:-2    },
+          { xmin:-22,   xmax:-12,    zmin:-10.2, zmax:-10   },
+          { xmin:-22,   xmax:-12,    zmin:-2,    zmax:-1.8  },
+          // Outdoor-Grenze
+          { xmin:-30,   xmax:30,     zmin:33,    zmax:40    },
         ];
         this._wp = new AFRAME.THREE.Vector3();
       },
@@ -110,18 +215,108 @@
         const lp = this.el.object3D.position;
         const r = this.r;
         for (const b of this.boxes) {
-          if (wx <= b.xmin-r || wx >= b.xmax+r ||
-              wz <= b.zmin-r || wz >= b.zmax+r) continue;
-          const dL = wx-(b.xmin-r), dR = (b.xmax+r)-wx;
-          const dF = wz-(b.zmin-r), dB = (b.zmax+r)-wz;
-          const m = Math.min(dL, dR, dF, dB);
-          if      (m===dL) lp.x -= dL;
-          else if (m===dR) lp.x += dR;
-          else if (m===dF) lp.z -= dF;
-          else             lp.z += dB;
+          if ('xmin' in b) {
+            // AABB
+            if (wx <= b.xmin-r || wx >= b.xmax+r ||
+                wz <= b.zmin-r || wz >= b.zmax+r) continue;
+            const dL = wx-(b.xmin-r), dR = (b.xmax+r)-wx;
+            const dF = wz-(b.zmin-r), dB = (b.zmax+r)-wz;
+            const m = Math.min(dL, dR, dF, dB);
+            if      (m===dL) lp.x -= dL;
+            else if (m===dR) lp.x += dR;
+            else if (m===dF) lp.z -= dF;
+            else             lp.z += dB;
+          } else {
+            // OBB — Spielerposition in lokalen Box-Raum transformieren
+            const a = b.rot * Math.PI / 180;
+            const cos = Math.cos(-a), sin = Math.sin(-a);
+            const dx = wx - b.cx, dz = wz - b.cz;
+            const lx = cos*dx - sin*dz;
+            const lz = sin*dx + cos*dz;
+            const hw = b.hw + r, hd = b.hd + r;
+            if (Math.abs(lx) >= hw || Math.abs(lz) >= hd) continue;
+            const dL = lx+hw, dR = hw-lx, dF = lz+hd, dB = hd-lz;
+            const m = Math.min(dL, dR, dF, dB);
+            let plx = 0, plz = 0;
+            if      (m===dL) plx = -dL;
+            else if (m===dR) plx =  dR;
+            else if (m===dF) plz = -dF;
+            else             plz =  dB;
+            // Zurück in Weltkoordinaten
+            const ci = Math.cos(a), si = Math.sin(a);
+            lp.x += ci*plx - si*plz;
+            lp.z += si*plx + ci*plz;
+          }
         }
       }
     });
+
+    AFRAME.registerComponent('auto-collider', {
+      init() {
+        this.el.addEventListener('model-loaded', () => {
+          this.el.object3D.updateWorldMatrix(true, true);
+
+          // Clear entity Y-rotation to compute bbox in model-local frame (no AABB inflation)
+          const savedY = this.el.object3D.rotation.y;
+          this.el.object3D.rotation.y = 0;
+          this.el.object3D.updateMatrixWorld(true);
+          const box = new AFRAME.THREE.Box3().setFromObject(this.el.object3D);
+          const hw  = (box.max.x - box.min.x) / 2;
+          const hd  = (box.max.z - box.min.z) / 2;
+          const bcx = (box.min.x + box.max.x) / 2;
+          const bcz = (box.min.z + box.max.z) / 2;
+
+          // Restore rotation; rotate box-center offset around entity origin
+          this.el.object3D.rotation.y = savedY;
+          this.el.object3D.updateMatrixWorld(true);
+          const ep   = this.el.object3D.position;
+          const offX = bcx - ep.x, offZ = bcz - ep.z;
+          const cosA = Math.cos(savedY), sinA = Math.sin(savedY);
+          const cx   = ep.x + cosA * offX - sinA * offZ;
+          const cz   = ep.z + sinA * offX + cosA * offZ;
+          const rot  = savedY * 180 / Math.PI;
+
+          const cam = document.querySelector('[collision-walls]');
+          if (!cam || !cam.components['collision-walls']) return;
+          cam.components['collision-walls'].boxes.push({ cx, cz, hw, hd, rot });
+        });
+      }
+    });
+
+    // ── Debug-Visualisierung (F2 zum Ein-/Ausschalten) ──────────────────
+    let _dbgEls = [], _dbgOn = false;
+    function toggleCollisionDebug() {
+      const scene = document.querySelector('a-scene');
+      const cam   = document.querySelector('[collision-walls]');
+      if (!cam || !cam.components['collision-walls']) return;
+      if (_dbgOn) {
+        _dbgEls.forEach(e => e.remove());
+        _dbgEls = []; _dbgOn = false;
+        return;
+      }
+      const r = cam.components['collision-walls'].r;
+      cam.components['collision-walls'].boxes.forEach(b => {
+        const el = document.createElement('a-box');
+        if ('xmin' in b) {
+          // AABB: zeige echte Kollisionszone (inkl. Spielerradius)
+          el.setAttribute('position', `${(b.xmin+b.xmax)/2} 1.5 ${(b.zmin+b.zmax)/2}`);
+          el.setAttribute('width',  (b.xmax - b.xmin) + r*2);
+          el.setAttribute('depth',  (b.zmax - b.zmin) + r*2);
+        } else {
+          // OBB: zeige echte Kollisionszone (inkl. Spielerradius)
+          el.setAttribute('position', `${b.cx} 1.5 ${b.cz}`);
+          el.setAttribute('width',  (b.hw + r) * 2);
+          el.setAttribute('depth',  (b.hd + r) * 2);
+          el.setAttribute('rotation', `0 ${b.rot} 0`);
+        }
+        el.setAttribute('height', 3);
+        el.setAttribute('material', 'color:#ff3300;opacity:0.28;transparent:true;side:double;shader:flat');
+        scene.appendChild(el);
+        _dbgEls.push(el);
+      });
+      _dbgOn = true;
+    }
+    window.addEventListener('keydown', e => { if (e.code === 'F2') toggleCollisionDebug(); });
 
     AFRAME.registerComponent('jump-controls', {
       schema: { jumpForce: {default: 8.5}, gravity: {default: -16} },
@@ -155,12 +350,12 @@
   </script>
 
   <a-scene
-    background="color: #1a2030"
-    fog="type: linear; color: #1a2030; near: 18; far: 38"
+    background="color: #87ceeb"
+    fog="type: linear; color: #c8ddf0; near: 25; far: 55"
     renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.1"
     shadow="type: pcfsoft; enabled: true"
   >
-    <a-assets>
+    <a-assets timeout="10000">
       <a-mixin id="m-boden"   material="roughness:0.85;metalness:0.0;color:#3d3428"></a-mixin>
       <a-mixin id="m-wand"    material="roughness:0.9;metalness:0.0;color:#2a2e38"></a-mixin>
       <a-mixin id="m-decke"   material="roughness:1.0;metalness:0.0;color:#1c1f28"></a-mixin>
@@ -170,10 +365,14 @@
       <a-mixin id="m-paket"   material="roughness:0.9;metalness:0.0;color:#c8a060"></a-mixin>
       <a-mixin id="m-palette" material="roughness:0.9;metalness:0.0;color:#7a5c28"></a-mixin>
       <a-mixin id="m-stripe"  material="roughness:1.0;color:#f0c030;emissive:#f0c030;emissiveIntensity:0.15"></a-mixin>
+      <a-asset-item id="model-lkw"      src="lct_3000_07-_low_poly_model.glb"></a-asset-item>
+      <a-asset-item id="model-forklift" src="warehouse_forklift_gameready.glb"></a-asset-item>
     </a-assets>
 
+    <a-sky color="#87ceeb"></a-sky>
+
     <!-- KAMERA -->
-    <a-entity id="player" position="0 0 5" jump-controls>
+    <a-entity id="player" position="0 0 10" jump-controls>
       <a-camera wasd-controls="acceleration:22" look-controls="pointerLockEnabled:true" height="1.65" collision-walls>
         <a-cursor
           raycaster="objects: .interactable; far: 12"
@@ -235,15 +434,22 @@
              shadow-camera-top="16"   shadow-camera-bottom="-16"
              shadow-map-width="4096"  shadow-map-height="4096"
              shadow-bias="-0.0005"></a-light>
-    <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position="-4 5.6 -4"></a-light>
-    <a-light type="point" color="#ffeebb" intensity="2.2" distance="10" decay="2" position=" 4 5.6 -4"></a-light>
-    <a-light type="point" color="#ffeebb" intensity="2.0" distance="10" decay="2" position=" 0 5.6 -10"></a-light>
-    <a-light type="point" color="#ffeebb" intensity="1.8" distance="9"  decay="2" position="-4 5.6 -13"></a-light>
-    <a-light type="point" color="#ffeebb" intensity="1.8" distance="9"  decay="2" position=" 4 5.6 -13"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="5.0" distance="10" decay="2" position=" 0 5.6 -10"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="4.8" distance="9"  decay="2" position="-4 5.6 -13"></a-light>
+    <a-light type="point" color="#ffeebb" intensity="4.8" distance="9"  decay="2" position=" 4 5.6 -13"></a-light>
     <a-light type="hemisphere" color="#6080a0" groundColor="#302820" intensity="0.25"></a-light>
-    <a-light type="spot" color="#88aaff" intensity="1.2" angle="30" penumbra="0.4"
-             position="0 5 2" target="#pal-target"></a-light>
-    <a-entity id="pal-target" position="0 0 1.5"></a-entity>
+    <a-entity id="pal-target" position="0 0 -4"></a-entity>
+
+    <!-- LAGERHALLEN-FASSADE (z=0, Durchgang x=-2..+2) -->
+    <a-box mixin="m-wand" position="-7 3 0"     width="10"  height="6.1" depth="0.3"></a-box>
+    <a-box mixin="m-wand" position=" 7 3 0"     width="10"  height="6.1" depth="0.3"></a-box>
+    <a-box mixin="m-wand" position=" 0 4.55 0"  width="4"   height="3.1" depth="0.3"></a-box>
+    <a-box material="color:#555;roughness:0.5;metalness:0.4" position="-2 1.5 0" width="0.12" height="3.0" depth="0.35"></a-box>
+    <a-box material="color:#555;roughness:0.5;metalness:0.4" position=" 2 1.5 0" width="0.12" height="3.0" depth="0.35"></a-box>
+    <a-plane material="color:#1a2844;roughness:0.8" width="3.5" height="0.6" position="0 5.6 0.2">
+      <a-text value="LOGISTIK-ZENTRUM" color="#88aaff" scale="0.45 0.45 0.45"
+              position="0 0 0.01" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.4"></a-text>
+    </a-plane>
 
     <!-- BODEN -->
     <a-plane mixin="m-boden" rotation="-90 0 0" width="24" height="32" receive-shadow="true"></a-plane>
@@ -260,7 +466,14 @@
 
     <!-- WÄNDE & DECKE -->
     <a-box mixin="m-wand"    position="0 3 -16"   width="24"   height="6.1" depth="0.3"  receive-shadow="true"></a-box>
-    <a-box mixin="m-wand"    position="-12 3 -6"  width="0.3"  height="6.1" depth="20.1" receive-shadow="true"></a-box>
+    <a-box mixin="m-wand" position="-12 3 -12.5"   width="0.3" height="6.1" depth="9.1"  receive-shadow="true"></a-box>
+    <a-box mixin="m-wand" position="-12 3 -0.5"    width="0.3" height="6.1" depth="9.1"  receive-shadow="true"></a-box>
+    <a-box mixin="m-wand" position="-12 4.55 -6.5" width="0.3" height="3.1" depth="3.0"></a-box>
+    <a-box material="color:#555;roughness:0.5;metalness:0.4" position="-12.06 1.5 -8" width="0.35" height="3.0" depth="0.12"></a-box>
+    <a-box material="color:#555;roughness:0.5;metalness:0.4" position="-12.06 1.5 -5" width="0.35" height="3.0" depth="0.12"></a-box>
+    <a-plane material="color:#1a2844;roughness:0.8" width="1.4" height="0.35" position="-11.84 3.5 -6.5" rotation="0 90 0">
+      <a-text value="BÜRO" color="#88aaff" scale="0.4 0.4 0.4" position="0 0 0.01" align="center" material="shader:flat"></a-text>
+    </a-plane>
     <a-box mixin="m-wand"    position=" 12 3 -6"  width="0.3"  height="6.1" depth="20.1" receive-shadow="true"></a-box>
     <a-box mixin="m-decke"   position="0 6.15 -6" width="24"   height="0.3" depth="20"></a-box>
     <a-box mixin="m-pfeiler" position="0 5.8  0"  width="24"   height="0.3" depth="0.4"></a-box>
@@ -275,15 +488,65 @@
     <a-box material="roughness:0.8;metalness:0.1;color:#1a1e26" position="-12 0.15 -6" width="0.28" height="0.3" depth="20"></a-box>
     <a-box material="roughness:0.8;metalness:0.1;color:#1a1e26" position=" 12 0.15 -6" width="0.28" height="0.3" depth="20"></a-box>
 
+    <!-- Fehlende Querträger (z=-4 und z=-12) -->
+    <a-box mixin="m-pfeiler" position="0 5.8 -4"  width="24" height="0.22" depth="0.3"></a-box>
+    <a-box mixin="m-pfeiler" position="0 5.8 -12" width="24" height="0.22" depth="0.3"></a-box>
+
+    <!-- Längsträger (verbinden alle Querträger) -->
+    <a-box mixin="m-pfeiler" position="-8 5.82 -8" width="0.18" height="0.18" depth="16"></a-box>
+    <a-box mixin="m-pfeiler" position=" 0 5.82 -8" width="0.18" height="0.18" depth="16"></a-box>
+    <a-box mixin="m-pfeiler" position=" 8 5.82 -8" width="0.18" height="0.18" depth="16"></a-box>
+
+    <!-- Wandstützen rechte Wand -->
+    <a-box material="color:#242636;roughness:0.5;metalness:0.5" position="11.75 3 -2"  width="0.35" height="6.1" depth="0.5"></a-box>
+    <a-box material="color:#242636;roughness:0.5;metalness:0.5" position="11.75 3 -6"  width="0.35" height="6.1" depth="0.5"></a-box>
+    <a-box material="color:#242636;roughness:0.5;metalness:0.5" position="11.75 3 -10" width="0.35" height="6.1" depth="0.5"></a-box>
+    <a-box material="color:#242636;roughness:0.5;metalness:0.5" position="11.75 3 -14" width="0.35" height="6.1" depth="0.5"></a-box>
+
+    <!-- Stützsäulen hintere Wand (Ecken) -->
+    <a-box mixin="m-pfeiler" position="-10 3 -16" width="0.45" height="6" depth="0.45"></a-box>
+    <a-box mixin="m-pfeiler" position=" 10 3 -16" width="0.45" height="6" depth="0.45"></a-box>
+
+    <!-- Lüftungskanal -->
+    <a-box material="color:#262839;roughness:0.3;metalness:0.8" position="4 5.72 -8.5" width="0.55" height="0.42" depth="13"></a-box>
+    <a-box material="color:#1c1e2c;roughness:0.2;metalness:0.9" position="4 5.72 -3"  width="0.64" height="0.50" depth="0.09"></a-box>
+    <a-box material="color:#1c1e2c;roughness:0.2;metalness:0.9" position="4 5.72 -6"  width="0.64" height="0.50" depth="0.09"></a-box>
+    <a-box material="color:#1c1e2c;roughness:0.2;metalness:0.9" position="4 5.72 -9"  width="0.64" height="0.50" depth="0.09"></a-box>
+    <a-box material="color:#1c1e2c;roughness:0.2;metalness:0.9" position="4 5.72 -12" width="0.64" height="0.50" depth="0.09"></a-box>
+    <a-box material="color:#1c1e2c;roughness:0.2;metalness:0.9" position="4 5.72 -15" width="0.64" height="0.50" depth="0.09"></a-box>
+    <!-- Lüftungsauslässe -->
+    <a-box material="color:#20222f;roughness:0.3;metalness:0.75" position="4 5.51 -5"  width="0.44" height="0.07" depth="0.30"></a-box>
+    <a-box material="color:#20222f;roughness:0.3;metalness:0.75" position="4 5.51 -8"  width="0.44" height="0.07" depth="0.30"></a-box>
+    <a-box material="color:#20222f;roughness:0.3;metalness:0.75" position="4 5.51 -11" width="0.44" height="0.07" depth="0.30"></a-box>
+
+    <!-- Sprinklerrohr (entlang z=-4 und z=-12, X-Richtung) -->
+    <a-cylinder material="color:#2a2e3c;roughness:0.25;metalness:0.85" radius="0.04" height="22" rotation="0 0 90" position="0 5.92 -4"></a-cylinder>
+    <a-cylinder material="color:#2a2e3c;roughness:0.25;metalness:0.85" radius="0.04" height="22" rotation="0 0 90" position="0 5.92 -12"></a-cylinder>
+    <!-- Sprinklerköpfe -->
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position="-8 5.84 -4"></a-cylinder>
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position=" 0 5.84 -4"></a-cylinder>
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position=" 8 5.84 -4"></a-cylinder>
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position="-8 5.84 -12"></a-cylinder>
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position=" 0 5.84 -12"></a-cylinder>
+    <a-cylinder material="color:#999;roughness:0.2;metalness:0.8" radius="0.028" height="0.14" position=" 8 5.84 -12"></a-cylinder>
+
+    <!-- Feuerlöscher (linke Wand, Eingangsbereich) -->
+    <a-cylinder material="color:#cc2200;roughness:0.45;metalness:0.3" radius="0.08" height="0.48" position="-11.5 1.08 -1.5"></a-cylinder>
+    <a-cylinder material="color:#555;roughness:0.3;metalness:0.8"     radius="0.03" height="0.24" position="-11.5 1.46 -1.5"></a-cylinder>
+    <a-box     material="color:#bb2000;roughness:0.5"                  width="0.22" height="0.06" depth="0.22" position="-11.5 0.84 -1.5"></a-box>
+    <a-box     material="color:#cc2200;roughness:0.5"                  width="0.18" height="0.38" depth="0.09" position="-11.65 1.08 -1.5"></a-box>
+
+    <!-- Notausgangschilder -->
+    <a-box  material="shader:flat;color:#003300;emissive:#00bb44;emissiveIntensity:1.1" width="0.55" height="0.18" position="3.5 5.05 0.18"></a-box>
+    <a-text value="AUSGANG" color="#44ff99" scale="0.155 0.155 0.155" position="3.5 5.05 0.24" align="center" material="shader:flat"></a-text>
+    <a-box  material="shader:flat;color:#003300;emissive:#00bb44;emissiveIntensity:1.1" width="0.55" height="0.18" position="11.1 5.05 -15.74"></a-box>
+    <a-text value="AUSGANG" color="#44ff99" scale="0.155 0.155 0.155" position="11.1 5.05 -15.68" align="center" material="shader:flat"></a-text>
+
+    <!-- Gabelstapler GLTF (inch-Modell mit eingebautem 0.0254-Scale → scale 1 korrekt) -->
+    <a-gltf-model src="#model-forklift" position="0 0 -14" rotation="0 90 0" scale="1 1 1" auto-collider></a-gltf-model>
+
+
     <!-- Deckenlampen-Körper -->
-    <a-entity position="-4 5.95 -4">
-      <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
-      <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
-    </a-entity>
-    <a-entity position=" 4 5.95 -4">
-      <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
-      <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
-    </a-entity>
     <a-entity position=" 0 5.95 -10">
       <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.2;roughness:0.2" radius="0.22" height="0.08"></a-cylinder>
       <a-cylinder material="color:#888;roughness:0.5;metalness:0.8" radius="0.26" height="0.06" position="0 0.07 0"></a-cylinder>
@@ -291,9 +554,15 @@
     <a-cylinder material="color:#ccc;emissive:#ffffcc;emissiveIntensity:0.9;roughness:0.2" radius="0.22" height="0.08" position="-4 5.95 -13"></a-cylinder>
     <a-cylinder material="color:#ccc;emissive:#ffffcc;emissiveIntensity:0.9;roughness:0.2" radius="0.22" height="0.08" position=" 4 5.95 -13"></a-cylinder>
     <!-- Kabel -->
-    <a-cylinder material="color:#222" radius="0.01" height="0.35" position="-4 6.05 -4"></a-cylinder>
-    <a-cylinder material="color:#222" radius="0.01" height="0.35" position=" 4 6.05 -4"></a-cylinder>
     <a-cylinder material="color:#222" radius="0.01" height="0.35" position=" 0 6.05 -10"></a-cylinder>
+
+    <!-- Lichtkegel -->
+    <a-cone material="color:#ffeebb;opacity:0.024;transparent:true;shader:flat;side:double"
+            radius-top="0.06" radius-bottom="1.05" height="5.0" open-ended="true"
+            position="-4 3.1 -13"></a-cone>
+    <a-cone material="color:#ffeebb;opacity:0.024;transparent:true;shader:flat;side:double"
+            radius-top="0.06" radius-bottom="1.05" height="5.0" open-ended="true"
+            position=" 4 3.1 -13"></a-cone>
 
     <!-- REGAL A – LINKS -->
     <a-box mixin="m-regal-s" position="-9.6 2.6 -5.8"  width="0.07" height="5.2" depth="0.07"></a-box>
@@ -389,70 +658,92 @@
 
     <!-- PALETTEN-ZONE -->
     <!-- Palette 1 – blau – 192.168.1.x -->
-    <a-entity position="-5 0 1.5">
+    <a-entity position="-5 0 -4">
       <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
       <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
-      <a-box material="color:#1b2d55;roughness:0.6;metalness:0.4"
+      <a-box material="shader:flat;color:#0a0f1e"
              class="interactable palette-zone" id="palette-1" data-network="192.168.1"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box id="pal-bg-1" material="color:#3060dd;emissive:#3060dd;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 1"        color="#88aaff" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#88aaff;emissiveIntensity:0.4"></a-text>
-        <a-text value="192.168.1.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="255.255.255.0" color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
-        <a-text id="pal-status-1" value="ABLADEN" color="#4488ff" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#4488ff;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-1" material="shader:flat;color:#3a5fcc" position="0 0 0.035" width="1.0" height="0.9" depth="0.003"></a-box>
+        <a-text value="LKW 1"        color="#eef4ff" scale="0.7 0.7 0.7"  position="0  0.28 0.06" align="center"></a-text>
+        <a-text value="192.168.1.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.06" align="center"></a-text>
+        <a-text value="255.255.255.0" color="#c8d8f0" scale="0.30 0.30 0.30" position="0 -0.05 0.06" align="center"></a-text>
+        <a-text id="pal-status-1" value="ABLADEN" color="#aaccff" scale="0.35 0.35 0.35" position="0 -0.28 0.06" align="center"></a-text>
       </a-box>
     </a-entity>
 
     <!-- Palette 2 – grün – 10.0.0.x -->
-    <a-entity position="0 0 1.5">
+    <a-entity position="0 0 -4">
       <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
       <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
-      <a-box material="color:#1a3322;roughness:0.6;metalness:0.4"
+      <a-box material="shader:flat;color:#060f08"
              class="interactable palette-zone" id="palette-2" data-network="10.0.0"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box id="pal-bg-2" material="color:#206640;emissive:#206640;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 2"     color="#88ffaa" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#88ffaa;emissiveIntensity:0.4"></a-text>
-        <a-text value="10.0.0.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="255.0.0.0"  color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
-        <a-text id="pal-status-2" value="ABLADEN" color="#44cc66" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#44cc66;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-2" material="shader:flat;color:#1e7040" position="0 0 0.035" width="1.0" height="0.9" depth="0.003"></a-box>
+        <a-text value="LKW 2"     color="#eeffee" scale="0.7 0.7 0.7"  position="0  0.28 0.06" align="center"></a-text>
+        <a-text value="10.0.0.x"  color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.06" align="center"></a-text>
+        <a-text value="255.0.0.0"  color="#c8e8d0" scale="0.30 0.30 0.30" position="0 -0.05 0.06" align="center"></a-text>
+        <a-text id="pal-status-2" value="ABLADEN" color="#aaffcc" scale="0.35 0.35 0.35" position="0 -0.28 0.06" align="center"></a-text>
       </a-box>
     </a-entity>
 
     <!-- Palette 3 – orange – 172.16.5.x -->
-    <a-entity position="5 0 1.5">
+    <a-entity position="5 0 -4">
       <a-box mixin="m-palette" position="0 0.06 0"    width="1.2"  height="0.12" depth="0.85"></a-box>
       <a-box mixin="m-palette" position="0 0.14 0"    width="1.22" height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position="-0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
       <a-box mixin="m-palette" position=" 0.45 0.14 0" width="0.1"  height="0.04" depth="0.87"></a-box>
-      <a-box material="color:#332211;roughness:0.6;metalness:0.4"
+      <a-box material="shader:flat;color:#160804"
              class="interactable palette-zone" id="palette-3" data-network="172.16.5"
              position="0 0.75 0" width="1.1" height="1.0" depth="0.06">
-        <a-box id="pal-bg-3" material="color:#884420;emissive:#884420;emissiveIntensity:0.5" position="0 0 -0.03" width="1.14" height="1.04" depth="0.01"></a-box>
-        <a-text value="LKW 3"      color="#ffaa44" scale="0.7 0.7 0.7"  position="0  0.28 0.04" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.4"></a-text>
-        <a-text value="172.16.5.x" color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.04" align="center" material="shader:flat"></a-text>
-        <a-text value="255.255.0.0" color="#aabbdd" scale="0.28 0.28 0.28" position="0 -0.05 0.04" align="center" material="shader:flat"></a-text>
-        <a-text id="pal-status-3" value="ABLADEN" color="#ff8833" scale="0.35 0.35 0.35" position="0 -0.28 0.04" align="center" material="shader:flat;emissive:#ff8833;emissiveIntensity:0.3"></a-text>
+        <a-box id="pal-bg-3" material="shader:flat;color:#b04a18" position="0 0 0.035" width="1.0" height="0.9" depth="0.003"></a-box>
+        <a-text value="LKW 3"      color="#fff4dd" scale="0.7 0.7 0.7"  position="0  0.28 0.06" align="center"></a-text>
+        <a-text value="172.16.5.x" color="#ffffff"  scale="0.5 0.5 0.5"  position="0  0.10 0.06" align="center"></a-text>
+        <a-text value="255.255.0.0" color="#f0e0c0" scale="0.30 0.30 0.30" position="0 -0.05 0.06" align="center"></a-text>
+        <a-text id="pal-status-3" value="ABLADEN" color="#ffcc88" scale="0.35 0.35 0.35" position="0 -0.28 0.06" align="center"></a-text>
       </a-box>
     </a-entity>
 
-    <!-- GABELSTAPLER (Deko) -->
-    <a-entity position="-9.2 0 -13.5" rotation="0 30 0">
-      <a-box material="color:#f0a020;roughness:0.5;metalness:0.3" position="0 0.72 0" width="1.15" height="1.44" depth="1.75"></a-box>
-      <a-box material="color:#222" position="0 0.18 0" width="1.2" height="0.36" depth="2.0"></a-box>
-      <a-box material="color:#88ccff;opacity:0.35;roughness:0.1" position="0 1.25 0.45" width="0.9" height="0.7" depth="0.04"></a-box>
-      <a-box material="color:#666;metalness:0.85;roughness:0.2" position="-0.24 0.46 -1.55" width="0.1" height="0.07" depth="1.1"></a-box>
-      <a-box material="color:#666;metalness:0.85;roughness:0.2" position=" 0.24 0.46 -1.55" width="0.1" height="0.07" depth="1.1"></a-box>
-      <a-box material="color:#999;metalness:0.7" position="-0.38 1.6 -0.82" width="0.08" height="2.2" depth="0.08"></a-box>
-      <a-box material="color:#999;metalness:0.7" position=" 0.38 1.6 -0.82" width="0.08" height="2.2" depth="0.08"></a-box>
-      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position="-0.56 0.24  0.55"></a-cylinder>
-      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position=" 0.56 0.24  0.55"></a-cylinder>
-      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position="-0.56 0.24 -0.55"></a-cylinder>
-      <a-cylinder material="color:#111;roughness:0.9" radius="0.24" height="0.18" rotation="0 0 90" position=" 0.56 0.24 -0.55"></a-cylinder>
+    <!-- AUßENBEREICH -->
+    <a-plane id="outdoor-ground" rotation="-90 0 0" position="0 -0.005 18" width="40" height="34"
+             material="color:#666;roughness:0.95;metalness:0.0"></a-plane>
+    <a-box material="color:#f0f0c0;roughness:1.0" position="0 0.01 18" width="0.15" height="0.01" depth="28"></a-box>
+    <a-box material="color:#999;roughness:0.9" position="0 0.04 2.5" width="8" height="0.08" depth="5"></a-box>
+
+    <!-- NPC -->
+    <a-entity position="3 0 8" rotation="0 200 0" proximity-dialog>
+      <a-sphere material="color:#e8c49a;roughness:0.8" radius="0.2" position="0 1.8 0"></a-sphere>
+      <a-cylinder material="color:#f0a020;roughness:0.5" radius="0.22" height="0.12" position="0 1.96 0"></a-cylinder>
+      <a-box material="color:#ff6600;roughness:0.7" width="0.4"  height="0.55" depth="0.22" position="0     1.30 0"></a-box>
+      <a-box material="color:#ff6600;roughness:0.7" width="0.12" height="0.45" depth="0.12" position="-0.26 1.28 0"></a-box>
+      <a-box material="color:#ff6600;roughness:0.7" width="0.12" height="0.45" depth="0.12" position=" 0.26 1.28 0"></a-box>
+      <a-box material="color:#3355aa;roughness:0.8" width="0.16" height="0.5"  depth="0.16" position="-0.1  0.75 0"></a-box>
+      <a-box material="color:#3355aa;roughness:0.8" width="0.16" height="0.5"  depth="0.16" position=" 0.1  0.75 0"></a-box>
+      <a-box material="color:#222;roughness:0.9"    width="0.16" height="0.1"  depth="0.26" position="-0.1  0.5  0.04"></a-box>
+      <a-box material="color:#222;roughness:0.9"    width="0.16" height="0.1"  depth="0.26" position=" 0.1  0.5  0.04"></a-box>
+      <a-sphere material="color:#64a0ff;emissive:#64a0ff;emissiveIntensity:0.9;shader:flat"
+                radius="0.07" position="0 2.2 0"
+                animation="property:position;from:0 2.2 0;to:0 2.42 0;dur:900;dir:alternate;loop:true;easing:easeInOutSine">
+      </a-sphere>
     </a-entity>
+
+    <!-- LKW 1 GLTF (scale ggf. anpassen) -->
+    <a-gltf-model src="#model-lkw" position="10 0 11"  rotation="0 -15 0" scale="1 1 1" auto-collider></a-gltf-model>
+
+    <!-- LKW 2 GLTF -->
+    <a-gltf-model src="#model-lkw" position="-10 0 16" rotation="0 25 0"  scale="1 1 1" auto-collider></a-gltf-model>
+
+    <!-- Straßenlaterne -->
+    <a-entity position="6 0 15">
+      <a-cylinder material="color:#444;roughness:0.6;metalness:0.5" radius="0.06" height="5.5" position="0 2.75 0"></a-cylinder>
+      <a-box material="color:#444;metalness:0.5" width="0.06" height="0.06" depth="1.2" position="0 5.4 -0.5"></a-box>
+      <a-sphere material="color:#fff;emissive:#ffffcc;emissiveIntensity:1.2;shader:flat" radius="0.14" position="0 5.35 -1.05"></a-sphere>
+    </a-entity>
+
 
     <!-- PALETTENTURM (Deko) -->
     <a-entity position="9.2 0 -12">
@@ -462,11 +753,35 @@
       <a-box mixin="m-palette" position="0 0.52 0" width="1.22" height="0.13" depth="0.88"></a-box>
     </a-entity>
 
-    <!-- FEUERLÖSCHER -->
-    <a-entity position="-11.6 1.3 -2">
-      <a-cylinder material="color:#cc2222;roughness:0.4;metalness:0.5" radius="0.1" height="0.55"></a-cylinder>
-      <a-cylinder material="color:#aaa;roughness:0.3;metalness:0.8"    radius="0.06" height="0.1" position="0 0.32 0"></a-cylinder>
-      <a-cylinder material="color:#555;roughness:0.5;metalness:0.6"    radius="0.015" height="0.2" position="0 0.45 0"></a-cylinder>
+
+
+    <!-- BÜRORAUM (x=-22..-12, z=-10..-2) -->
+    <a-box material="color:#2e3245;roughness:0.9" position="-22   1.75 -6"  width="0.3"  height="3.5" depth="8.0"></a-box>
+    <a-box material="color:#2e3245;roughness:0.9" position="-17   1.75 -10" width="10.0" height="3.5" depth="0.3"></a-box>
+    <a-box material="color:#2e3245;roughness:0.9" position="-17   1.75 -2"  width="10.0" height="3.5" depth="0.3"></a-box>
+    <a-plane material="color:#3a3020;roughness:0.9" rotation="-90 0 0" position="-17 0 -6" width="10" height="8"></a-plane>
+    <a-box material="color:#1c1f28;roughness:1.0" position="-17 3.65 -6" width="10.3" height="0.3" depth="8.3"></a-box>
+    <a-light type="point" color="#fff8e8" intensity="75" distance="40" decay="2" position="-17 3.2 -6"></a-light>
+    <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.0;roughness:0.2" radius="0.18" height="0.06" position="-17 3.42 -6"></a-cylinder>
+    <!-- Computer-Arbeitsplatz -->
+    <a-entity position="-18 0 -6">
+      <a-box material="color:#8b7355;roughness:0.7" width="1.6"  height="0.06" depth="0.85" position="0 0.74 0"></a-box>
+      <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position="-0.75 0.37  0.38"></a-box>
+      <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position=" 0.75 0.37  0.38"></a-box>
+      <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position="-0.75 0.37 -0.38"></a-box>
+      <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position=" 0.75 0.37 -0.38"></a-box>
+      <a-box material="color:#333;roughness:0.4;metalness:0.7" width="0.12" height="0.32" depth="0.12" position="0 0.93 0"></a-box>
+      <a-box material="color:#222;roughness:0.3;metalness:0.7" width="0.74" height="0.48" depth="0.05" position="0 1.34 0"></a-box>
+      <a-plane material="color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat" width="0.65" height="0.40" position="0 1.34 0.028"></a-plane>
+      <a-text value="SZENARIO 2" color="#00ff88" scale="0.1 0.1 0.1" position="0 1.365 0.029" align="center" material="shader:flat;emissive:#00ff88;emissiveIntensity:0.4"></a-text>
+      <a-text value="coming soon..." color="#336655" scale="0.065 0.065 0.065" position="0 1.315 0.029" align="center" material="shader:flat"></a-text>
+      <a-box material="color:#555;roughness:0.5" width="0.48" height="0.025" depth="0.18" position="0 0.775 0.16"></a-box>
+      <a-box material="color:#224;roughness:0.7" width="0.5" height="0.06" depth="0.5"  position="0.3 0.48 0.6"></a-box>
+      <a-box material="color:#224;roughness:0.7" width="0.5" height="0.46" depth="0.06" position="0.3 0.7  0.34"></a-box>
+      <a-cylinder material="color:#333;roughness:0.5" radius="0.03" height="0.48" position="0.12 0.24 0.44"></a-cylinder>
+      <a-cylinder material="color:#333;roughness:0.5" radius="0.03" height="0.48" position="0.48 0.24 0.44"></a-cylinder>
+      <a-cylinder material="color:#333;roughness:0.5" radius="0.03" height="0.48" position="0.12 0.24 0.76"></a-cylinder>
+      <a-cylinder material="color:#333;roughness:0.5" radius="0.03" height="0.48" position="0.48 0.24 0.76"></a-cylinder>
     </a-entity>
 
     <!-- WANDSCHILDER -->
@@ -483,6 +798,20 @@
   </a-scene>
 
   <script>
+    function showNPCBriefing() {
+      const t = document.getElementById('task-text');
+      const badge = document.getElementById('selected-badge');
+      badge.classList.add('visible');
+      badge.innerHTML = '&#128119; Max &mdash; Lagerlogistik';
+      t.style.color = '#64a0ff';
+      t.textContent = 'Willkommen! Heute sortierst du Pakete nach IP-Netzwerken auf die richtige Palette. Geh rein und fang an!';
+      setTimeout(() => {
+        t.style.color = '#e8edf5';
+        t.textContent = 'Klicke ins Spiel, dann Fadenkreuz auf ein Paket richten und E drücken.';
+        badge.classList.remove('visible');
+      }, 7000);
+    }
+
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -515,9 +844,52 @@
       // Regal B – oben
       [8.0,3.62,-8.5],
     ];
-    const netzwerkMap = { '192.168.1':'palette-1', '10.0.0':'palette-2', '172.16.5':'palette-3' };
+    const netzwerkMap  = { '192.168.1':'palette-1', '10.0.0':'palette-2', '172.16.5':'palette-3' };
+    const palLabelMap  = { 'palette-1':'LKW 1 (192.168.1.x)', 'palette-2':'LKW 2 (10.0.0.x)', 'palette-3':'LKW 3 (172.16.5.x)' };
     let selectedPaket = null;
     let score = 0;
+    let gameActive = false;
+
+    // Audio
+    let audioCtx;
+    function ensureAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    function playTone(freq, dur, type = 'sine', vol = 0.26) {
+      ensureAudio();
+      const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.type = type; osc.frequency.value = freq;
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.start(); osc.stop(audioCtx.currentTime + dur);
+    }
+    function playSoundCorrect() { playTone(880, 0.1); setTimeout(() => playTone(1100, 0.18), 100); }
+    function playSoundWrong()   { playTone(160, 0.22, 'sawtooth', 0.2); }
+    function playSoundComplete(){ [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.4), i*130)); }
+
+    // Intro overlay
+    document.getElementById('intro-start-btn').addEventListener('click', () => {
+      document.getElementById('intro-overlay').classList.add('hidden');
+      gameActive = true;
+      showNPCBriefing();
+    });
+
+    // Complete overlay
+    function showCompleteOverlay() {
+      playSoundComplete();
+      document.exitPointerLock();
+      const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
+      const s = String(timerSeconds%60).padStart(2,'0');
+      document.getElementById('co-score').textContent = score;
+      document.getElementById('co-time').textContent  = m + ':' + s;
+      document.getElementById('complete-overlay').classList.remove('hidden');
+    }
+    document.getElementById('complete-btn').addEventListener('click', () => {
+      document.getElementById('complete-overlay').classList.add('hidden');
+      document.getElementById('task-text').textContent = 'Szenario 2 folgt — geh zum Büro und schau auf den Computer.';
+      document.getElementById('task-text').style.color = '#64a0ff';
+      const canvas = document.querySelector('a-scene canvas');
+      if (canvas) canvas.requestPointerLock();
+    });
 
     // Progress Pips
     const pipsEl = document.getElementById('progress-pips');
@@ -627,7 +999,7 @@
     }
 
     const paletteDeliveries = { 'palette-1': 0, 'palette-2': 0, 'palette-3': 0 };
-    const palettePosMap = { 'palette-1': [-5, 1.5], 'palette-2': [0, 1.5], 'palette-3': [5, 1.5] };
+    const palettePosMap = { 'palette-1': [-5, -4], 'palette-2': [0, -4], 'palette-3': [5, -4] };
 
     function spawnDeliveredBox(palId, ip) {
       const count = paletteDeliveries[palId];
@@ -690,19 +1062,18 @@
         updateLieferschein(); updatePips();
         spawnDeliveredBox(palId, paketIp);
         checkPaletteComplete(palId);
-        showFeedback('✅ Paket ' + paketId + ' korrekt zugestellt! +100', true);
+        playSoundCorrect();
+        showFeedback('Richtig! Paket ' + paketId + ' korrekt zugestellt. +100', true);
         triggerFlash(true);
         if (lieferschein.every(x=>x.done)) {
           stopTimer();
-          setTimeout(() => {
-            const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
-            const s = String(timerSeconds%60).padStart(2,'0');
-            document.getElementById('task-text').textContent = '🎉 Alle Pakete zugestellt! Zeit: ' + m + ':' + s + ' — Ausgezeichnet!';
-            document.getElementById('task-text').style.color = '#4cff88';
-          }, 2400);
+          setTimeout(showCompleteOverlay, 1600);
         }
       } else {
-        showFeedback('❌ Falsche Palette! ' + paketIp + ' gehört nicht in dieses Netz.', false);
+        playSoundWrong();
+        const correctPalId = netzwerkMap[net];
+        const correctLabel = palLabelMap[correctPalId] || correctPalId;
+        showFeedback('Falsch! ' + paketIp + ' gehoert zu Netz ' + net + '.x — richtige Palette: ' + correctLabel, false);
         triggerFlash(false);
         score = Math.max(0, score-20);
         document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
@@ -719,6 +1090,7 @@
     }
 
     document.addEventListener('keydown', (e) => {
+      if (!gameActive) return;
       if (e.key !== 'e' && e.key !== 'E') return;
       if (!hoveredEl) return;
       if (hoveredEl.classList.contains('paket')) interactWithPaket(hoveredEl);
@@ -759,7 +1131,13 @@
       setTimeout(() => { f.className = ''; }, 350);
     }
 
-    function mkConcreteCanvas(baseHex, tileSize) {
+    function shiftBrightness(hex, delta) {
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      const clamp = v => Math.max(0, Math.min(255, v + delta));
+      return `rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
+    }
+
+    function mkConcreteCanvas(baseHex, tileSize, gridStep = 0) {
       const c = document.createElement('canvas');
       c.width = c.height = tileSize;
       const ctx = c.getContext('2d');
@@ -777,6 +1155,18 @@
         const x = Math.random() * tileSize;
         ctx.beginPath(); ctx.moveTo(x, 0);
         ctx.lineTo(x + (Math.random() - 0.5) * 15, tileSize); ctx.stroke();
+      }
+      if (gridStep > 0) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 2;
+        for (let i = gridStep; i < tileSize; i += gridStep) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, tileSize); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(tileSize, i); ctx.stroke();
+        }
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+        for (let i = gridStep + 2; i < tileSize; i += gridStep) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, tileSize); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(tileSize, i); ctx.stroke();
+        }
       }
       const tex = new AFRAME.THREE.CanvasTexture(c);
       tex.wrapS = tex.wrapT = AFRAME.THREE.RepeatWrapping;
@@ -802,28 +1192,81 @@
       return tex;
     }
 
-    function applyProceduralTextures() {
-      const floorTex = mkConcreteCanvas('#5a4e3a', 512); floorTex.repeat.set(8, 10);
-      const wallTex  = mkConcreteCanvas('#32364a', 512); wallTex.repeat.set(5, 2);
-      const ceilTex  = mkConcreteCanvas('#22253a', 512); ceilTex.repeat.set(8, 6);
-      const woodTex  = mkWoodCanvas('#9a7c42', 512);     woodTex.repeat.set(4, 1);
-      const palTex   = mkWoodCanvas('#8a6628', 512);     palTex.repeat.set(2, 2);
+    function mkMetalPanelCanvas(baseHex, tileSize) {
+      const c = document.createElement('canvas');
+      c.width = c.height = tileSize;
+      const ctx = c.getContext('2d');
+      const panelH = Math.floor(tileSize / 3);
+      for (let p = 0; p < 3; p++) {
+        const y0 = p * panelH;
+        const light = p % 2 === 0 ? 12 : -8;
+        ctx.fillStyle = shiftBrightness(baseHex, light);
+        ctx.fillRect(0, y0, tileSize, panelH);
+      }
+      for (let i = 0; i < 80; i++) {
+        const y = Math.random() * tileSize;
+        ctx.strokeStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(tileSize, y); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      for (let p = 1; p < 3; p++) {
+        const y = p * panelH;
+        ctx.fillRect(0, y - 1, tileSize, 4);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, y + 3); ctx.lineTo(tileSize, y + 3); ctx.stroke();
+      }
+      const tex = new AFRAME.THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = AFRAME.THREE.RepeatWrapping;
+      return tex;
+    }
 
-      function applyTex(el, tex) {
+    function mkAsphaltCanvas(tileSize) {
+      const c = document.createElement('canvas');
+      c.width = c.height = tileSize;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#585858';
+      ctx.fillRect(0, 0, tileSize, tileSize);
+      for (let i = 0; i < tileSize * tileSize * 0.55; i++) {
+        const x = Math.random() * tileSize | 0, y = Math.random() * tileSize | 0;
+        ctx.globalAlpha = 0.06 + Math.random() * 0.14;
+        ctx.fillStyle = Math.random() > 0.5 ? '#888' : '#3a3a3a';
+        const r = 1 + (Math.random() * 2 | 0);
+        ctx.fillRect(x, y, r, r);
+      }
+      ctx.globalAlpha = 1;
+      const tex = new AFRAME.THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = AFRAME.THREE.RepeatWrapping;
+      return tex;
+    }
+
+    function applyProceduralTextures() {
+      const floorTex = mkConcreteCanvas('#5a4e3a', 512, 128); floorTex.repeat.set(8, 10);
+      const wallTex  = mkMetalPanelCanvas('#32364a', 512);    wallTex.repeat.set(5, 2);
+      const ceilTex  = mkConcreteCanvas('#22253a', 512, 0);   ceilTex.repeat.set(8, 6);
+      const woodTex  = mkWoodCanvas('#9a7c42', 512);          woodTex.repeat.set(4, 1);
+      const palTex   = mkWoodCanvas('#8a6628', 512);          palTex.repeat.set(2, 2);
+      const asphTex  = mkAsphaltCanvas(512);                  asphTex.repeat.set(12, 10);
+
+      function applyTex(el, tex, roughness, metalness) {
         el.object3D.traverse(node => {
           if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
             node.material.map = tex;
             node.material.color.set(0xffffff);
+            if (roughness !== undefined) node.material.roughness = roughness;
+            if (metalness !== undefined) node.material.metalness = metalness;
             node.material.needsUpdate = true;
           }
         });
       }
 
-      document.querySelectorAll('[mixin~="m-boden"]').forEach(el  => applyTex(el, floorTex));
-      document.querySelectorAll('[mixin~="m-wand"]').forEach(el   => applyTex(el, wallTex));
-      document.querySelectorAll('[mixin~="m-decke"]').forEach(el  => applyTex(el, ceilTex));
+      document.querySelectorAll('[mixin~="m-boden"]').forEach(el  => applyTex(el, floorTex, 0.42, 0.06));
+      document.querySelectorAll('[mixin~="m-wand"]').forEach(el   => applyTex(el, wallTex,  0.55, 0.18));
+      document.querySelectorAll('[mixin~="m-decke"]').forEach(el  => applyTex(el, ceilTex,  0.95, 0.0));
       document.querySelectorAll('[mixin~="m-regal-b"]').forEach(el => applyTex(el, woodTex));
       document.querySelectorAll('[mixin~="m-palette"]').forEach(el => applyTex(el, palTex));
+      const roadEl = document.getElementById('outdoor-ground');
+      if (roadEl) applyTex(roadEl, asphTex, 0.92, 0.0);
     }
 
     document.querySelector('a-scene').addEventListener('loaded', () => {
