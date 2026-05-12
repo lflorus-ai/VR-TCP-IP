@@ -201,6 +201,26 @@
       }
     });
 
+    AFRAME.registerComponent('computer-proximity', {
+      init() {
+        this._cp = new AFRAME.THREE.Vector3();
+        this._np = new AFRAME.THREE.Vector3();
+        this.triggered = false;
+      },
+      tick() {
+        if (this.triggered) return;
+        if (typeof gameState === 'undefined' || gameState !== 'S2_BRIEFING') return;
+        const cam = this.el.sceneEl.camera;
+        if (!cam) return;
+        cam.getWorldPosition(this._cp);
+        this.el.object3D.getWorldPosition(this._np);
+        if (this._cp.distanceTo(this._np) < 3.5) {
+          this.triggered = true;
+          startS2();
+        }
+      }
+    });
+
     AFRAME.registerComponent('collision-walls', {
       init() {
         this.r = 0.38;
@@ -979,6 +999,67 @@
       // Lieferschein-Liste leeren (S2 hat eigene Pakete)
       const listEl = document.getElementById('lieferschein-list');
       if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+    }
+
+    let s2LostPackets = [];
+    let s2Score = 0;
+
+    function initS2() {
+      const delivered = lieferschein.filter(p => p.done);
+      const lostCount = Math.min(2, delivered.length);
+      const shuffled = delivered.slice().sort(() => Math.random() - 0.5);
+      s2LostPackets = shuffled.slice(0, lostCount).map(p => ({
+        id: p.id, ip: p.ip, network: p.network, done: false
+      }));
+    }
+
+    function renderComputerScreen() {
+      const line1El = document.getElementById('computer-line1');
+      const line2El = document.getElementById('computer-line2');
+      const screen  = document.getElementById('computer-screen');
+
+      if (screen) {
+        screen.removeAttribute('animation__blink');
+        screen.setAttribute('material', 'color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat');
+      }
+      if (line2El) line2El.setAttribute('visible', 'false');
+
+      if (line1El) {
+        const lostIds = s2LostPackets.map(p => p.id);
+        const lines = ['FEHLERMELDUNG EMPFAENGER', '─────────────────'];
+        lieferschein.forEach(p => {
+          if (lostIds.includes(p.id)) {
+            lines.push('!!! ' + p.id + ' VERLOREN');
+          } else {
+            lines.push('OK  ' + p.id + '  ' + p.ip);
+          }
+        });
+        lines.push('─────────────────');
+        lines.push('Pakete in Regal B.');
+        lines.push('[E = Schliessen]');
+        line1El.setAttribute('value', lines.join('\n'));
+        line1El.setAttribute('color', '#00ff88');
+        line1El.setAttribute('scale', '0.045 0.045 0.045');
+        line1El.setAttribute('position', '0 1.43 0.029');
+        line1El.setAttribute('wrap-count', '22');
+      }
+    }
+
+    function startS2() {
+      initS2();
+      renderComputerScreen();
+      gameState = 'S2_ACTIVE';
+
+      const glow = document.getElementById('office-glow');
+      if (glow) glow.setAttribute('visible', 'false');
+
+      renderLieferscheinList(s2LostPackets, 'lieferschein-list');
+
+      spawnS2Packages();
+
+      const task = document.getElementById('task-text');
+      task.style.color = '#ffcc40';
+      task.textContent = s2LostPackets.length + ' Paket(e) verloren! Hole sie aus Regal B (oben) und liefere erneut.';
     }
 
     // Progress Pips
