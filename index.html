@@ -958,6 +958,23 @@
 
       document.getElementById('complete-overlay').classList.remove('hidden');
     }
+
+    function showS2CompleteOverlay() {
+      playSoundComplete();
+      document.exitPointerLock();
+      gameState = 'S2_COMPLETE';
+      document.getElementById('s2-score').textContent = score + s2Score;
+      document.getElementById('s2-count').textContent = s2LostPackets.length + ' / ' + s2LostPackets.length;
+      document.getElementById('s2-complete-overlay').classList.remove('hidden');
+    }
+
+    document.getElementById('s2-close-btn').addEventListener('click', () => {
+      document.getElementById('s2-complete-overlay').classList.add('hidden');
+      const task = document.getElementById('task-text');
+      task.style.color = '#64a0ff';
+      task.textContent = 'Beide Szenarien abgeschlossen! Du hast TCP/IP-Grundlagen erlebt.';
+    });
+
     document.getElementById('complete-btn').addEventListener('click', () => {
       document.getElementById('complete-overlay').classList.add('hidden');
       showS2Transition();
@@ -1311,37 +1328,59 @@
       const palId   = pal.getAttribute('id');
       const net     = paketIp.split('.').slice(0,3).join('.');
       if (netzwerkMap[net] === palId) {
-        const e = lieferschein.find(x => x.id===paketId && !x.done);
-        if (e) e.done = true;
+        const isS2 = selectedPaket.getAttribute('data-s2') === 'true';
+
+        if (!isS2) {
+          const e = lieferschein.find(x => x.id===paketId && !x.done);
+          if (e) e.done = true;
+          score += 100;
+        } else {
+          const s2e = s2LostPackets.find(x => x.id===paketId && !x.done);
+          if (s2e) s2e.done = true;
+          s2Score += 50;
+        }
+
         const pos = selectedPaket.getAttribute('position');
         selectedPaket.setAttribute('animation__up',
           'property:position;to:'+pos.x+' '+(pos.y+1.3)+' '+pos.z+';dur:380;easing:easeInQuad');
         const pEl = selectedPaket;
         setTimeout(() => pEl.setAttribute('visible', false), 400);
-        score += 100;
         selectedPaket.setAttribute('material','emissive','#000000');
         selectedPaket = null;
         document.getElementById('selected-badge').classList.remove('visible');
         document.getElementById('binary-display').style.display = 'none';
-        document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
-        updateLieferschein(); updatePips();
+        document.getElementById('score-pill').textContent = '★ ' + (score + s2Score) + ' Punkte';
+
         spawnDeliveredBox(palId, paketIp);
-        checkPaletteComplete(palId);
         playSoundCorrect();
         triggerFlash(true);
         showMaxFeedback(paketIp);
-        if (lieferschein.every(x=>x.done)) {
-          stopTimer();
-          setTimeout(showCompleteOverlay, 1600);
+
+        if (!isS2) {
+          updateLieferschein(); updatePips();
+          checkPaletteComplete(palId);
+          if (lieferschein.every(x=>x.done)) {
+            stopTimer();
+            setTimeout(showCompleteOverlay, 1600);
+          }
+        } else {
+          updateS2Lieferschein();
+          if (s2LostPackets.every(x=>x.done)) {
+            setTimeout(showS2CompleteOverlay, 1600);
+          }
         }
       } else {
         playSoundWrong();
         const correctPalId = netzwerkMap[net];
         const correctLabel = palLabelMap[correctPalId] || correctPalId;
-        showFeedback('Falsch! ' + paketIp + ' gehoert zu Netz ' + net + '.x — richtige Palette: ' + correctLabel, false);
+        showFeedback('Falsch! ' + paketIp + ' gehört zu Netz ' + net + '.x — richtige Palette: ' + correctLabel, false);
         triggerFlash(false);
-        score = Math.max(0, score-20);
-        document.getElementById('score-pill').textContent = '★ ' + score + ' Punkte';
+        if (selectedPaket && selectedPaket.getAttribute('data-s2') === 'true') {
+          s2Score = Math.max(0, s2Score - 10);
+        } else {
+          score = Math.max(0, score - 20);
+        }
+        document.getElementById('score-pill').textContent = '★ ' + (score + s2Score) + ' Punkte';
         selectedPaket.setAttribute('material','emissive','#ff2020');
         selectedPaket.setAttribute('material','emissiveIntensity','0.7');
         const pEl = selectedPaket;
@@ -1400,6 +1439,10 @@
         row.appendChild(mark);
         listEl.appendChild(row);
       });
+    }
+
+    function updateS2Lieferschein() {
+      renderLieferscheinList(s2LostPackets, 'lieferschein-list');
     }
 
     function showFeedback(msg, ok) {
