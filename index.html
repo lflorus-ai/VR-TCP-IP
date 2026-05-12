@@ -1143,11 +1143,34 @@
     }
 
     function updateLieferschein() {
+      // 3D Clipboard (a-text, kein Strikethrough möglich)
       const rows = lieferschein.map(e =>
-        e.done ? '  Erledigt          ' : '      ' + e.id + '  ' + e.ip
+        e.done ? 'v ' + e.id + ' erledigt' : '  ' + e.id + '  ' + e.ip
       ).join('\n');
       const th = document.getElementById('ls-text-hand');
       if (th) th.setAttribute('value', 'MusterFirma GmbH\n14.01.2026\n\nID      IP\n' + rows);
+
+      // HTML-HUD mit Strikethrough
+      renderLieferscheinList(lieferschein, 'lieferschein-list');
+    }
+
+    function renderLieferscheinList(entries, containerId) {
+      const listEl = document.getElementById(containerId);
+      if (!listEl) return;
+      while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+      const nextOpen = entries.findIndex(x => !x.done);
+      entries.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'ls-row ' + (e.done ? 'done' : i === nextOpen ? 'active' : 'pending');
+        const label = document.createElement('span');
+        label.textContent = e.id + '  ' + e.ip;
+        const mark = document.createElement('span');
+        mark.className = 'ls-mark';
+        mark.textContent = e.done ? 'v' : i === nextOpen ? '<<' : '-';
+        row.appendChild(label);
+        row.appendChild(mark);
+        listEl.appendChild(row);
+      });
     }
 
     function showFeedback(msg, ok) {
