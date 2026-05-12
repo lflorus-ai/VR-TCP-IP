@@ -1062,6 +1062,75 @@
       task.textContent = s2LostPackets.length + ' Paket(e) verloren! Hole sie aus Regal B (oben) und liefere erneut.';
     }
 
+    const s2SlotPositions = [
+      [7.5, 3.62, -7.2],
+      [8.8, 3.62, -9.8],
+    ];
+
+    function spawnS2Packages() {
+      const scene = document.querySelector('a-scene');
+      s2LostPackets.forEach((entry, i) => {
+        const [x, y, z] = s2SlotPositions[i] || [8.0, 3.62, -8.5];
+
+        const el = document.createElement('a-entity');
+        el.setAttribute('class', 'interactable paket s2-paket');
+        el.setAttribute('id', 's2-paket-' + entry.id);
+        el.setAttribute('data-ip', entry.ip);
+        el.setAttribute('data-id', entry.id);
+        el.setAttribute('data-s2', 'true');
+        el.setAttribute('position', x + ' ' + y + ' ' + z);
+        el.setAttribute('geometry', 'primitive:box;width:0.58;height:0.48;depth:0.48');
+        el.setAttribute('material', 'color:#c8a060;roughness:0.9;emissive:#ffaa00;emissiveIntensity:0.4');
+        el.setAttribute('shadow', 'cast:true;receive:true');
+
+        const labelWrapper = document.createElement('a-entity');
+        labelWrapper.setAttribute('look-at', '[camera]');
+        labelWrapper.setAttribute('position', '0 0.30 0');
+
+        const bg = document.createElement('a-plane');
+        bg.setAttribute('material', 'color:#0a1828;opacity:0.9;shader:flat;side:double');
+        bg.setAttribute('width', '0.58');
+        bg.setAttribute('height', '0.14');
+
+        const txt = document.createElement('a-text');
+        txt.setAttribute('value', entry.ip);
+        txt.setAttribute('color', '#ffcc40');
+        txt.setAttribute('scale', '0.65 0.65 0.65');
+        txt.setAttribute('align', 'center');
+        txt.setAttribute('position', '0 0 0.002');
+        txt.setAttribute('material', 'shader:flat');
+
+        labelWrapper.appendChild(bg);
+        labelWrapper.appendChild(txt);
+        el.appendChild(labelWrapper);
+
+        const tape = document.createElement('a-box');
+        tape.setAttribute('material', 'color:#ff8800;roughness:0.8');
+        tape.setAttribute('position', '0 0.245 0');
+        tape.setAttribute('width', '0.62');
+        tape.setAttribute('height', '0.03');
+        tape.setAttribute('depth', '0.1');
+        el.appendChild(tape);
+
+        scene.appendChild(el);
+
+        el.addEventListener('mouseenter', () => {
+          hoveredEl = el;
+          if (el !== selectedPaket) {
+            el.setAttribute('material', 'emissive', '#8b6a20');
+            el.setAttribute('material', 'emissiveIntensity', '0.35');
+          }
+        });
+        el.addEventListener('mouseleave', () => {
+          if (hoveredEl === el) hoveredEl = null;
+          if (el !== selectedPaket) {
+            el.setAttribute('material', 'emissive', '#ffaa00');
+            el.setAttribute('material', 'emissiveIntensity', '0.4');
+          }
+        });
+      });
+    }
+
     // Progress Pips
     const pipsEl = document.getElementById('progress-pips');
     lieferschein.forEach((_,i) => {
