@@ -94,15 +94,23 @@
     .overlay-stats { display: flex; justify-content: center; gap: 48px; margin: 8px 0 24px; }
     .overlay-stats span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 26px; font-weight: 700; }
     .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #64a0ff; }
+
+    #lieferschein-list { margin-top: 10px; border-top: 1px solid rgba(100,160,255,0.15); padding-top: 8px; }
+    .ls-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 2px 0; gap: 8px; }
+    .ls-row.done { color: #50e0a0; text-decoration: line-through; opacity: 0.65; }
+    .ls-row.active { color: #fff; font-weight: 600; }
+    .ls-row.pending { color: rgba(200,216,240,0.45); }
+    .ls-mark { font-size: 10px; flex-shrink: 0; }
   </style>
 </head>
 <body>
 
   <div id="hud">
-    <div class="hud-tag">&#9632; Tutorial &middot; Lern-Szenario 1</div>
+    <div class="hud-tag" id="hud-tag">&#9632; Lern-Szenario 1</div>
     <div class="task" id="task-text">Klicke ins Spiel, dann Fadenkreuz auf ein Paket richten und E drücken.</div>
     <div id="binary-display" style="display:none;font-size:10px;color:#88aacc;font-family:monospace;margin-top:5px;letter-spacing:0.4px;"></div>
     <div class="progress-row" id="progress-pips"></div>
+    <div id="lieferschein-list"></div>
   </div>
 
   <div id="hud-right">
@@ -147,11 +155,29 @@
         <span><span class="stat-label">Punkte</span><span id="co-score">—</span></span>
         <span><span class="stat-label">Zeit</span><span id="co-time">—</span></span>
       </div>
+      <div id="co-quality" style="font-size:20px;font-weight:700;margin:4px 0 12px;"></div>
       <div class="overlay-body">
         Du hast alle IP-Adressen korrekt ihrem Netzwerk zugeordnet.<br>
         Das Grundprinzip: Aus den ersten Oktetten einer IP-Adresse l&auml;sst sich das Zielnetz ableiten &mdash; genau wie eine Postleitzahl die Region bestimmt.
       </div>
       <button id="complete-btn" class="overlay-btn">Weiter zu Szenario 2 &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Lern-Szenario 2: Abschluss -->
+  <div id="s2-complete-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 2 &middot; Abgeschlossen</div>
+      <div class="overlay-avatar">&#128225;</div>
+      <div class="overlay-title">Neu&uuml;bertragung erfolgreich!</div>
+      <div class="overlay-stats">
+        <span><span class="stat-label">Gesamtpunkte</span><span id="s2-score">—</span></span>
+        <span><span class="stat-label">Neugesendet</span><span id="s2-count">—</span></span>
+      </div>
+      <div class="overlay-body">
+        Genau so funktioniert <strong>TCP</strong>: Fehlende Pakete werden vom Empf&auml;nger erkannt und vom Sender erneut &uuml;bertragen &mdash; das nennt man <strong>Retransmission</strong>. Ohne diesen Mechanismus w&auml;re verl&auml;ssliche Kommunikation im Internet nicht m&ouml;glich.
+      </div>
+      <button id="s2-close-btn" class="overlay-btn">Abschlie&szlig;en</button>
     </div>
   </div>
 
@@ -764,7 +790,7 @@
     <a-light type="point" color="#fff8e8" intensity="75" distance="40" decay="2" position="-17 3.2 -6"></a-light>
     <a-cylinder material="color:#ddd;emissive:#ffffcc;emissiveIntensity:1.0;roughness:0.2" radius="0.18" height="0.06" position="-17 3.42 -6"></a-cylinder>
     <!-- Computer-Arbeitsplatz -->
-    <a-entity position="-18 0 -6">
+    <a-entity id="office-computer-entity" position="-18 0 -6" computer-proximity>
       <a-box material="color:#8b7355;roughness:0.7" width="1.6"  height="0.06" depth="0.85" position="0 0.74 0"></a-box>
       <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position="-0.75 0.37  0.38"></a-box>
       <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position=" 0.75 0.37  0.38"></a-box>
@@ -772,9 +798,9 @@
       <a-box material="color:#5a3c1e;roughness:0.8" width="0.06" height="0.74" depth="0.06" position=" 0.75 0.37 -0.38"></a-box>
       <a-box material="color:#333;roughness:0.4;metalness:0.7" width="0.12" height="0.32" depth="0.12" position="0 0.93 0"></a-box>
       <a-box material="color:#222;roughness:0.3;metalness:0.7" width="0.74" height="0.48" depth="0.05" position="0 1.34 0"></a-box>
-      <a-plane material="color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat" width="0.65" height="0.40" position="0 1.34 0.028"></a-plane>
-      <a-text value="SZENARIO 2" color="#00ff88" scale="0.1 0.1 0.1" position="0 1.365 0.029" align="center" material="shader:flat;emissive:#00ff88;emissiveIntensity:0.4"></a-text>
-      <a-text value="coming soon..." color="#336655" scale="0.065 0.065 0.065" position="0 1.315 0.029" align="center" material="shader:flat"></a-text>
+      <a-plane id="computer-screen" material="color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat" width="0.65" height="0.40" position="0 1.34 0.028"></a-plane>
+      <a-text id="computer-line1" value="SZENARIO 2" color="#00ff88" scale="0.1 0.1 0.1" position="0 1.365 0.029" align="center" material="shader:flat;emissive:#00ff88;emissiveIntensity:0.4"></a-text>
+      <a-text id="computer-line2" value="coming soon..." color="#336655" scale="0.065 0.065 0.065" position="0 1.315 0.029" align="center" material="shader:flat"></a-text>
       <a-box material="color:#555;roughness:0.5" width="0.48" height="0.025" depth="0.18" position="0 0.775 0.16"></a-box>
       <a-box material="color:#224;roughness:0.7" width="0.5" height="0.06" depth="0.5"  position="0.3 0.48 0.6"></a-box>
       <a-box material="color:#224;roughness:0.7" width="0.5" height="0.46" depth="0.06" position="0.3 0.7  0.34"></a-box>
@@ -794,6 +820,16 @@
     <a-plane material="color:#2a2e38;roughness:0.9" width="0.5" height="0.22" position=" 8 4.5 -5.7">
       <a-text value="REGAL B" color="#ffaa44" scale="0.36 0.36 0.36" position="0 0 0.01" align="center" material="shader:flat;emissive:#ffaa44;emissiveIntensity:0.3"></a-text>
     </a-plane>
+
+    <!-- S2: Hinweisball ueber Bueroeingang -->
+    <a-entity id="office-glow" position="-12 4.2 -6.5" visible="false">
+      <a-sphere material="color:#00ff88;emissive:#00ff88;emissiveIntensity:1.5;shader:flat;opacity:0.7;transparent:true"
+                radius="0.18"
+                animation="property:position;from:0 0 0;to:0 0.4 0;dur:700;dir:alternate;loop:true;easing:easeInOutSine">
+      </a-sphere>
+      <a-text value="BUERO" color="#00ff88" scale="0.5 0.5 0.5" position="0 0.6 0" align="center"
+              material="shader:flat;emissive:#00ff88;emissiveIntensity:0.8"></a-text>
+    </a-entity>
 
   </a-scene>
 
@@ -848,7 +884,7 @@
     const palLabelMap  = { 'palette-1':'LKW 1 (192.168.1.x)', 'palette-2':'LKW 2 (10.0.0.x)', 'palette-3':'LKW 3 (172.16.5.x)' };
     let selectedPaket = null;
     let score = 0;
-    let gameActive = false;
+    let gameState = 'INTRO';
 
     // Audio
     let audioCtx;
@@ -869,7 +905,7 @@
     // Intro overlay
     document.getElementById('intro-start-btn').addEventListener('click', () => {
       document.getElementById('intro-overlay').classList.add('hidden');
-      gameActive = true;
+      gameState = 'S1_ACTIVE';
       showNPCBriefing();
     });
 
@@ -1090,7 +1126,7 @@
     }
 
     document.addEventListener('keydown', (e) => {
-      if (!gameActive) return;
+      if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE') return;
       if (e.key !== 'e' && e.key !== 'E') return;
       if (!hoveredEl) return;
       if (hoveredEl.classList.contains('paket')) interactWithPaket(hoveredEl);
