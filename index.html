@@ -1034,6 +1034,31 @@
       binEl.style.display = 'block';
     }
 
+    const maxFeedbackMessages = [
+      'Richtig! Die ersten Oktette verraten das Zielnetz — wie eine Postleitzahl.',
+      'Gut! Das Netzwerk ergibt sich aus den führenden Oktetten der IP-Adresse.',
+      'Korrekt. Netz-ID und Host-Teil getrennt durch die Subnetzmaske.',
+      'Perfekt erkannt! Die Subnetzmaske zeigt, welche Bits das Netz definieren.',
+    ];
+    let maxFeedbackIndex = 0;
+
+    function showMaxFeedback(ip) {
+      const msg = maxFeedbackMessages[maxFeedbackIndex % maxFeedbackMessages.length];
+      maxFeedbackIndex++;
+      const badge = document.getElementById('selected-badge');
+      const task  = document.getElementById('task-text');
+      badge.textContent = 'Max — Lagerlogistik';
+      badge.classList.add('visible');
+      task.style.color = '#50e0a0';
+      task.textContent  = msg;
+      setTimeout(() => {
+        badge.classList.remove('visible');
+        task.style.color = '#e8edf5';
+        const offen = lieferschein.find(e => !e.done);
+        if (offen) task.textContent = 'Nächstes Paket: ' + offen.id + ' (' + offen.ip + ') — richtige Palette wählen.';
+      }, 4000);
+    }
+
     const paletteDeliveries = { 'palette-1': 0, 'palette-2': 0, 'palette-3': 0 };
     const palettePosMap = { 'palette-1': [-5, -4], 'palette-2': [0, -4], 'palette-3': [5, -4] };
 
@@ -1099,8 +1124,8 @@
         spawnDeliveredBox(palId, paketIp);
         checkPaletteComplete(palId);
         playSoundCorrect();
-        showFeedback('Richtig! Paket ' + paketId + ' korrekt zugestellt. +100', true);
         triggerFlash(true);
+        showMaxFeedback(paketIp);
         if (lieferschein.every(x=>x.done)) {
           stopTimer();
           setTimeout(showCompleteOverlay, 1600);
