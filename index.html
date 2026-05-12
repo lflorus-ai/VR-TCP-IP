@@ -940,11 +940,46 @@
     }
     document.getElementById('complete-btn').addEventListener('click', () => {
       document.getElementById('complete-overlay').classList.add('hidden');
-      document.getElementById('task-text').textContent = 'Szenario 2 folgt — geh zum Büro und schau auf den Computer.';
-      document.getElementById('task-text').style.color = '#64a0ff';
+      showS2Transition();
       const canvas = document.querySelector('a-scene canvas');
       if (canvas) canvas.requestPointerLock();
     });
+
+    function showS2Transition() {
+      gameState = 'S2_BRIEFING';
+
+      const hudTag = document.getElementById('hud-tag');
+      if (hudTag) hudTag.textContent = 'Lern-Szenario 2 — Paketverlust';
+
+      const badge = document.getElementById('selected-badge');
+      const task  = document.getElementById('task-text');
+      badge.textContent = 'Max — Lagerlogistik';
+      badge.classList.add('visible');
+      task.style.color = '#ffcc40';
+      task.textContent  = 'Warte! Der Empfänger meldet ein Problem — geh ins Büro und schau auf den Computer!';
+
+      setTimeout(() => {
+        badge.classList.remove('visible');
+        task.style.color = '#e8edf5';
+        task.textContent  = 'Geh ins Büro (links) und tritt an den Computer heran.';
+      }, 7000);
+
+      // Computer-Screen rot blinken
+      const screen = document.getElementById('computer-screen');
+      if (screen) {
+        screen.setAttribute('material', 'color:#200000;emissive:#cc0000;emissiveIntensity:0.9;shader:flat');
+        screen.setAttribute('animation__blink',
+          'property:material.emissiveIntensity;from:0.9;to:0.2;dur:600;dir:alternate;loop:true;easing:easeInOutSine');
+      }
+
+      // Office-Glow einblenden
+      const glow = document.getElementById('office-glow');
+      if (glow) glow.setAttribute('visible', 'true');
+
+      // Lieferschein-Liste leeren (S2 hat eigene Pakete)
+      const listEl = document.getElementById('lieferschein-list');
+      if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+    }
 
     // Progress Pips
     const pipsEl = document.getElementById('progress-pips');
