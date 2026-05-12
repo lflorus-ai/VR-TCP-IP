@@ -913,10 +913,29 @@
     function showCompleteOverlay() {
       playSoundComplete();
       document.exitPointerLock();
+      gameState = 'S1_COMPLETE';
       const m = String(Math.floor(timerSeconds/60)).padStart(2,'0');
       const s = String(timerSeconds%60).padStart(2,'0');
       document.getElementById('co-score').textContent = score;
       document.getElementById('co-time').textContent  = m + ':' + s;
+
+      const maxPossible = lieferschein.length * 100;
+      const pct = score / maxPossible;
+      const qualEl = document.getElementById('co-quality');
+      if (pct >= 1.0) {
+        qualEl.style.color = '#ffd700';
+        qualEl.textContent = 'Perfekt — Alle IP-Netzwerke auf Anhieb erkannt!';
+      } else if (pct >= 0.7) {
+        qualEl.style.color = '#50e0a0';
+        qualEl.textContent = 'Sehr gut — Fast fehlerfrei. Weiter so!';
+      } else if (pct >= 0.4) {
+        qualEl.style.color = '#64a0ff';
+        qualEl.textContent = 'Gut — IP-Grundlagen sitzen, weiter üben.';
+      } else {
+        qualEl.style.color = '#aaa';
+        qualEl.textContent = 'Weiter üben — Schau dir die Netzklassen nochmal an.';
+      }
+
       document.getElementById('complete-overlay').classList.remove('hidden');
     }
     document.getElementById('complete-btn').addEventListener('click', () => {
