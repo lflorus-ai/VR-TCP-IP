@@ -1,0 +1,14 @@
+{
+  "name": "vr-tcp-ip",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "serve": "npx serve . -p 8080 --no-clipboard",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "serve": "^14.2.0"
+  }
+}

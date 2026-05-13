@@ -1,0 +1,109 @@
+<h2>PDF-Spec vs. aktuelle Implementierung</h2>
+<p class="subtitle">Wo weicht das Spiel vom beschriebenen Szenario ab?</p>
+
+<style>
+.gap-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; font-size: 0.9rem; }
+.gap-table th { background: rgba(255,255,255,0.08); padding: 10px 14px; text-align: left; font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted, #aaa); border-bottom: 1px solid rgba(255,255,255,0.1); }
+.gap-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); vertical-align: top; }
+.gap-table tr:last-child td { border-bottom: none; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; }
+.tag-missing { background: rgba(255,80,80,0.18); color: #ff8080; border: 1px solid rgba(255,80,80,0.3); }
+.tag-partial { background: rgba(255,180,0,0.18); color: #ffcc40; border: 1px solid rgba(255,180,0,0.3); }
+.tag-ok { background: rgba(0,200,120,0.18); color: #50e0a0; border: 1px solid rgba(0,200,120,0.3); }
+.flow-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin: 1.5rem 0; }
+.flow-box { padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; border: 2px solid; }
+.flow-arrow { color: #888; font-size: 1.2rem; }
+.flow-pdf { background: rgba(100,160,255,0.1); border-color: #64a0ff; color: #9ac0ff; }
+.flow-current { background: rgba(255,160,60,0.1); border-color: #ffa03c; color: #ffb060; }
+.legend { display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.8rem; }
+</style>
+
+<div class="section">
+  <div class="label">Szenario-Fluss laut PDF</div>
+  <div class="flow-row">
+    <div class="flow-box flow-pdf">Steuer-Szenario<br><span style="font-weight:400;font-size:0.75rem">~2 min Tutorial</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box flow-pdf">Lern-Szenario 1<br><span style="font-weight:400;font-size:0.75rem">IP-Adressierung</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box flow-pdf">Lern-Szenario 2<br><span style="font-weight:400;font-size:0.75rem">Paketverlust/TCP</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box flow-pdf">Bewertungs-Szenario<br><span style="font-weight:400;font-size:0.75rem">+Komplexität, Markus</span></div>
+  </div>
+
+  <div class="label">Aktueller Spielfluss</div>
+  <div class="flow-row">
+    <div class="flow-box flow-current">Intro-Modal<br><span style="font-weight:400;font-size:0.75rem">Max-Text + Controls</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box flow-current">Lern-Szenario 1<br><span style="font-weight:400;font-size:0.75rem">5 Pakete sortieren</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box flow-current" style="border-color:#666;color:#888">Bürocomputer<br><span style="font-weight:400;font-size:0.75rem">"coming soon"</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Konkrete Lücken im Vergleich</div>
+  <table class="gap-table">
+    <tr>
+      <th>Bereich</th>
+      <th>Laut PDF</th>
+      <th>Aktuell</th>
+      <th>Status</th>
+    </tr>
+    <tr>
+      <td><strong>Steuer-Szenario</strong></td>
+      <td>Avatar führt durch Lernziele + Steuerung, ~2 min, Teleportation ins Lagerhaus</td>
+      <td>Einfaches Modal mit Text + Tastenliste</td>
+      <td><span class="tag tag-missing">Fehlt</span></td>
+    </tr>
+    <tr>
+      <td><strong>Lern-Szenario 2</strong></td>
+      <td>Paketverlust-Szenario: Empfänger meldet fehlende Pakete, Spieler sendet neu</td>
+      <td>Bürocomputer-Platzhalter "coming soon"</td>
+      <td><span class="tag tag-missing">Fehlt</span></td>
+    </tr>
+    <tr>
+      <td><strong>Bewertungs-Szenario</strong></td>
+      <td>Erhöhte Komplexität, mehr Pakete, mehrere Stationen, Avatar Markus bewertet</td>
+      <td>Nicht vorhanden — S1 ist gleichzeitig Lern- und Bewertungsphase</td>
+      <td><span class="tag tag-missing">Fehlt</span></td>
+    </tr>
+    <tr>
+      <td><strong>Avatar-Feedback</strong></td>
+      <td>Verbale Bestätigung bei jeder richtigen Lieferung, qualitativ "Gut"–"Perfekt"</td>
+      <td>Audio-Ton + goldene Hervorhebung + Badge-Text</td>
+      <td><span class="tag tag-partial">Teilweise</span></td>
+    </tr>
+    <tr>
+      <td><strong>Abschluss-Bewertung</strong></td>
+      <td>Punkte vs. Maximal, Zeit, Avatar Markus spricht Wertung aus</td>
+      <td>Score + Zeit angezeigt, aber kein Avatar-Kommentar</td>
+      <td><span class="tag tag-partial">Teilweise</span></td>
+    </tr>
+    <tr>
+      <td><strong>Lieferschein-Interaktion</strong></td>
+      <td>Visuelles Abhaken bei jeder richtigen Lieferung (Durchstreichen)</td>
+      <td>Fortschritt-Pips + HUD-Tasktext, kein Durchstreichen</td>
+      <td><span class="tag tag-partial">Teilweise</span></td>
+    </tr>
+    <tr>
+      <td><strong>Farb-Zugänglichkeit</strong></td>
+      <td>BITV 2.0 — kein Rot/Grün als einziges Unterscheidungsmerkmal</td>
+      <td>Grün für richtig / Rot für falsch als primäres Feedback</td>
+      <td><span class="tag tag-partial">Fraglich</span></td>
+    </tr>
+    <tr>
+      <td><strong>Paket-Sortierung (S1)</strong></td>
+      <td>Kernmechanik korrekt beschrieben</td>
+      <td>Vollständig implementiert (5 Pakete, 3 Netzwerke, E-Taste)</td>
+      <td><span class="tag tag-ok">OK</span></td>
+    </tr>
+    <tr>
+      <td><strong>IP-Lerninhalt</strong></td>
+      <td>Binärdarstellung, Netzwerkklassen, Subnetz-Metapher</td>
+      <td>Binäranzeige, Netzwerkklassen-Badge, Abschluss-Erklärung</td>
+      <td><span class="tag tag-ok">OK</span></td>
+    </tr>
+  </table>
+</div>
+
+<p class="subtitle" style="margin-top:1.5rem">Das ist die Ausgangslage. Als nächstes: Wo soll der Fokus liegen?</p>

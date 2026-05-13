@@ -1,0 +1,120 @@
+<h2>Design-Entwurf: S1 polieren + S2 implementieren</h2>
+<p class="subtitle">Gesamtfluss und die wichtigsten Änderungen — bitte durchschauen und Feedback geben</p>
+
+<style>
+.flow-h { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; margin:1rem 0; }
+.fb { padding:10px 16px; border-radius:8px; font-size:0.82rem; font-weight:600; border:2px solid; text-align:center; line-height:1.4; }
+.fb-done { background:rgba(0,200,120,0.1); border-color:#00c878; color:#50e0a0; }
+.fb-new { background:rgba(100,160,255,0.15); border-color:#64a0ff; color:#9ac0ff; }
+.fb-improved { background:rgba(255,180,0,0.12); border-color:#ffb000; color:#ffd060; }
+.arrow { color:#666; font-size:1.1rem; }
+.change-block { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:14px 16px; margin-bottom:12px; }
+.change-block h3 { margin:0 0 6px; font-size:0.95rem; }
+.change-block p { margin:0; font-size:0.83rem; color:#bbb; line-height:1.6; }
+.change-block ul { margin:6px 0 0; padding-left:1.2rem; font-size:0.83rem; color:#bbb; line-height:1.7; }
+.tag-new { display:inline-block; padding:2px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; background:rgba(100,160,255,0.2); color:#9ac0ff; border:1px solid rgba(100,160,255,0.3); margin-right:6px; vertical-align:middle; }
+.tag-imp { display:inline-block; padding:2px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; background:rgba(255,180,0,0.2); color:#ffd060; border:1px solid rgba(255,180,0,0.3); margin-right:6px; vertical-align:middle; }
+.mockup-computer { background:#0a0e1a; border:2px solid #00ff88; border-radius:6px; font-family:'Courier New',monospace; padding:12px; font-size:0.78rem; color:#00ff88; margin-top:8px; }
+.mockup-computer .dim { color:#448844; }
+.mockup-computer .err { color:#ff8080; background:rgba(255,80,80,0.1); padding:0 3px; }
+.mockup-computer .ok { color:#80ff80; }
+.lieferschein-mock { background:#1a1a2e; border:1px solid #333; border-radius:6px; padding:12px; font-size:0.8rem; margin-top:8px; }
+.ls-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.ls-row:last-child { border-bottom:none; }
+.ls-done { text-decoration:line-through; color:#50e0a0; opacity:0.7; }
+.ls-active { color:#fff; font-weight:600; }
+.ls-pending { color:#888; }
+</style>
+
+<div class="section">
+  <div class="label">Neuer Spielfluss</div>
+  <div class="flow-h">
+    <div class="fb fb-done">Intro-Modal<br><span style="font-weight:400;font-size:0.75rem">unverändert</span></div>
+    <div class="arrow">→</div>
+    <div class="fb fb-improved">Lern-S1<br><span style="font-weight:400;font-size:0.75rem">verbessert</span></div>
+    <div class="arrow">→</div>
+    <div class="fb fb-improved">S1-Abschluss<br><span style="font-weight:400;font-size:0.75rem">+ Qualitäts-Score</span></div>
+    <div class="arrow">→</div>
+    <div class="fb fb-new">Max-Übergang<br><span style="font-weight:400;font-size:0.75rem">neu: führt zu S2</span></div>
+    <div class="arrow">→</div>
+    <div class="fb fb-new">Lern-S2<br><span style="font-weight:400;font-size:0.75rem">neu: Paketverlust</span></div>
+    <div class="arrow">→</div>
+    <div class="fb fb-new">S2-Abschluss<br><span style="font-weight:400;font-size:0.75rem">TCP-Erklärung</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">S1 — Verbesserungen</div>
+
+  <div class="change-block">
+    <h3><span class="tag-imp">verbessert</span> Lieferschein: Durchstreichen abgeschlossener Einträge</h3>
+    <p>Das Clipboard-HUD zeigt gelieferte Pakete mit Strikethrough und grüner Farbe. Aktuelles Paket ist fett hervorgehoben. Offene Pakete in grau.</p>
+    <div class="lieferschein-mock">
+      <div class="ls-row"><span class="ls-done">24513 &nbsp;192.168.1.10 → LKW 1</span><span class="ls-done">✓</span></div>
+      <div class="ls-row"><span class="ls-active">24515 &nbsp;10.0.0.33 → ?</span><span style="color:#ffd060">◀ jetzt</span></div>
+      <div class="ls-row"><span class="ls-pending">24516 &nbsp;172.16.5.2</span><span class="ls-pending">–</span></div>
+      <div class="ls-row"><span class="ls-pending">24517 &nbsp;10.0.0.7</span><span class="ls-pending">–</span></div>
+      <div class="ls-row"><span class="ls-done">24514 &nbsp;192.168.1.5 → LKW 1</span><span class="ls-done">✓</span></div>
+    </div>
+  </div>
+
+  <div class="change-block">
+    <h3><span class="tag-imp">verbessert</span> Max-Feedback bei jeder Lieferung</h3>
+    <p>Statt nur Audio-Ton und goldene Farbe: Max sagt bei richtiger Lieferung einen kurzen Satz. Rotierend aus einem Pool von 3–4 Varianten:</p>
+    <ul>
+      <li>„Richtig! 192.168.1.x gehört ins /24-Netz — LKW 1."</li>
+      <li>„Gut erkannt! Erstes Oktet 10 → Klasse-A-Netz."</li>
+      <li>„Korrekt. Die ersten Oktette verraten das Zielnetz."</li>
+    </ul>
+  </div>
+
+  <div class="change-block">
+    <h3><span class="tag-imp">verbessert</span> Abschluss: Qualitative Bewertung</h3>
+    <p>Das Abschluss-Overlay zeigt neben Punkte+Zeit eine Wertung basierend auf Score-Prozent:</p>
+    <ul>
+      <li>100% → <strong style="color:#ffd700">Perfekt</strong> — „Alle IP-Netzwerke auf Anhieb erkannt!"</li>
+      <li>70–99% → <strong style="color:#50e0a0">Sehr gut</strong> — „Fast fehlerfrei — gute Arbeit."</li>
+      <li>40–69% → <strong style="color:#64a0ff">Gut</strong> — „IP-Grundlagen sitzen, weiter üben."</li>
+      <li>&lt;40% → <strong style="color:#aaa">Weiter üben</strong> — „Schau dir die Netzklassen nochmal an."</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">S1 → S2 Übergang</div>
+  <div class="change-block">
+    <h3><span class="tag-new">neu</span> Max führt aktiv zum Bürocomputer</h3>
+    <p>Nach dem Schließen des S1-Overlays:</p>
+    <ul>
+      <li>Max-Badge erscheint: „Warte! Der Empfänger meldet ein Problem — schau am Computer im Büro nach."</li>
+      <li>Der Bürocomputer-Monitor beginnt rot zu blinken (emissive pulse)</li>
+      <li>Ein grüner Hinweispfeil / Glow-Effekt über dem Büroeingang</li>
+      <li>HUD-Tag wechselt auf „Lern-Szenario 2 — Paketverlust"</li>
+    </ul>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">S2 — Neue Mechanik (Computer + physische Neulieferung)</div>
+  <div class="change-block">
+    <h3><span class="tag-new">neu</span> Paketverlust-Szenario</h3>
+    <ul>
+      <li>Spieler geht zum Bürocomputer → Proximity triggert S2-Start</li>
+      <li>Computerbildschirm zeigt dynamisch 1–2 zufällig „verlorene" Pakete aus S1</li>
+      <li>Die verlorenen Pakete respawnen in Regal B (anderer Regalplatz als S1)</li>
+      <li>Spieler holt sie ab und liefert sie erneut auf die korrekte Palette</li>
+      <li>S2-Abschluss: Max erklärt TCP-Neuübertragung in 2 Sätzen</li>
+    </ul>
+    <div class="mockup-computer">
+      <div>FEHLERMELDUNG — EMPFÄNGER: 10.0.0.5 (LKW 2)</div>
+      <div class="dim">────────────────────────────────────────</div>
+      <div class="ok">Paket 24513 ✓ angekommen</div>
+      <div class="err">Paket 24515 ✗ VERLOREN — Neuübertragung nötig</div>
+      <div class="ok">Paket 24514 ✓ angekommen</div>
+      <div class="dim">────────────────────────────────────────</div>
+      <div>→ Paket 24515 liegt in Regal B. [E zum Schließen]</div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1.5rem">Passt das so? Gibt es etwas das du anders willst?</p>

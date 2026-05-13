@@ -1,0 +1,89 @@
+<h2>Lern-Szenario 2: Paketverlust & Neuübertragung</h2>
+<p class="subtitle">Wie soll die Spielmechanik für TCP-Fehlerbehandlung aussehen?</p>
+
+<style>
+.mockup-screen {
+  background: #0a0e1a;
+  border: 2px solid #00ff88;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  padding: 16px;
+  font-size: 0.8rem;
+  color: #00ff88;
+  min-height: 140px;
+}
+.mockup-screen .dim { color: #448844; }
+.mockup-screen .highlight { color: #ff8080; background: rgba(255,80,80,0.1); padding: 0 4px; }
+.mockup-screen .ok { color: #80ff80; }
+.shelf-mock { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.pkg { padding: 6px 10px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; text-align: center; border: 2px solid; }
+.pkg-missing { background: rgba(255,80,80,0.15); border-color: #ff5050; color: #ff8080; }
+.pkg-ok { background: rgba(0,200,120,0.1); border-color: #00c878; color: #50e0a0; }
+.pkg-selected { background: rgba(100,160,255,0.2); border-color: #64a0ff; color: #9ac0ff; }
+.flow-mini { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; flex-wrap: wrap; }
+.node { padding: 4px 10px; border-radius: 4px; background: rgba(100,160,255,0.1); border: 1px solid #64a0ff; color: #9ac0ff; }
+.node-err { background: rgba(255,80,80,0.1); border-color: #ff5050; color: #ff8080; }
+.arrow { color: #888; }
+.mockup-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #888; margin-bottom: 6px; }
+</style>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup-label">Bürocomputer-Ansicht (Spieler tritt nah heran)</div>
+      <div class="mockup-screen">
+        <div>EINGEHENDE FEHLERMELDUNG — EMPFÄNGER: 10.0.0.5</div>
+        <div class="dim">─────────────────────────────────────────</div>
+        <div>Paket 24514 &nbsp;<span class="ok">✓ empfangen</span></div>
+        <div>Paket <span class="highlight">24516 ✗ VERLOREN</span></div>
+        <div>Paket 24517 &nbsp;<span class="ok">✓ empfangen</span></div>
+        <div class="dim">─────────────────────────────────────────</div>
+        <div>→ Paket 24516 erneut senden?  [E drücken]</div>
+      </div>
+      <div style="margin-top:8px; font-size:0.78rem; color:#aaa">
+        Spieler: geht zum Computer → liest welches Paket fehlt → geht zurück zum Regal → holt das spezifische Paket → legt es auf die Palette
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Computer-Fehlermeldung + physische Neulieferung</h3>
+      <p>Am Computer erscheint eine Fehlermeldung (wie ein TCP ACK-Timeout). Spieler muss das verlorene Paket aus dem Regal holen und korrekt neu einlegen. Stärker physisch, klare Analogie zum Lagerhaus-Thema.</p>
+      <div class="pros-cons" style="font-size:0.78rem;margin-top:8px">
+        <div class="pros"><h4>Stärken</h4><ul><li>Passt zur Lagerhallen-Metapher</li><li>Klares Interaktionsmuster (identisch zu S1)</li><li>Computer als Empfänger-Interface erkennbar</li></ul></div>
+        <div class="cons"><h4>Schwächen</h4><ul><li>Weniger Abwechslung gegenüber S1</li><li>Paketverlust fühlt sich nicht "zufällig" an</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup-label">HUD-Anzeige während S2</div>
+      <div style="background:#0f141e;border:1px solid #333;border-radius:6px;padding:12px;font-size:0.78rem;">
+        <div style="color:#ff8080;font-weight:600">⚠ PAKETVERLUST ERKANNT</div>
+        <div style="color:#aaa;margin-top:4px">3 von 5 Paketen angekommen. 2 verloren:</div>
+        <div class="shelf-mock" style="margin-top:8px">
+          <div class="pkg pkg-ok">24513<br>192.168.1.10<br>✓</div>
+          <div class="pkg pkg-missing">24515<br>10.0.0.33<br>✗ NEU SENDEN</div>
+          <div class="pkg pkg-ok">24516<br>172.16.5.2<br>✓</div>
+          <div class="pkg pkg-missing">24517<br>10.0.0.7<br>✗ NEU SENDEN</div>
+          <div class="pkg pkg-ok">24514<br>192.168.1.5<br>✓</div>
+        </div>
+        <div style="color:#888;margin-top:8px;font-size:0.72rem">→ Hole die markierten Pakete aus Regal B und liefere erneut</div>
+      </div>
+      <div style="margin-top:8px; font-size:0.78rem; color:#aaa">
+        HUD zeigt sofort welche Pakete "verloren" gingen. Spieler weiß ohne Computer-Besuch was zu tun ist.
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — HUD-gesteuerter Neuübertragungsauftrag</h3>
+      <p>Nach S1 blinkt das HUD: Paketverlust erkannt, 2 Pakete müssen neu gesendet werden. Die fehlenden Pakete erscheinen wieder im Regal (oder in einem separaten Regal B). Spieler muss sie erneut sortieren.</p>
+      <div class="pros-cons" style="font-size:0.78rem;margin-top:8px">
+        <div class="pros"><h4>Stärken</h4><ul><li>Flüssigerer Übergang von S1</li><li>Kein Szenenwechsel nötig</li><li>Sofort klar was zu tun ist</li></ul></div>
+        <div class="cons"><h4>Schwächen</h4><ul><li>Computer-Element im Büro wird ignoriert</li><li>Weniger dramatischer "Moment"</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:1rem">Klick auf einen Ansatz und sag mir kurz was du denkst.</p>
