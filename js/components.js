@@ -52,16 +52,24 @@ AFRAME.registerComponent('collision-walls', {
       { xmin:-12.2, xmax:-11.85, zmin:-5,    zmax:-2    },
       // Linke Wand — nördlich des Büros
       { xmin:-20,   xmax:-11.85, zmin:-2,    zmax:38    },
-      // Rechte Wand
-      { xmin:11.85, xmax:20,     zmin:-20,   zmax:38    },
+      // Rechte Hauptwand – nördlich Versandraum-Durchgang
+      { xmin:11.85, xmax:12.15, zmin:-7.5,  zmax:38    },
+      // Rechte Hauptwand – südlich Versandraum-Durchgang
+      { xmin:11.85, xmax:12.15, zmin:-20,   zmax:-10.5 },
+      // Versandraum – rechte Außenwand
+      { xmin:21.85, xmax:30,    zmin:-14,   zmax:-4    },
+      // Versandraum – vordere Wand
+      { xmin:12,    xmax:22.15, zmin:-4.15, zmax:-3.85 },
+      // Versandraum – hintere Wand
+      { xmin:12,    xmax:22.15, zmin:-14.15,zmax:-13.85},
       // Rückwand
       { xmin:-20,   xmax:20,     zmin:-20,   zmax:-15.85},
       // Fassade z=0 — Lücke x=-2..x=2 (Eingang)
       { xmin:-12,   xmax:-2,     zmin:-0.3,  zmax:0.3   },
       { xmin:2,     xmax:12,     zmin:-0.3,  zmax:0.3   },
       // Regale
-      { xmin:-9.8,  xmax:-6.2,   zmin:-12.3, zmax:-5.7  },
-      { xmin:6.2,   xmax:9.8,    zmin:-12.3, zmax:-5.7  },
+      { xmin:-6.8,  xmax:-3.2,   zmin:-13.3, zmax:-6.7  },
+      { xmin:3.2,   xmax:6.8,    zmin:-13.3, zmax:-6.7  },
       // Büro-Wände
       { xmin:-22.2, xmax:-22,    zmin:-10,   zmax:-2    },
       { xmin:-22,   xmax:-12,    zmin:-10.2, zmax:-10   },
@@ -207,5 +215,46 @@ AFRAME.registerComponent('jump-controls', {
       this.vy = 0;
       this.grounded = true;
     }
+  }
+});
+
+AFRAME.registerComponent('package-follow', {
+  schema: {
+    active:  { default: false },
+    mode:    { default: 'carry' },
+    targetX: { default: 0 },
+    targetY: { default: 0 },
+    targetZ: { default: 0 },
+  },
+  init() {
+    this._v   = new AFRAME.THREE.Vector3();
+    this._q   = new AFRAME.THREE.Quaternion();
+    this._dir = new AFRAME.THREE.Vector3();
+  },
+  tick(t, dt) {
+    if (!this.data.active) return;
+    const cam = this.el.sceneEl.camera;
+    const pos = this.el.object3D.position;
+    let tx, ty, tz;
+    if (this.data.mode === 'carry') {
+      cam.getWorldQuaternion(this._q);
+      this._dir.set(0.25, -0.38, -0.55).applyQuaternion(this._q);
+      cam.getWorldPosition(this._v);
+      tx = this._v.x + this._dir.x;
+      ty = this._v.y + this._dir.y;
+      tz = this._v.z + this._dir.z;
+    } else {
+      tx = this.data.targetX;
+      ty = this.data.targetY;
+      tz = this.data.targetZ;
+      if (Math.abs(tx - pos.x) < 0.0005 && Math.abs(ty - pos.y) < 0.0005 && Math.abs(tz - pos.z) < 0.0005) {
+        pos.x = tx; pos.y = ty; pos.z = tz;
+        return;
+      }
+    }
+    const speed = Math.min((dt / 1000) * 9, 1);
+    pos.x += (tx - pos.x) * speed;
+    pos.y += (ty - pos.y) * speed;
+    pos.z += (tz - pos.z) * speed;
   }
 });

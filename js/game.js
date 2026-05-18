@@ -30,20 +30,20 @@ const lieferschein = shuffle([
 ]);
 
 const slotPool = [
-  // Regal A – unten
-  [-8.8,1.2,-6.8], [-7.4,1.2,-6.8], [-8.8,1.2,-8.0], [-7.4,1.2,-8.0],
-  [-8.8,1.2,-9.5], [-7.4,1.2,-9.5], [-8.8,1.2,-11.0],[-7.4,1.2,-11.0],
-  // Regal A – mitte
-  [-8.8,2.42,-7.0],[-7.4,2.42,-7.0],[-8.8,2.42,-9.0],[-7.4,2.42,-9.0],[-8.8,2.42,-11.0],
-  // Regal A – oben
-  [-8.0,3.62,-7.5],[-8.0,3.62,-10.0],
+  // Regal A – unten (Boden board top y=0.88, Paketzentrum y=1.12)
+  [-5.8,1.12,-7.8], [-4.2,1.12,-7.8], [-5.8,1.12,-9.5], [-4.2,1.12,-9.5],
+  [-5.8,1.12,-11.2],[-4.2,1.12,-11.2],[-5.0,1.12,-8.5], [-5.0,1.12,-12.0],
+  // Regal A – mitte (board top y=2.08, Paketzentrum y=2.32)
+  [-5.8,2.32,-8.0], [-4.2,2.32,-8.0], [-5.8,2.32,-10.0],[-4.2,2.32,-10.0],[-5.0,2.32,-11.5],
+  // Regal A – oben (board top y=3.28, Paketzentrum y=3.52)
+  [-5.0,3.52,-8.5], [-5.0,3.52,-11.0],
   // Regal B – unten
-  [7.5,1.2,-6.8],[8.8,1.2,-6.8],[7.5,1.2,-8.5],[8.8,1.2,-8.5],
-  [7.5,1.2,-10.5],[8.8,1.2,-10.5],
+  [4.2,1.12,-7.8],  [5.8,1.12,-7.8],  [4.2,1.12,-9.5],  [5.8,1.12,-9.5],
+  [4.2,1.12,-11.2], [5.8,1.12,-11.2],
   // Regal B – mitte
-  [7.5,2.42,-7.5],[8.8,2.42,-9.0],
+  [4.2,2.32,-8.5],  [5.8,2.32,-9.5],
   // Regal B – oben
-  [8.0,3.62,-8.5],
+  [5.0,3.52,-9.0],
 ];
 const netzwerkMap  = { '192.168.1':'palette-1', '10.0.0':'palette-2', '172.16.5':'palette-3', '10.1.0':'palette-4' };
 const palLabelMap  = { 'palette-1':'LKW 1 (192.168.1.x)', 'palette-2':'LKW 2 (10.0.0.x)', 'palette-3':'LKW 3 (172.16.5.x)', 'palette-4':'LKW 4 (10.1.0.x)' };
@@ -378,8 +378,8 @@ function startS2() {
 }
 
 const s2SlotPositions = [
-  [7.5, 3.62, -7.2],
-  [8.8, 3.62, -9.8],
+  [4.2, 3.52, -7.8],
+  [5.8, 3.52, -9.5],
 ];
 
 function spawnS2Packages() {
@@ -456,6 +456,19 @@ lieferschein.forEach((_,i) => {
 });
 
 let hoveredEl = null;
+
+function dropSelectedPaket() {
+  if (!selectedPaket) return;
+  selectedPaket.removeAttribute('package-follow');
+  if (selectedPaket._origPos) {
+    const op = selectedPaket._origPos;
+    selectedPaket.setAttribute('position', `${op.x} ${op.y} ${op.z}`);
+  }
+  selectedPaket.classList.add('interactable');
+  selectedPaket.setAttribute('material','emissive','#000000');
+  selectedPaket.setAttribute('material','emissiveIntensity','0');
+  selectedPaket = null;
+}
 
 document.querySelectorAll('.paket').forEach(p => {
   p.addEventListener('mouseenter', () => {
@@ -538,10 +551,20 @@ function interactWithPaket(el) {
   const eintrag = activeList.find(e => e.id===pkid && !e.done);
   if (!eintrag) { showFeedback('Dieses Paket ist bereits erledigt!', false); return; }
   if (selectedPaket && selectedPaket !== el) {
-    selectedPaket.setAttribute('material','emissive','#000000');
-    selectedPaket.setAttribute('material','emissiveIntensity','0');
+    const prev = selectedPaket;
+    prev.setAttribute('package-follow',
+      `active:true;mode:return;targetX:${prev._origPos.x};targetY:${prev._origPos.y};targetZ:${prev._origPos.z}`);
+    setTimeout(() => {
+      prev.removeAttribute('package-follow');
+      prev.setAttribute('position', `${prev._origPos.x} ${prev._origPos.y} ${prev._origPos.z}`);
+      prev.classList.add('interactable');
+    }, 700);
   }
   selectedPaket = el;
+  const origPos = el.getAttribute('position');
+  el._origPos = { x: origPos.x, y: origPos.y, z: origPos.z };
+  el.classList.remove('interactable');
+  el.setAttribute('package-follow', 'active:true;mode:carry');
   el.setAttribute('material','emissive','#f0c030');
   el.setAttribute('material','emissiveIntensity','0.6');
   startTimer();
@@ -588,46 +611,8 @@ function showMaxFeedback(ip) {
 }
 
 const paletteDeliveries = { 'palette-1': 0, 'palette-2': 0, 'palette-3': 0, 'palette-4': 0 };
-const palettePosMap = { 'palette-1': [-5, -4], 'palette-2': [0, -4], 'palette-3': [5, -4], 'palette-4': [10, -4] };
+const palettePosMap = { 'palette-1': [14, -11.5], 'palette-2': [17, -11.5], 'palette-3': [20, -11.5], 'palette-4': [21, -7.5] };
 
-function spawnDeliveredBox(palId, ip) {
-  const count = paletteDeliveries[palId];
-  const [px, pz] = palettePosMap[palId];
-  const col = count % 2;
-  const row = Math.floor(count / 2);
-  const x = px + (col - 0.5) * 0.38;
-  const y = 0.20 + row * 0.26;
-  const z = pz + 0.36;
-
-  const box = document.createElement('a-entity');
-  box.setAttribute('class', 'delivered-box');
-  box.setAttribute('geometry', 'primitive:box;width:0.32;height:0.22;depth:0.28');
-  box.setAttribute('material', 'color:#c8a060;roughness:0.9');
-  box.setAttribute('position', `${x} ${y} ${z}`);
-  box.setAttribute('scale', '0.01 0.01 0.01');
-  box.setAttribute('animation__appear', 'property:scale;to:1 1 1;dur:500;easing:easeOutBack');
-
-  const label = document.createElement('a-text');
-  label.setAttribute('value', ip);
-  label.setAttribute('color', '#fff');
-  label.setAttribute('scale', '0.3 0.3 0.3');
-  label.setAttribute('position', '0 0 0.15');
-  label.setAttribute('align', 'center');
-  label.setAttribute('material', 'shader:flat');
-  box.appendChild(label);
-
-  const check = document.createElement('a-text');
-  check.setAttribute('value', 'ok');
-  check.setAttribute('color', '#22cc55');
-  check.setAttribute('scale', '0.45 0.45 0.45');
-  check.setAttribute('position', '0 0.14 0.15');
-  check.setAttribute('align', 'center');
-  check.setAttribute('material', 'shader:flat');
-  box.appendChild(check);
-
-  document.querySelector('a-scene').appendChild(box);
-  paletteDeliveries[palId]++;
-}
 
 function interactWithPalette(pal) {
   if (!selectedPaket) { showFeedback('Wähle zuerst ein Paket aus dem Regal!', false); return; }
@@ -652,18 +637,49 @@ function interactWithPalette(pal) {
       score += 100;
     }
 
-    const pos = selectedPaket.getAttribute('position');
-    selectedPaket.setAttribute('animation__up',
-      'property:position;to:'+pos.x+' '+(pos.y+1.3)+' '+pos.z+';dur:380;easing:easeInQuad');
+    const count = paletteDeliveries[palId];
+    const [px, pz] = palettePosMap[palId];
+    const col = count % 2;
+    const row = Math.floor(count / 2);
+    const tx = px + (col - 0.5) * 0.38;
+    const ty = 0.20 + row * 0.26;
+    const tz = pz + 0.36;
+
     const pEl = selectedPaket;
-    setTimeout(() => pEl.setAttribute('visible', false), 400);
+    pEl.setAttribute('package-follow',
+      `active:true;mode:deliver;targetX:${tx};targetY:${ty};targetZ:${tz}`);
     selectedPaket.setAttribute('material','emissive','#000000');
     selectedPaket = null;
     document.getElementById('selected-badge').classList.remove('visible');
     document.getElementById('binary-display').style.display = 'none';
     document.getElementById('score-pill').textContent = '★ ' + getTotalScore() + ' Punkte';
 
-    spawnDeliveredBox(palId, paketIp);
+    const stateAtDelivery = gameState;
+    setTimeout(() => {
+      if (gameState !== stateAtDelivery) return;
+      pEl.removeAttribute('package-follow');
+      pEl.setAttribute('position', `${tx} ${ty} ${tz}`);
+      pEl.setAttribute('animation__shrink',
+        'property:scale;to:0.55 0.46 0.58;dur:300;easing:easeOutQuad');
+      pEl.classList.remove('paket');
+      const label = document.createElement('a-text');
+      label.setAttribute('value', paketIp);
+      label.setAttribute('color','#fff');
+      label.setAttribute('scale','0.3 0.3 0.3');
+      label.setAttribute('position','0 0 0.15');
+      label.setAttribute('align','center');
+      label.setAttribute('material','shader:flat');
+      pEl.appendChild(label);
+      const check = document.createElement('a-text');
+      check.setAttribute('value','ok');
+      check.setAttribute('color','#22cc55');
+      check.setAttribute('scale','0.45 0.45 0.45');
+      check.setAttribute('position','0 0.14 0.15');
+      check.setAttribute('align','center');
+      check.setAttribute('material','shader:flat');
+      pEl.appendChild(check);
+      paletteDeliveries[palId]++;
+    }, 550);
     playSoundCorrect();
     triggerFlash(true);
     showMaxFeedback(paketIp);
@@ -964,6 +980,8 @@ function initS3() {
 
   // Palettenstatus zurücksetzen
   resetPaletteStatuses();
+
+  dropSelectedPaket();
 
   // Alte gelieferte Boxen verstecken
   document.querySelectorAll('.delivered-box').forEach(el => el.setAttribute('visible', 'false'));
