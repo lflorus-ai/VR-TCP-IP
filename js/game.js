@@ -61,6 +61,7 @@ let s3TotalAttempts = 0;
 let s3Phase        = 'main'; // 'main' | 'retransmit'
 let s3StartMs      = 0;
 let s1FinalSeconds = 0;
+let s3FinalSeconds = 0;
 
 const s3Data = [
   { id:'30001', ip:'192.168.1.20', network:'192.168.1' },
@@ -1062,6 +1063,11 @@ function initS3() {
   s3TotalAttempts = 0;
   s3StartMs = Date.now();
 
+  stopTimer();
+  timerSeconds = 0;
+  timerStarted = false;
+  document.getElementById('timer-pill').textContent = '⏱ 00:00';
+
   s3Lieferschein = shuffle(s3Data.map(d => ({ ...d, done: false })));
   s3LostPackets  = [];
 
@@ -1104,10 +1110,10 @@ function initS3() {
 }
 
 const s3SlotPositions = [
-  [-8.8, 1.2, -6.8], [-7.4, 1.2, -6.8],
-  [-8.8, 1.2, -8.0], [-7.4, 1.2, -8.0],
-  [-8.8, 1.2, -9.5], [-7.4, 1.2, -9.5],
-  [-8.8, 1.2, -11.0],[-7.4, 1.2, -11.0],
+  [-5.8,1.12,-7.8],  [-4.2,1.12,-7.8],
+  [-5.8,1.12,-9.5],  [-4.2,1.12,-9.5],
+  [-5.8,1.12,-11.2], [-4.2,1.12,-11.2],
+  [-5.0,1.12,-8.5],  [-5.0,1.12,-12.0],
 ];
 
 function spawnS3Packages() {
@@ -1167,9 +1173,9 @@ function spawnS3Packages() {
 }
 
 const s3RetransmitSlots = [
-  [7.5, 3.62, -7.2],
-  [8.8, 3.62, -9.0],
-  [7.5, 3.62, -10.5],
+  [4.2, 3.52, -7.8],
+  [5.8, 3.52, -9.5],
+  [5.0, 3.52, -11.2],
 ];
 
 function startS3Retransmit() {
@@ -1295,12 +1301,15 @@ function fmtMs(ms) {
 
 function showS3CompleteOverlay() {
   playSoundComplete();
+  stopTimer();
+  s3FinalSeconds = timerSeconds;
   document.exitPointerLock();
   gameState = 'S3_COMPLETE';
 
   const maxPts = 8 * 100 + 3 * 50;
   const pct = s3Score / maxPts;
-  const elapsed = Date.now() - s3StartMs;
+  const m = String(Math.floor(s3FinalSeconds / 60)).padStart(2, '0');
+  const s = String(s3FinalSeconds % 60).padStart(2, '0');
 
   if (pct >= 0.90) playMaxAudio('max_s3_complete_100');
   else if (pct >= 0.75) playMaxAudio('max_s3_complete_hi');
@@ -1308,7 +1317,7 @@ function showS3CompleteOverlay() {
   else playMaxAudio('max_s3_complete_lo');
 
   document.getElementById('s3-score').textContent = s3Score + ' / ' + maxPts + '  (' + Math.round(pct * 100) + '%)';
-  document.getElementById('s3-time').textContent   = fmtMs(elapsed);
+  document.getElementById('s3-time').textContent   = m + ':' + s;
   const correct = s3TotalAttempts - s3Errors;
   document.getElementById('s3-correct').textContent = correct + ' / ' + s3TotalAttempts + ' Versuche';
   document.getElementById('s3-errors').textContent  = s3Errors;
@@ -1344,8 +1353,7 @@ function showFinalSummary() {
   else if (totalPct >= 60) playMaxAudio('max_final_mid');
   else playMaxAudio('max_final_lo');
 
-  const s3Elapsed = Date.now() - s3StartMs;
-  const totalSecs = s1FinalSeconds + Math.floor(s3Elapsed / 1000);
+  const totalSecs = s1FinalSeconds + s3FinalSeconds;
   const tm = String(Math.floor(totalSecs / 60)).padStart(2, '0') + ':' + String(totalSecs % 60).padStart(2, '0');
 
   document.getElementById('final-s1').textContent = score + ' / ' + s1Max + ' Punkte';
