@@ -15,6 +15,12 @@
     <div id="binary-display" style="display:none;font-size:10px;color:#88aacc;font-family:monospace;margin-top:5px;letter-spacing:0.4px;"></div>
     <div class="progress-row" id="progress-pips"></div>
     <div id="lieferschein-list"></div>
+  <div id="tutorial-steps">
+    <div class="tutorial-step active" data-step="move">&#9744; Bewege dich <span class="tut-hint">W A S D</span></div>
+    <div class="tutorial-step" data-step="jump">&#9744; Springe <span class="tut-hint">Leertaste</span></div>
+    <div class="tutorial-step" data-step="pickup">&#9744; Hebe ein Paket auf <span class="tut-hint">E</span></div>
+    <div class="tutorial-step" data-step="deliver">&#9744; Liefere es ab <span class="tut-hint">E</span></div>
+  </div>
   </div>
 
   <div id="hud-right">
@@ -29,23 +35,29 @@
   <div id="selected-badge"></div>
   <div id="flash"></div>
 
-  <!-- Steuer-Szenario: Einführung -->
-  <div id="intro-overlay">
+  <!-- Steuer-Tutorial: Einführung (auto-start, kein Klick nötig) -->
+  <div id="tutorial-start-overlay">
     <div class="overlay-box">
-      <div class="overlay-tag">Steuer-Szenario &middot; Einführung</div>
+      <div class="overlay-tag">Steuer-Tutorial &middot; Einführung</div>
       <div class="overlay-avatar">&#128119;</div>
       <div class="overlay-title">Willkommen im TCP/IP-Lagerhaus!</div>
       <div class="overlay-body">
-        Ich bin <strong>Max</strong>, dein Lagerleiter. Heute lernst du, wie Datenpakete im TCP/IP-Modell adressiert und zugestellt werden &mdash; anschaulich als Lagerlogistik.<br><br>
-        Lies den <strong>Lieferschein</strong> in deiner Hand, greife Pakete aus den Regalen und lege sie auf die richtige Palette &mdash; sortiert nach IP-Netzwerk.
+        Ich bin <strong>Max</strong>, dein Lagerleiter. Bevor du anfängst, möchte ich sicherstellen, dass du weißt wie alles funktioniert &mdash; ich führe dich kurz durch die Steuerung.
       </div>
-      <div class="overlay-controls">
-        <span class="ctrl-key">W A S D</span><span>Bewegen</span>
-        <span class="ctrl-key">Maus</span><span>Umsehen &mdash; Klick zum Sperren</span>
-        <span class="ctrl-key">E</span><span>Paket greifen &amp; Palette wählen</span>
-        <span class="ctrl-key">Leertaste</span><span>Springen</span>
+      <button id="tutorial-start-btn" class="overlay-btn">Tutorial starten &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Steuer-Tutorial: Abschluss -->
+  <div id="tutorial-complete-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Steuer-Tutorial &middot; Abgeschlossen</div>
+      <div class="overlay-avatar">&#128119;</div>
+      <div class="overlay-title">Gut gemacht!</div>
+      <div class="overlay-body">
+        Du weißt jetzt wie das Lager funktioniert. Jetzt geht&#39;s an die echte Arbeit &mdash; sortiere Pakete nach IP-Netzwerk auf die richtige Palette.
       </div>
-      <button id="intro-start-btn" class="overlay-btn">Los geht&#39;s &rarr;</button>
+      <button id="tutorial-done-btn" class="overlay-btn">Weiter zu Szenario 1 &rarr;</button>
     </div>
   </div>
 
@@ -156,6 +168,8 @@
     fog="type: linear; color: #c8ddf0; near: 25; far: 55"
     renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; toneMapping: ACESFilmic; exposure: 1.1"
     shadow="type: pcfsoft; enabled: true"
+    loading-screen="enabled: false"
+    vr-mode-ui="enabled: false"
   >
     <a-assets timeout="10000">
       <a-mixin id="m-boden"   material="roughness:0.85;metalness:0.0;color:#3d3428"></a-mixin>
@@ -658,6 +672,57 @@
       </a-sphere>
       <a-text value="BUERO" color="#00ff88" scale="0.5 0.5 0.5" position="0 0.6 0" align="center"
               material="shader:flat;emissive:#00ff88;emissiveIntensity:0.8"></a-text>
+    </a-entity>
+
+    <!-- TUTORIAL-ZONE (Außenbereich, vor dem Lagerhaus) -->
+    <a-plane id="tutorial-floor" rotation="-90 0 0" position="0 0.003 7"
+      width="8" height="10"
+      material="shader:flat;color:#f5c518;opacity:0.18;transparent:true"></a-plane>
+
+    <!-- Absperrband-Barrier vor dem Eingang -->
+    <a-entity id="tutorial-barrier" position="0 0 1.5">
+      <a-cylinder material="color:#f5c518;roughness:0.4;metalness:0.3" radius="0.07" height="1.2" position="-1.8 0.6 0"></a-cylinder>
+      <a-cylinder material="color:#f5c518;roughness:0.4;metalness:0.3" radius="0.07" height="1.2" position="1.8 0.6 0"></a-cylinder>
+      <a-box material="color:#f5c518;emissive:#f5c518;emissiveIntensity:0.2;roughness:0.6" position="0 0.96 0" width="3.6" height="0.1" depth="0.06"></a-box>
+      <a-box material="color:#1a1000;roughness:0.8" position="0 0.76 0" width="3.6" height="0.1" depth="0.06"></a-box>
+      <a-plane material="shader:flat;color:#f5c518" width="1.4" height="0.32" position="0 1.28 0">
+        <a-text value="TUTORIAL-ZONE" color="#1a1000" scale="0.28 0.28 0.28" position="0 0 0.01" align="center" material="shader:flat"></a-text>
+      </a-plane>
+    </a-entity>
+
+    <!-- Tutorial-Karton auf kleiner Kiste (zum Aufheben) -->
+    <a-entity id="tutorial-paket-area" position="0 0 6">
+      <a-box material="color:#5a4e3a;roughness:0.9" width="0.7" height="0.5" depth="0.7" position="0 0.25 0"></a-box>
+      <a-plane material="shader:flat;color:#f5c518;opacity:0.9" width="0.9" height="0.22" position="0 0.56 0.36">
+        <a-text value="HIER AUFHEBEN   E" color="#1a1000" scale="0.2 0.2 0.2" position="0 0 0.01" align="center" material="shader:flat"></a-text>
+      </a-plane>
+    </a-entity>
+
+    <!-- Tutorial-Paket: direktes <a-scene>-Kind damit package-follow Weltkoordinaten verwendet -->
+    <a-entity class="interactable paket" id="tutorial-paket"
+      position="0 0.74 6"
+      geometry="primitive:box;width:0.52;height:0.44;depth:0.44"
+      material="color:#c8a060;roughness:0.9;emissive:#f5c518;emissiveIntensity:0.35"
+      shadow="cast:true;receive:true">
+      <a-entity look-at="[camera]" position="0 0.28 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.14"></a-plane>
+        <a-text value="Tutorial-Paket" color="#f5c518" scale="0.5 0.5 0.5" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <!-- Tutorial-Ablagezone -->
+    <a-entity id="tutorial-palette-area" position="0 0 4">
+      <a-plane rotation="-90 0 0" position="0 0.003 0" width="2.2" height="2.2"
+        material="shader:flat;color:#f5c518;opacity:0.22;transparent:true"
+        animation="property:material.opacity;from:0.1;to:0.32;dur:900;dir:alternate;loop:true;easing:easeInOutSine"></a-plane>
+      <a-box material="color:#7a5c28;roughness:0.9" width="1.8" height="0.1" depth="1.2" position="0 0.05 0"></a-box>
+      <a-box class="interactable palette-zone" id="tutorial-palette"
+        material="shader:flat;color:#1a1000"
+        position="0 0.62 0" width="1.6" height="0.48" depth="0.07">
+        <a-box material="shader:flat;color:#f5c518" position="0 0 0.04" width="1.5" height="0.4" depth="0.003"></a-box>
+        <a-text value="ABLAGEZONE" color="#1a1000" scale="0.32 0.32 0.32" position="0 0.06 0.05" align="center" material="shader:flat"></a-text>
+        <a-text value="Paket hier ablegen   E" color="#1a1000" scale="0.2 0.2 0.2" position="0 -0.1 0.05" align="center" material="shader:flat"></a-text>
+      </a-box>
     </a-entity>
 
   </a-scene>

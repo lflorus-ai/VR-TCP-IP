@@ -62,16 +62,48 @@
 #flash.good { background: rgba(0,200,80,0.18); opacity: 1; }
 #flash.bad  { background: rgba(200,30,30,0.22); opacity: 1; }
 
-#intro-overlay, #complete-overlay,
-#s2-complete-overlay, #s3-briefing-overlay, #s3-complete-overlay, #final-overlay {
+#tutorial-start-overlay, #tutorial-complete-overlay,
+#complete-overlay, #s2-complete-overlay, #s3-briefing-overlay,
+#s3-complete-overlay, #final-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
   display: flex; align-items: center; justify-content: center;
   font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf5;
 }
-#intro-overlay.hidden, #complete-overlay.hidden,
-#s2-complete-overlay.hidden, #s3-briefing-overlay.hidden,
-#s3-complete-overlay.hidden, #final-overlay.hidden { display: none; }
+#tutorial-start-overlay.hidden, #tutorial-complete-overlay.hidden,
+#complete-overlay.hidden, #s2-complete-overlay.hidden,
+#s3-briefing-overlay.hidden, #s3-complete-overlay.hidden,
+#final-overlay.hidden { display: none; }
+
+.hud-tag.tutorial { color: #f5c518; }
+
+#tutorial-steps {
+  display: none;
+  margin-top: 10px;
+  border-top: 2px solid rgba(245,197,24,0.4);
+  padding-top: 8px;
+  background: rgba(245,197,24,0.06);
+  border-radius: 6px;
+  padding: 8px 6px;
+  border: 1px solid rgba(245,197,24,0.3);
+}
+.tutorial-step {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; padding: 4px 0; color: rgba(200,216,240,0.65);
+  transition: color .3s;
+}
+.tutorial-step.active {
+  color: #f5c518; font-weight: 700;
+  animation: tut-pulse 1.2s ease-in-out infinite;
+}
+.tutorial-step.done { color: #4cff88; text-decoration: line-through; opacity: 0.8; }
+.tut-hint {
+  font-size: 10px; opacity: 0.65;
+  background: rgba(245,197,24,0.12); border: 1px solid rgba(245,197,24,0.3);
+  padding: 1px 6px; border-radius: 4px; font-family: monospace;
+}
+.tutorial-step.done .tut-hint { opacity: 0.4; }
+@keyframes tut-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 .overlay-box {
   background: linear-gradient(145deg, rgba(12,22,42,0.98), rgba(18,32,58,0.98));
   border: 1px solid rgba(100,160,255,0.28); border-radius: 20px;

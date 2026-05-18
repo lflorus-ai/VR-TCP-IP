@@ -1,4 +1,5 @@
 function showNPCBriefing() {
+  if (gameState !== 'S1_ACTIVE') return;
   playMaxAudio('max_briefing_s1');
   const t = document.getElementById('task-text');
   const badge = document.getElementById('selected-badge');
@@ -134,80 +135,176 @@ function playMaxAudio(key) {
   a.play().catch(() => {});
 }
 
-// ── Steuer-Szenario (TUTORIAL state) ─────────────────────────────────────────
+// ── Steuer-Tutorial ───────────────────────────────────────────────────────────
+const _tutStepKeys  = ['move', 'jump', 'pickup', 'deliver'];
+const _tutStepTexts = [
+  'Drücke W/A/S/D um dich zu bewegen',
+  'Drücke Leertaste zum Springen',
+  'Geh nah an den gelben Karton und drücke E',
+  'Geh zur Ablagezone und drücke E',
+];
+const _tutStepAudio = ['max_tutorial_01', 'max_tutorial_03', 'max_tutorial_04', null];
+
 function startTutorial() {
-  const player  = document.getElementById('player');
-  const camEl   = document.querySelector('[camera]');
-  const startPos  = player.object3D.position.clone();
-  const startQuat = camEl.object3D.quaternion.clone();
-  let step = 0;
+  const camEl    = document.querySelector('[camera]');
+  const paketEl  = document.getElementById('tutorial-paket');
+  const palEl    = document.getElementById('tutorial-palette');
+  const _camPos  = new AFRAME.THREE.Vector3();
+  let tutStep = 0;
 
-  const steps = [
-    { text: 'Drücke W/A/S/D um dich zu bewegen',       audio: 'max_tutorial_01' },
-    { text: 'Bewege die Maus zum Umsehen',              audio: 'max_tutorial_02' },
-    { text: 'Drücke Leertaste zum Springen',            audio: 'max_tutorial_03' },
-    { text: 'Drücke E — so greifst du später Pakete',  audio: 'max_tutorial_04' },
-  ];
+  const hudTag = document.getElementById('hud-tag');
+  hudTag.textContent = '■ Steuer-Tutorial';
+  hudTag.classList.add('tutorial');
+  document.getElementById('tutorial-steps').style.display = 'block';
 
-  function showStep(i) {
-    document.getElementById('task-text').textContent = steps[i].text;
-    const badge = document.getElementById('selected-badge');
-    badge.classList.add('visible');
-    badge.textContent = `\u{1F477} Max — Schritt ${i + 1}/4`;
-    playMaxAudio(steps[i].audio);
+  function markStepDone(idx) {
+    const el = document.querySelector(`.tutorial-step[data-step="${_tutStepKeys[idx]}"]`);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
   }
-
-  function advance() {
-    step++;
-    if (step >= steps.length) completeTutorial();
-    else showStep(step);
+  function markStepActive(idx) {
+    const el = document.querySelector(`.tutorial-step[data-step="${_tutStepKeys[idx]}"]`);
+    if (el) el.classList.add('active');
+    document.getElementById('task-text').textContent = _tutStepTexts[idx];
+    if (_tutStepAudio[idx]) playMaxAudio(_tutStepAudio[idx]);
   }
-
-  function onKey(e) {
-    if (step === 2 && e.code === 'Space') advance();
-    if (step === 3 && (e.key === 'e' || e.key === 'E')) {
-      document.removeEventListener('keydown', onKey);
-      advance();
+  function advanceStep() {
+    markStepDone(tutStep);
+    tutStep++;
+    if (tutStep >= _tutStepKeys.length) {
+      completeTutorial();
+    } else {
+      markStepActive(tutStep);
     }
   }
-  document.addEventListener('keydown', onKey);
 
-  const tickInterval = setInterval(() => {
-    if (step === 0 && player.object3D.position.distanceTo(startPos) > 0.5) advance();
-    if (step === 1 && camEl) {
-      const dot   = camEl.object3D.quaternion.dot(startQuat);
-      const angle = Math.acos(Math.min(1, Math.abs(dot))) * (180 / Math.PI);
-      if (angle > 5) advance();
+  function getCamWorldPos() {
+    camEl.object3D.getWorldPosition(_camPos);
+    return _camPos;
+  }
+
+  // Tutorial E-key: Näherungsbasiert (kein Cursor-Hover nötig)
+  function tutorialEHandler(e) {
+    if (e.key !== 'e' && e.key !== 'E') return;
+    if (tutStep === 2 && !selectedPaket) {
+      const camPos = getCamWorldPos();
+      const pakPos = new AFRAME.THREE.Vector3();
+      paketEl.object3D.getWorldPosition(pakPos);
+      if (camPos.distanceTo(pakPos) > 4.5) return;
+      selectedPaket = paketEl;
+      const origPos = paketEl.getAttribute('position');
+      paketEl._origPos = { x: origPos.x, y: origPos.y, z: origPos.z };
+      paketEl.classList.remove('interactable');
+      paketEl.setAttribute('package-follow', 'active:true;mode:carry');
+      paketEl.setAttribute('material', 'emissive', '#f0c030');
+      paketEl.setAttribute('material', 'emissiveIntensity', '0.7');
+      advanceStep();
+    } else if (tutStep === 3 && selectedPaket) {
+      const camPos = getCamWorldPos();
+      const palPos = new AFRAME.THREE.Vector3();
+      palEl.object3D.getWorldPosition(palPos);
+      if (camPos.distanceTo(palPos) > 7) return;
+      const tp = selectedPaket;
+      selectedPaket = null;
+      tp.removeAttribute('package-follow');
+      tp.setAttribute('position', '0 0.78 4.2');
+      tp.setAttribute('material', 'emissive', '#000000');
+      tp.setAttribute('material', 'emissiveIntensity', '0');
+      document.removeEventListener('keydown', tutorialEHandler);
+      playSoundCorrect();
+      triggerFlash(true);
+      advanceStep();
     }
-  }, 100);
+  }
+  document.addEventListener('keydown', tutorialEHandler);
+
+  // Jump detection
+  function tutorialJumpHandler(e) {
+    if (tutStep === 1 && e.code === 'Space') {
+      document.removeEventListener('keydown', tutorialJumpHandler);
+      setTimeout(advanceStep, 400);
+    }
+  }
+  document.addEventListener('keydown', tutorialJumpHandler);
+
+  // Move detection: WASD-Tastendruck direkt erkennen
+  const MOVE_KEYS = new Set(['w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']);
+  function tutorialMoveHandler(e) {
+    if (tutStep !== 0) return;
+    if (!MOVE_KEYS.has(e.key)) return;
+    document.removeEventListener('keydown', tutorialMoveHandler);
+    advanceStep();
+  }
+  document.addEventListener('keydown', tutorialMoveHandler);
 
   window._tutorialCleanup = () => {
-    clearInterval(tickInterval);
-    document.removeEventListener('keydown', onKey);
+    document.removeEventListener('keydown', tutorialMoveHandler);
+    document.removeEventListener('keydown', tutorialJumpHandler);
+    document.removeEventListener('keydown', tutorialEHandler);
   };
 
-  showStep(0);
+  markStepActive(0);
 }
 
 function completeTutorial() {
   if (window._tutorialCleanup) { window._tutorialCleanup(); window._tutorialCleanup = null; }
-  const badge = document.getElementById('selected-badge');
-  badge.textContent = '\u{1F477} Max — Lass uns beginnen!';
-  document.getElementById('task-text').textContent = 'Du wirst bereits im Lagerhaus erwartet!';
   playMaxAudio('max_tutorial_complete');
-  setTimeout(() => {
-    document.getElementById('player').object3D.position.set(0, 0, 2);
-    badge.classList.remove('visible');
-    gameState = 'S1_ACTIVE';
-    showNPCBriefing();
-  }, 3000);
+  document.getElementById('tutorial-complete-overlay').classList.remove('hidden');
+  setTimeout(() => document.exitPointerLock(), 300);
+
+  function onEnterDone(e) {
+    if (e.key === 'Enter') {
+      document.removeEventListener('keydown', onEnterDone);
+      document.getElementById('tutorial-done-btn').click();
+    }
+  }
+  document.addEventListener('keydown', onEnterDone);
 }
 
-// Intro overlay
-document.getElementById('intro-start-btn').addEventListener('click', () => {
-  document.getElementById('intro-overlay').classList.add('hidden');
+document.getElementById('tutorial-start-btn').addEventListener('click', () => {
+  document.getElementById('tutorial-start-overlay').classList.add('hidden');
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+
   gameState = 'TUTORIAL';
-  startTutorial();
+  const task = document.getElementById('task-text');
+  task.style.color = '#f5c518';
+  task.textContent = '👷 Max: Willkommen! Ich zeige dir kurz die Steuerung — folge den Schritten unten links.';
+  setTimeout(() => {
+    task.style.color = '#e8edf5';
+    startTutorial();
+  }, 3500);
+});
+
+// Tutorial-Abschluss-Button
+document.getElementById('tutorial-done-btn').addEventListener('click', () => {
+  document.getElementById('tutorial-complete-overlay').classList.add('hidden');
+
+  // Lieferschein + Pips für S1 wieder einblenden
+  document.getElementById('lieferschein-list').style.display = '';
+  document.getElementById('progress-pips').style.display  = '';
+
+  // Tutorial-Entities verstecken
+  document.getElementById('tutorial-barrier').setAttribute('visible', 'false');
+  document.getElementById('tutorial-floor').setAttribute('visible', 'false');
+  document.getElementById('tutorial-paket-area').setAttribute('visible', 'false');
+  document.getElementById('tutorial-palette-area').setAttribute('visible', 'false');
+  document.getElementById('tutorial-paket').setAttribute('visible', 'false');
+
+  // Tutorial-HUD zurücksetzen
+  document.getElementById('tutorial-steps').style.display = 'none';
+  const hudTag = document.getElementById('hud-tag');
+  hudTag.textContent = '■ Lern-Szenario 1';
+  hudTag.classList.remove('tutorial');
+
+  // Spieler zur Lagerhalle bewegen
+  document.getElementById('player').object3D.position.set(0, 0, 2);
+
+  gameState = 'S1_ACTIVE';
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+
+  showNPCBriefing();
+  updateLieferschein();
 });
 
 // Complete overlay
@@ -1292,9 +1389,14 @@ function resetPaletteStatuses() {
 document.querySelector('a-scene').addEventListener('loaded', () => {
   updateLieferschein();
   shuffle(slotPool);
-  document.querySelectorAll('.interactable.paket').forEach((el, i) => {
+  document.querySelectorAll('.interactable.paket:not(#tutorial-paket)').forEach((el, i) => {
     const [x, y, z] = slotPool[i];
     el.setAttribute('position', `${x} ${y} ${z}`);
   });
   applyProceduralTextures();
+
+  // Lieferschein + Pips während Tutorial ausblenden
+  document.getElementById('lieferschein-list').style.display = 'none';
+  document.getElementById('progress-pips').style.display  = 'none';
+
 });
