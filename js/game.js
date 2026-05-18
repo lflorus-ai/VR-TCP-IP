@@ -1,4 +1,5 @@
 function showNPCBriefing() {
+  playMaxAudio('max_briefing_s1');
   const t = document.getElementById('task-text');
   const badge = document.getElementById('selected-badge');
   badge.classList.add('visible');
@@ -95,11 +96,118 @@ function playSoundCorrect() { playTone(880, 0.1); setTimeout(() => playTone(1100
 function playSoundWrong()   { playTone(160, 0.22, 'sawtooth', 0.2); }
 function playSoundComplete(){ [523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f, 0.4), i*130)); }
 
+// ── Max Audio ────────────────────────────────────────────────────────────────
+// Lege MP3s in /audio/ ab (deutsch, männliche Stimme "Max"). Fehlende Dateien
+// werden still ignoriert. Texte zum Einsprechen / TTS-Generieren:
+//
+//   max_tutorial_01.mp3        "Drücke W, A, S oder D um dich zu bewegen."
+//   max_tutorial_02.mp3        "Bewege die Maus, um dich umzusehen."
+//   max_tutorial_03.mp3        "Drücke die Leertaste zum Springen."
+//   max_tutorial_04.mp3        "Drücke E — so greifst du später Pakete."
+//   max_tutorial_complete.mp3  "Sehr gut! Du wirst bereits im Lagerhaus erwartet."
+//   max_briefing_s1.mp3        "Willkommen! Heute sortierst du Pakete nach IP-Netzwerken auf die richtige Palette."
+//   max_teaching_01.mp3        "Richtig! Die ersten Oktette verraten das Zielnetz — wie eine Postleitzahl."
+//   max_teaching_02.mp3        "Gut! Das Netzwerk ergibt sich aus den führenden Oktetten der IP-Adresse."
+//   max_teaching_03.mp3        "Korrekt. Netz-ID und Host-Teil getrennt durch die Subnetzmaske."
+//   max_teaching_04.mp3        "Perfekt erkannt! Die Subnetzmaske zeigt, welche Bits das Netz definieren."
+//   max_s1_complete_100.mp3    "Perfekt — Alle IP-Netzwerke auf Anhieb erkannt!"
+//   max_s1_complete_hi.mp3     "Sehr gut — Fast fehlerfrei. Weiter so!"
+//   max_s1_complete_mid.mp3    "Gut — IP-Grundlagen sitzen, weiter üben hilft."
+//   max_s1_complete_lo.mp3     "Weiter üben — Schau dir die Netzklassen nochmal an."
+//   max_s2_briefing.mp3        "Einige Pakete sind nicht angekommen — schau auf den Computer."
+//   max_s2_complete.mp3        "Gut gemacht! TCP stellt sicher, dass alle Pakete ankommen."
+//   max_s3_briefing.mp3        "Jetzt das Assessment — mehr Pakete, mehr Netzwerke. Zeig was du gelernt hast."
+//   max_s3_retransmit.mp3      "Achtung! Drei Pakete wurden nicht bestätigt — retransmittiere sie aus Regal B."
+//   max_s3_complete_100.mp3    "Perfekt! Du kennst dich mit Netzwerken aus."
+//   max_s3_complete_hi.mp3     "Sehr gut! Noch ein paar Details zu vertiefen."
+//   max_s3_complete_mid.mp3    "Gut gemacht! Die Grundlagen sitzen."
+//   max_s3_complete_lo.mp3     "Übung macht den Meister — probiere es nochmal."
+//   max_final_100.mp3          "Ausgezeichnet! Alle drei Szenarien gemeistert."
+//   max_final_hi.mp3           "Sehr gute Leistung! Du hast TCP/IP gut verstanden."
+//   max_final_mid.mp3          "Solide Basis! Mit etwas Übung wird es noch besser."
+//   max_final_lo.mp3           "Gut angefangen! Die Grundlagen sind da — weitermachen."
+const _maxAudio = { el: null };
+function playMaxAudio(key) {
+  if (_maxAudio.el) { _maxAudio.el.pause(); _maxAudio.el.currentTime = 0; }
+  const a = new Audio(`audio/${key}.mp3`);
+  _maxAudio.el = a;
+  a.play().catch(() => {});
+}
+
+// ── Steuer-Szenario (TUTORIAL state) ─────────────────────────────────────────
+function startTutorial() {
+  const player  = document.getElementById('player');
+  const camEl   = document.querySelector('[camera]');
+  const startPos  = player.object3D.position.clone();
+  const startQuat = camEl.object3D.quaternion.clone();
+  let step = 0;
+
+  const steps = [
+    { text: 'Drücke W/A/S/D um dich zu bewegen',       audio: 'max_tutorial_01' },
+    { text: 'Bewege die Maus zum Umsehen',              audio: 'max_tutorial_02' },
+    { text: 'Drücke Leertaste zum Springen',            audio: 'max_tutorial_03' },
+    { text: 'Drücke E — so greifst du später Pakete',  audio: 'max_tutorial_04' },
+  ];
+
+  function showStep(i) {
+    document.getElementById('task-text').textContent = steps[i].text;
+    const badge = document.getElementById('selected-badge');
+    badge.classList.add('visible');
+    badge.textContent = `\u{1F477} Max — Schritt ${i + 1}/4`;
+    playMaxAudio(steps[i].audio);
+  }
+
+  function advance() {
+    step++;
+    if (step >= steps.length) completeTutorial();
+    else showStep(step);
+  }
+
+  function onKey(e) {
+    if (step === 2 && e.code === 'Space') advance();
+    if (step === 3 && (e.key === 'e' || e.key === 'E')) {
+      document.removeEventListener('keydown', onKey);
+      advance();
+    }
+  }
+  document.addEventListener('keydown', onKey);
+
+  const tickInterval = setInterval(() => {
+    if (step === 0 && player.object3D.position.distanceTo(startPos) > 0.5) advance();
+    if (step === 1 && camEl) {
+      const dot   = camEl.object3D.quaternion.dot(startQuat);
+      const angle = Math.acos(Math.min(1, Math.abs(dot))) * (180 / Math.PI);
+      if (angle > 5) advance();
+    }
+  }, 100);
+
+  window._tutorialCleanup = () => {
+    clearInterval(tickInterval);
+    document.removeEventListener('keydown', onKey);
+  };
+
+  showStep(0);
+}
+
+function completeTutorial() {
+  if (window._tutorialCleanup) { window._tutorialCleanup(); window._tutorialCleanup = null; }
+  const badge = document.getElementById('selected-badge');
+  badge.textContent = '\u{1F477} Max — Lass uns beginnen!';
+  document.getElementById('task-text').textContent = 'Du wirst bereits im Lagerhaus erwartet!';
+  playMaxAudio('max_tutorial_complete');
+  setTimeout(() => {
+    document.getElementById('player').object3D.position.set(0, 0, 2);
+    badge.classList.remove('visible');
+    gameState = 'S1_ACTIVE';
+    showNPCBriefing();
+  }, 3000);
+}
+
 // Intro overlay
 document.getElementById('intro-start-btn').addEventListener('click', () => {
   document.getElementById('intro-overlay').classList.add('hidden');
-  gameState = 'S1_ACTIVE';
-  showNPCBriefing();
+  gameState = 'TUTORIAL';
+  startTutorial();
 });
 
 // Complete overlay
@@ -119,15 +227,19 @@ function showCompleteOverlay() {
   if (pct >= 1.0) {
     qualEl.style.color = '#ffd700';
     qualEl.textContent = 'Perfekt — Alle IP-Netzwerke auf Anhieb erkannt!';
+    playMaxAudio('max_s1_complete_100');
   } else if (pct >= 0.7) {
     qualEl.style.color = '#50e0a0';
     qualEl.textContent = 'Sehr gut — Fast fehlerfrei. Weiter so!';
+    playMaxAudio('max_s1_complete_hi');
   } else if (pct >= 0.4) {
     qualEl.style.color = '#64a0ff';
     qualEl.textContent = 'Gut — IP-Grundlagen sitzen, weiter üben.';
+    playMaxAudio('max_s1_complete_mid');
   } else {
     qualEl.style.color = '#aaa';
     qualEl.textContent = 'Weiter üben — Schau dir die Netzklassen nochmal an.';
+    playMaxAudio('max_s1_complete_lo');
   }
 
   document.getElementById('complete-overlay').classList.remove('hidden');
@@ -135,6 +247,7 @@ function showCompleteOverlay() {
 
 function showS2CompleteOverlay() {
   playSoundComplete();
+  playMaxAudio('max_s2_complete');
   document.exitPointerLock();
   gameState = 'S2_COMPLETE';
   document.getElementById('s2-score').textContent = score + s2Score;
@@ -156,6 +269,7 @@ document.getElementById('complete-btn').addEventListener('click', () => {
 
 function showS2Transition() {
   gameState = 'S2_BRIEFING';
+  playMaxAudio('max_s2_briefing');
 
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = 'Lern-Szenario 2 — Paketverlust';
@@ -457,6 +571,7 @@ let maxFeedbackIndex = 0;
 
 function showMaxFeedback(ip) {
   const msg = maxFeedbackMessages[maxFeedbackIndex % maxFeedbackMessages.length];
+  playMaxAudio('max_teaching_' + String((maxFeedbackIndex % 4) + 1).padStart(2, '0'));
   maxFeedbackIndex++;
   const badge = document.getElementById('selected-badge');
   const task  = document.getElementById('task-text');
@@ -815,6 +930,7 @@ function applyProceduralTextures() {
 
 function showS3BriefingOverlay() {
   gameState = 'S3_BRIEFING';
+  playMaxAudio('max_s3_briefing');
   document.getElementById('s3-briefing-overlay').classList.remove('hidden');
 }
 
@@ -945,6 +1061,7 @@ function startS3Retransmit() {
   s3Phase = 'retransmit';
   const shuffled = shuffle([...s3Lieferschein]);
   s3LostPackets = shuffled.slice(0, 3).map(p => ({ ...p, done: false }));
+  playMaxAudio('max_s3_retransmit');
 
   const task = document.getElementById('task-text');
   task.style.color = '#ffcc40';
@@ -1070,6 +1187,11 @@ function showS3CompleteOverlay() {
   const pct = s3Score / maxPts;
   const elapsed = Date.now() - s3StartMs;
 
+  if (pct >= 0.90) playMaxAudio('max_s3_complete_100');
+  else if (pct >= 0.75) playMaxAudio('max_s3_complete_hi');
+  else if (pct >= 0.60) playMaxAudio('max_s3_complete_mid');
+  else playMaxAudio('max_s3_complete_lo');
+
   document.getElementById('s3-score').textContent = s3Score + ' / ' + maxPts + '  (' + Math.round(pct * 100) + '%)';
   document.getElementById('s3-time').textContent   = fmtMs(elapsed);
   const correct = s3TotalAttempts - s3Errors;
@@ -1101,6 +1223,11 @@ function showFinalSummary() {
   const total = score + s2Score + s3Score;
   const totalMax = s1Max + s2Max + s3Max;
   const totalPct = Math.round(total / totalMax * 100);
+
+  if (totalPct >= 90) playMaxAudio('max_final_100');
+  else if (totalPct >= 75) playMaxAudio('max_final_hi');
+  else if (totalPct >= 60) playMaxAudio('max_final_mid');
+  else playMaxAudio('max_final_lo');
 
   const s3Elapsed = Date.now() - s3StartMs;
   const totalSecs = s1FinalSeconds + Math.floor(s3Elapsed / 1000);
