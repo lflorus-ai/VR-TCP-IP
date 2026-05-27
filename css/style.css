@@ -121,8 +121,8 @@
 .ctrl-key { background: rgba(100,160,255,0.12); border: 1px solid rgba(100,160,255,0.3); color: #88aaee; font-family: monospace; font-size: 12px; padding: 3px 10px; border-radius: 6px; white-space: nowrap; display: inline-block; }
 .overlay-btn { background: linear-gradient(135deg, #1a4a8a, #2a6acc); border: 1px solid rgba(100,160,255,0.5); color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; font-weight: 600; padding: 13px 36px; border-radius: 30px; cursor: pointer; letter-spacing: 0.4px; transition: transform .15s, box-shadow .15s; box-shadow: 0 4px 16px rgba(40,100,200,0.4); margin-top: 4px; }
 .overlay-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(40,100,200,0.55); }
-.overlay-stats { display: flex; justify-content: center; gap: 48px; margin: 8px 0 24px; }
-.overlay-stats span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 26px; font-weight: 700; }
+.overlay-stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px 32px; margin: 8px 0 24px; }
+.overlay-stats span { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 22px; font-weight: 700; }
 .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #64a0ff; }
 
 #lieferschein-list { margin-top: 10px; border-top: 1px solid rgba(100,160,255,0.15); padding-top: 8px; }

@@ -411,6 +411,8 @@ document.getElementById('s2-briefing-ok-btn').addEventListener('click', () => {
   if (canvas) canvas.requestPointerLock();
 });
 
+let s2BriefingTimeout = null;
+
 function showS2Transition() {
   gameState = 'S2_BRIEFING';
   playMaxAudio('max_s2_briefing');
@@ -425,7 +427,7 @@ function showS2Transition() {
   task.style.color = '#ffcc40';
   task.textContent  = '① Warte! Der Empfänger meldet ein Problem — geh ins Büro und schau auf den Computer!';
 
-  setTimeout(() => {
+  s2BriefingTimeout = setTimeout(() => {
     badge.classList.remove('visible');
     task.style.color = '#e8edf5';
     task.textContent  = '① Büro links (durch die Tür bei x≈-12) — Computer leuchtet rot. Tritt heran.';
@@ -464,10 +466,13 @@ function initS2() {
   }));
 }
 
-function renderComputerScreen() {
+function renderComputerScreen(lostPackets, fullList) {
   const line1El = document.getElementById('computer-line1');
   const line2El = document.getElementById('computer-line2');
   const screen  = document.getElementById('computer-screen');
+
+  const activeLost = lostPackets || s2LostPackets;
+  const activeList = fullList    || lieferschein;
 
   if (screen) {
     screen.removeAttribute('animation__blink');
@@ -476,9 +481,9 @@ function renderComputerScreen() {
   if (line2El) line2El.setAttribute('visible', 'false');
 
   if (line1El) {
-    const lostIds = s2LostPackets.map(p => p.id);
+    const lostIds = activeLost.map(p => p.id);
     const lines = ['FEHLERMELDUNG EMPFAENGER', '─────────────────'];
-    lieferschein.forEach(p => {
+    activeList.forEach(p => {
       if (lostIds.includes(p.id)) {
         lines.push('!!! ' + p.id + ' VERLOREN');
       } else {
@@ -497,6 +502,7 @@ function renderComputerScreen() {
 }
 
 function startS2() {
+  clearTimeout(s2BriefingTimeout);
   initS2();
   renderComputerScreen();
   gameState = 'S2_ACTIVE';
@@ -774,11 +780,9 @@ function interactWithPalette(pal) {
     } else if (selectedPaket.getAttribute('data-s2') === 'true') {
       const s2e = s2LostPackets.find(x => x.id===paketId && !x.done);
       if (s2e) s2e.done = true;
-      s2Score += 50;
     } else {
       const e = lieferschein.find(x => x.id===paketId && !x.done);
       if (e) e.done = true;
-      score += 100;
     }
 
     const count = paletteDeliveries[palId];
@@ -806,6 +810,7 @@ function interactWithPalette(pal) {
       pEl.setAttribute('animation__shrink',
         'property:scale;to:0.55 0.46 0.58;dur:300;easing:easeOutQuad');
       pEl.classList.remove('paket');
+      pEl.classList.add('delivered-box');
       const label = document.createElement('a-text');
       label.setAttribute('value', paketIp);
       label.setAttribute('color','#fff');
@@ -861,10 +866,6 @@ function interactWithPalette(pal) {
       s3TotalAttempts++;
       s3Errors++;
       s3Score = Math.max(0, s3Score - (s3Phase === 'retransmit' ? 10 : 20));
-    } else if (selectedPaket && selectedPaket.getAttribute('data-s2') === 'true') {
-      s2Score = Math.max(0, s2Score - 10);
-    } else {
-      score = Math.max(0, score - 20);
     }
     document.getElementById('score-pill').textContent = '★ ' + getTotalScore() + ' Punkte';
     selectedPaket.setAttribute('material','emissive','#ff2020');
@@ -1150,6 +1151,19 @@ function initS3() {
   document.querySelectorAll('.delivered-box').forEach(el => el.setAttribute('visible', 'false'));
   Object.keys(paletteDeliveries).forEach(k => paletteDeliveries[k] = 0);
 
+  // PC-Bildschirm auf Standby zurücksetzen
+  (function resetComputerScreen() {
+    const scr = document.getElementById('computer-screen');
+    if (scr) {
+      scr.removeAttribute('animation__blink');
+      scr.setAttribute('material', 'color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat');
+    }
+    const l1 = document.getElementById('computer-line1');
+    if (l1) { l1.setAttribute('value', 'SYSTEM BEREIT'); l1.setAttribute('scale', '0.1 0.1 0.1'); l1.setAttribute('position', '0 1.365 0.029'); }
+    const l2 = document.getElementById('computer-line2');
+    if (l2) { l2.setAttribute('value', '---'); l2.setAttribute('visible', 'true'); }
+  })();
+
   // S1-Pakete verstecken
   document.querySelectorAll('.interactable.paket:not(.s3-paket)').forEach(el => el.setAttribute('visible', 'false'));
   document.querySelectorAll('.s2-paket').forEach(el => el.setAttribute('visible', 'false'));
@@ -1170,10 +1184,10 @@ function initS3() {
 }
 
 const s3SlotPositions = [
-  [-5.8,1.12,-7.8],  [-4.2,1.12,-7.8],
-  [-5.8,1.12,-9.5],  [-4.2,1.12,-9.5],
-  [-5.8,1.12,-11.2], [-4.2,1.12,-11.2],
-  [-5.0,1.12,-8.5],  [-5.0,1.12,-12.0],
+  [-5.8,1.12,-7.8],  [-4.2,1.12,-9.5],
+  [-5.8,1.12,-11.2], [-4.2,1.12,-12.0],
+  [ 5.8,1.12,-7.8],  [ 4.2,1.12,-9.5],
+  [ 5.8,1.12,-11.2], [ 4.2,1.12,-12.0],
 ];
 
 function spawnS3Packages() {
@@ -1262,6 +1276,15 @@ function startS3Retransmit() {
     pip.id = 's3rpip-' + i;
     pipsEl.appendChild(pip);
   });
+
+  // PC-Bildschirm mit S3-Verluspdaten rot blinken lassen
+  const scrS3 = document.getElementById('computer-screen');
+  if (scrS3) {
+    scrS3.setAttribute('material', 'color:#200000;emissive:#cc0000;emissiveIntensity:0.9;shader:flat');
+    scrS3.setAttribute('animation__blink',
+      'property:material.emissiveIntensity;from:0.9;to:0.2;dur:600;dir:alternate;loop:true;easing:easeInOutSine');
+  }
+  renderComputerScreen(s3LostPackets, s3Lieferschein);
 
   renderLieferscheinList(s3LostPackets, 'lieferschein-list');
   updateClipboard(s3LostPackets, 'Assessment Phase 2');
@@ -1481,11 +1504,9 @@ function resetToS1() {
 }
 
 function showFinalSummary() {
-  const s1Max = lieferschein.length * 100;
-  const s2Max = s2LostPackets.length * 50;
   const s3Max = 8 * 100 + 3 * 50;
-  const total = score + s2Score + s3Score;
-  const totalMax = s1Max + s2Max + s3Max;
+  const total = s3Score;
+  const totalMax = s3Max;
   const totalPct = Math.round(total / totalMax * 100);
 
   if (totalPct >= 90) playMaxAudio('max_final_100');
@@ -1496,8 +1517,8 @@ function showFinalSummary() {
   const totalSecs = s1FinalSeconds + s3FinalSeconds;
   const tm = String(Math.floor(totalSecs / 60)).padStart(2, '0') + ':' + String(totalSecs % 60).padStart(2, '0');
 
-  document.getElementById('final-s1').textContent = score + ' / ' + s1Max + ' Punkte';
-  document.getElementById('final-s2').textContent = s2Score + ' / ' + s2Max + ' Punkte';
+  document.getElementById('final-s1').textContent = 'nicht bewertet';
+  document.getElementById('final-s2').textContent = 'nicht bewertet';
   document.getElementById('final-s3').textContent = s3Score + ' / ' + s3Max + ' Punkte';
   document.getElementById('final-total').textContent = total + ' / ' + totalMax + ' Punkte  (' + totalPct + '%)';
   document.getElementById('final-time').textContent = tm;
