@@ -17,7 +17,10 @@ Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine intera
 | Renderer | A-Frame 1.7.1 (WebVR/WebXR) |
 | Sprache | Vanilla HTML/CSS/JavaScript (kein Build-Tool, kein Framework) |
 | 3D-Assets | `.glb`-Modelle (LKW, Gabelstapler, Lagerregale) |
-| Einstiegspunkt | `index.html` — die gesamte App ist in einer einzigen Datei |
+| Einstiegspunkt | `index.html` — HTML-Struktur |
+| Spiellogik     | `js/game.js` — gesamte Game-Logik (~60KB) |
+| Komponenten    | `js/components.js` — A-Frame-Komponenten |
+| Styles         | `css/style.css` — alle CSS-Definitionen |
 
 ## Spielmechanik (Szenario 1)
 
@@ -34,10 +37,10 @@ Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine intera
 
 | Komponente | Datei | Funktion |
 |---|---|---|
-| `collision-walls` | index.html | AABB/OBB-Kollisionserkennung für Wände/Regale |
-| `auto-collider` | index.html | Berechnet OBB aus GLTF-Bounding-Box automatisch |
-| `jump-controls` | index.html | Sprung-Physik (Leertaste, feste Gravitationskonstante) |
-| `proximity-dialog` | index.html | NPC "Max" spricht Spieler an, wenn nah genug |
+| `collision-walls` | js/components.js | AABB/OBB-Kollisionserkennung für Wände/Regale |
+| `auto-collider` | js/components.js | Berechnet OBB aus GLTF-Bounding-Box automatisch |
+| `jump-controls` | js/components.js | Sprung-Physik (Leertaste, feste Gravitationskonstante) |
+| `proximity-dialog` | js/components.js | NPC "Max" spricht Spieler an, wenn nah genug |
 
 ## Schlüssel-Datenstrukturen
 
@@ -59,7 +62,10 @@ const netzwerkMap = {
 ## Dateistruktur
 
 ```
-index.html                              # Gesamte App (HTML + CSS + JS + A-Frame-Scene)
+index.html                              # HTML-Struktur + A-Frame-Scene
+css/style.css                           # Alle UI-Styles (HUD, Overlays, Banner)
+js/game.js                              # Spiellogik, Szenarien, State-Machine (~60KB)
+js/components.js                        # A-Frame-Custom-Komponenten
 lct_3000_07-_low_poly_model.glb         # LKW-3D-Modell
 warehouse_forklift_gameready.glb        # Gabelstapler
 warehouse_storage_racking_fbx_low_poly_free.glb  # Lagerregale (nicht direkt geladen)
@@ -76,8 +82,18 @@ Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
 | `#timer-pill` | Spielzeit |
 | `#selected-badge` | Zeigt aktuell ausgewähltes Paket (Mitte unten) |
 | `#binary-display` | IP in Binärdarstellung (Lernhilfe) |
-| `#intro-overlay` / `#complete-overlay` | Start- und Abschluss-Screens |
-| `#palette-1/2/3` | Interaktive Paletten-Zonen |
+| `#tutorial-start-overlay` / `#tutorial-complete-overlay` | Tutorial-Screens |
+| `#complete-overlay` | S1-Abschluss-Screen |
+| `#s2-briefing-overlay` | S2-Einführungs-Overlay (TCP-Brücke) |
+| `#s2-complete-overlay` | S2-Abschluss-Screen |
+| `#s3-briefing-overlay` / `#s3-complete-overlay` | S3-Assessment-Screens |
+| `#final-overlay` | Gesamt-Abschluss mit Statistik (`#final-s1/s2/s3`, `#final-total`, `#final-time`) |
+| `#palette-1/2/3` | Interaktive Paletten-Zonen (S1 + S2) |
+| `#palette-4` | Assessment-Palette (nur Szenario 3) |
+| `#step-banner` | Animiertes Tutorial-Schritt-Banner (`#sb-counter`, `#sb-icon`, `#sb-title`, `#sb-keys`, `#sb-desc`) |
+| `#hud-tag` | Szenario-Label im HUD (Klasse `tutorial` für S0) |
+| `#progress-pips` | Fortschritts-Punkte im HUD |
+| `#lieferschein-list` | Pakete-Liste im HUD |
 | `paket-A1` … `paket-A5` | Interaktive Pakete (Regal A) |
 
 ## Debugging
@@ -87,5 +103,6 @@ Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
 
 ## Offene Punkte / Roadmap
 
-- **Szenario 2** ist vorbereitet (Büro-Computer zeigt "coming soon...") — noch nicht implementiert
-- Nur `index.html` deployen (keine Abhängigkeiten außer A-Frame CDN + lokale `.glb`-Dateien)
+- Alle 3 Szenarien + Tutorial sind implementiert und spielbar
+- `resetToS1()` in `js/game.js` setzt das Spiel von S3 in den Trainingsmodus (S1) zurück
+- Deploy: `index.html` + `css/` + `js/` + `.glb`-Dateien (keine weiteren Abhängigkeiten außer A-Frame CDN)

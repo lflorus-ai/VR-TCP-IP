@@ -136,6 +136,44 @@ function playMaxAudio(key) {
   a.play().catch(() => {});
 }
 
+// ── Tutorial Step Banner ──────────────────────────────────────────────────────
+const TUTORIAL_STEP_CONTENT = [
+  { counter:'Schritt 1 von 4', icon:'🚶', title:'Bewege dich',     keys:['W','A','S','D'], desc:'Nutze diese Tasten um dich im Lagerhaus zu bewegen' },
+  { counter:'Schritt 2 von 4', icon:'⬆️', title:'Springe',         keys:['Leertaste'],     desc:'Drücke die Leertaste um zu springen' },
+  { counter:'Schritt 3 von 4', icon:'📦', title:'Paket aufheben',  keys:['E'],             desc:'Geh nah an ein Paket heran und drücke E' },
+  { counter:'Schritt 4 von 4', icon:'🎯', title:'Paket abliefern', keys:['E'],             desc:'Geh zur markierten Palette und drücke E erneut' },
+];
+let _bannerHideTimer = null;
+
+function showStepBanner(index) {
+  clearTimeout(_bannerHideTimer);
+  _bannerHideTimer = null;
+  const s = TUTORIAL_STEP_CONTENT[index];
+  const banner = document.getElementById('step-banner');
+  document.getElementById('sb-counter').textContent = s.counter;
+  document.getElementById('sb-icon').textContent    = s.icon;
+  document.getElementById('sb-title').textContent   = s.title;
+  document.getElementById('sb-desc').textContent    = s.desc;
+  const keysEl = document.getElementById('sb-keys');
+  keysEl.textContent = '';
+  s.keys.forEach(k => {
+    const kbd = document.createElement('kbd');
+    kbd.textContent = k;
+    keysEl.appendChild(kbd);
+  });
+  banner.classList.remove('hidden');
+  requestAnimationFrame(() => banner.classList.add('visible'));
+}
+
+function hideStepBanner() {
+  const banner = document.getElementById('step-banner');
+  banner.classList.remove('visible');
+  _bannerHideTimer = setTimeout(() => {
+    _bannerHideTimer = null;
+    banner.classList.add('hidden');
+  }, 400);
+}
+
 // ── Steuer-Tutorial ───────────────────────────────────────────────────────────
 const _tutStepKeys  = ['move', 'jump', 'pickup', 'deliver'];
 const _tutStepTexts = [
@@ -167,8 +205,10 @@ function startTutorial() {
     if (el) el.classList.add('active');
     document.getElementById('task-text').textContent = _tutStepTexts[idx];
     if (_tutStepAudio[idx]) playMaxAudio(_tutStepAudio[idx]);
+    showStepBanner(idx);
   }
   function advanceStep() {
+    hideStepBanner();
     markStepDone(tutStep);
     tutStep++;
     if (tutStep >= _tutStepKeys.length) {
@@ -248,6 +288,7 @@ function startTutorial() {
 
 function completeTutorial() {
   if (window._tutorialCleanup) { window._tutorialCleanup(); window._tutorialCleanup = null; }
+  hideStepBanner();
   playMaxAudio('max_tutorial_complete');
   document.getElementById('tutorial-complete-overlay').classList.remove('hidden');
   setTimeout(() => document.exitPointerLock(), 300);
@@ -360,6 +401,11 @@ document.getElementById('s2-close-btn').addEventListener('click', () => {
 
 document.getElementById('complete-btn').addEventListener('click', () => {
   document.getElementById('complete-overlay').classList.add('hidden');
+  document.getElementById('s2-briefing-overlay').classList.remove('hidden');
+});
+
+document.getElementById('s2-briefing-ok-btn').addEventListener('click', () => {
+  document.getElementById('s2-briefing-overlay').classList.add('hidden');
   showS2Transition();
   const canvas = document.querySelector('a-scene canvas');
   if (canvas) canvas.requestPointerLock();
@@ -837,8 +883,22 @@ document.addEventListener('keydown', (e) => {
   if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
   if (e.key !== 'e' && e.key !== 'E') return;
   if (!hoveredEl) return;
-  if (hoveredEl.classList.contains('paket')) interactWithPaket(hoveredEl);
-  else if (hoveredEl.classList.contains('palette-zone')) interactWithPalette(hoveredEl);
+
+  const cam = document.querySelector('[camera]');
+  if (!cam) return;
+  const camPos = new AFRAME.THREE.Vector3();
+  cam.object3D.getWorldPosition(camPos);
+  const elPos = new AFRAME.THREE.Vector3();
+  hoveredEl.object3D.getWorldPosition(elPos);
+  const dist = camPos.distanceTo(elPos);
+
+  if (hoveredEl.classList.contains('paket')) {
+    if (dist > 4.5) { showFeedback('Geh näher an das Paket heran!', false); return; }
+    interactWithPaket(hoveredEl);
+  } else if (hoveredEl.classList.contains('palette-zone')) {
+    if (dist > 7) { showFeedback('Geh näher an die Palette heran!', false); return; }
+    interactWithPalette(hoveredEl);
+  }
 });
 
 function updatePips() {
@@ -1335,10 +1395,90 @@ document.getElementById('s3-retry-btn').addEventListener('click', () => {
   if (canvas) canvas.requestPointerLock();
 });
 
+document.getElementById('s3-training-btn').addEventListener('click', resetToS1);
+
 document.getElementById('s3-finish-btn').addEventListener('click', () => {
   document.getElementById('s3-complete-overlay').classList.add('hidden');
   showFinalSummary();
 });
+
+function resetToS1() {
+  document.getElementById('s3-complete-overlay').classList.add('hidden');
+
+  // S3-Pakete entfernen
+  document.querySelectorAll('.s3-paket').forEach(el => el.parentNode && el.parentNode.removeChild(el));
+
+  // S1-Pakete wiederherstellen
+  dropSelectedPaket();
+  shuffle(slotPool);
+  let slotIdx = 0;
+  ['paket-A1','paket-A2','paket-A3','paket-A4','paket-A5'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const [x, y, z] = slotPool[slotIdx++];
+    el.removeAttribute('animation__shrink');
+    el.removeAttribute('package-follow');
+    el.setAttribute('position', `${x} ${y} ${z}`);
+    el.object3D.position.set(x, y, z);
+    el.setAttribute('scale', '1 1 1');
+    el.object3D.scale.set(1, 1, 1);
+    el.setAttribute('visible', 'true');
+    el.classList.add('interactable', 'paket');
+    el.setAttribute('material', 'emissive', '#000000');
+    el.setAttribute('material', 'emissiveIntensity', '0');
+    Array.from(el.querySelectorAll('a-text')).forEach(t => t.parentNode.removeChild(t));
+  });
+
+  // Palette 4 ausblenden (nur S3)
+  const pal4 = document.getElementById('palette-4');
+  if (pal4) pal4.setAttribute('visible', 'false');
+
+  resetPaletteStatuses();
+  Object.keys(paletteDeliveries).forEach(k => paletteDeliveries[k] = 0);
+
+  // Lieferschein zurücksetzen
+  lieferschein.forEach(e => { e.done = false; });
+  shuffle(lieferschein);
+
+  // Score und Timer zurücksetzen
+  score = 0;
+  s2Score = 0;
+  s3Score = 0;
+  s1FinalSeconds = 0;
+  s3FinalSeconds = 0;
+  stopTimer();
+  timerSeconds = 0;
+  timerStarted = false;
+  document.getElementById('score-pill').textContent = '★ 0 Punkte';
+  document.getElementById('timer-pill').textContent = '⏱ 00:00';
+
+  // HUD zurücksetzen
+  document.getElementById('selected-badge').classList.remove('visible');
+  document.getElementById('binary-display').style.display = 'none';
+  const hudTag = document.getElementById('hud-tag');
+  hudTag.textContent = '■ Lern-Szenario 1';
+  hudTag.classList.remove('tutorial');
+
+  // Progress-Pips für S1 neu aufbauen
+  const pipsEl = document.getElementById('progress-pips');
+  while (pipsEl.firstChild) pipsEl.removeChild(pipsEl.firstChild);
+  lieferschein.forEach((_, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'pip' + (i === 0 ? ' active' : '');
+    pip.id = 'pip-' + i;
+    pipsEl.appendChild(pip);
+  });
+  pipsEl.style.display = '';
+
+  document.getElementById('player').object3D.position.set(0, 0, 2);
+  gameState = 'S1_ACTIVE';
+
+  updateLieferschein();
+  showNPCBriefing();
+
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+}
 
 function showFinalSummary() {
   const s1Max = lieferschein.length * 100;

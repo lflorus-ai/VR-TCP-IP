@@ -33,6 +33,15 @@
 
   <div id="controls-hint">W A S D &middot; Leertaste = Springen &middot; E = Interagieren &middot; Klick zum Maus sperren</div>
   <div id="selected-badge"></div>
+
+  <!-- Tutorial Step Banner -->
+  <div id="step-banner" class="hidden">
+    <div class="sb-counter" id="sb-counter">Schritt 1 von 4</div>
+    <div class="sb-icon" id="sb-icon">🚶</div>
+    <div class="sb-title" id="sb-title">Bewege dich</div>
+    <div class="sb-keys" id="sb-keys"></div>
+    <div class="sb-desc" id="sb-desc"></div>
+  </div>
   <div id="flash"></div>
 
   <!-- Steuer-Tutorial: Einführung (auto-start, kein Klick nötig) -->
@@ -56,6 +65,15 @@
       <div class="overlay-title">Gut gemacht!</div>
       <div class="overlay-body">
         Du weißt jetzt wie das Lager funktioniert. Jetzt geht&#39;s an die echte Arbeit &mdash; sortiere Pakete nach IP-Netzwerk auf die richtige Palette.
+        <div class="overlay-learn-box">
+          <div class="olb-header">🌐 Schicht 3 &middot; Internet Layer (IP)</div>
+          <p style="font-size:13px;color:#c8d8f0;line-height:1.7;margin:0">
+            Du wirst gleich als <strong>IP-Router</strong> arbeiten. Router entscheiden anhand der
+            <strong>ersten Oktette</strong> einer IP-Adresse, an welches Netz ein Paket geh&ouml;rt &mdash;
+            genau wie du Pakete gleich nach Netz sortierst.
+          </p>
+          <div class="olb-example">192.168.1.10 &nbsp;&#8594;&nbsp; Netz 192.168.1 &nbsp;(erste 3 Oktette)</div>
+        </div>
       </div>
       <button id="tutorial-done-btn" class="overlay-btn">Weiter zu Szenario 1 &rarr;</button>
     </div>
@@ -75,12 +93,53 @@
       <div class="overlay-body">
         Du hast alle IP-Adressen korrekt ihrem Netzwerk zugeordnet.<br>
         Das Grundprinzip: Aus den ersten Oktetten einer IP-Adresse l&auml;sst sich das Zielnetz ableiten &mdash; genau wie eine Postleitzahl die Region bestimmt.
-      </div>
-      <div style="font-size:12px;color:#aabbc8;background:rgba(200,80,60,0.12);border:1px solid rgba(200,80,60,0.3);border-radius:10px;padding:10px 16px;margin-bottom:20px;line-height:1.6;">
-        &#9888; <strong style="color:#ff9966;">Eingehende Meldung:</strong> Der Empf&auml;nger meldet ein Problem &mdash; einige Pakete kamen nicht an.<br>
-        In echten TCP/IP-Netzwerken erkennt das Protokoll Verluste und fordert erneute Zustellung. Im n&auml;chsten Szenario lernst du wie.
+        <div class="overlay-learn-box">
+          <div class="olb-header">🌐 Was du getan hast &mdash; Schicht 3 (IP)</div>
+          <p style="font-size:13px;color:#c8d8f0;line-height:1.7;margin:0 0 6px">
+            Du hast wie ein <strong>Router</strong> gearbeitet. Das IP-Protokoll (Schicht 3) macht genau das:
+          </p>
+          <ul class="olb-list">
+            <li>Jedes Datenpaket tr&auml;gt eine <strong>Ziel-IP-Adresse</strong></li>
+            <li>Router lesen den <strong>Netzwerkpr&auml;fix</strong> (erste Oktette) und leiten weiter</li>
+            <li>IP arbeitet <strong>verbindungslos</strong> &mdash; jedes Paket findet seinen eigenen Weg</li>
+          </ul>
+          <div class="olb-ranges">
+            <span>🔵 10.x.x.x &mdash; Klasse A privates Netz</span>
+            <span>🟢 172.16.x.x &mdash; Klasse B privates Netz</span>
+            <span>🟠 192.168.x.x &mdash; Klasse C privates Netz</span>
+          </div>
+          <p class="olb-next">Als N&auml;chstes: Was passiert, wenn Pakete verloren gehen? &rarr; Schicht 4 (TCP)</p>
+        </div>
       </div>
       <button id="complete-btn" class="overlay-btn">Weiter zu Szenario 2 &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Lern-Szenario 2: Einführung (TCP-Brücke) -->
+  <div id="s2-briefing-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Szenario 2 &middot; Transport Layer</div>
+      <div class="overlay-avatar">📠</div>
+      <div class="overlay-title">Eingehende Meldung!</div>
+      <div class="overlay-body">
+        Der Empf&auml;nger meldet: <strong>Einige Pakete sind nicht angekommen.</strong>
+        <div class="overlay-learn-box">
+          <div class="olb-header">🔁 Schicht 4 &middot; TCP &mdash; Zuverl&auml;ssigkeit</div>
+          <p style="font-size:13px;color:#c8d8f0;line-height:1.7;margin:0 0 6px">
+            IP (Schicht 3) liefert Pakete nach bestem Bem&uuml;hen, aber ohne Garantie.
+            TCP (Schicht 4) f&uuml;gt Zuverl&auml;ssigkeit hinzu:
+          </p>
+          <ul class="olb-list">
+            <li><strong>Best&auml;tigung (ACK):</strong> Empf&auml;nger best&auml;tigt jedes Paket</li>
+            <li><strong>Retransmission:</strong> Fehlende Pakete werden erneut gesendet</li>
+            <li><strong>Sequenznummern:</strong> TCP stellt die richtige Reihenfolge sicher</li>
+          </ul>
+          <p style="font-size:12px;color:#9ab0cc;margin:8px 0 0">
+            Deine Aufgabe: verlorene Pakete aus dem Regal holen und erneut zustellen.
+          </p>
+        </div>
+      </div>
+      <button class="overlay-btn" id="s2-briefing-ok-btn">Verstanden &mdash; Retransmit starten &rarr;</button>
     </div>
   </div>
 
@@ -96,6 +155,31 @@
       </div>
       <div class="overlay-body">
         Genau so funktioniert <strong>TCP</strong>: Fehlende Pakete werden vom Empf&auml;nger erkannt und vom Sender erneut &uuml;bertragen &mdash; das nennt man <strong>Retransmission</strong>. Ohne diesen Mechanismus w&auml;re verl&auml;ssliche Kommunikation im Internet nicht m&ouml;glich.
+        <div class="overlay-learn-box">
+          <div class="olb-header">🔁 Was du getan hast &mdash; Schicht 4 (TCP)</div>
+          <ul class="olb-list">
+            <li>Empf&auml;nger erkennt fehlende Pakete &rarr; sendet kein ACK (Best&auml;tigung)</li>
+            <li>Sender &uuml;bertr&auml;gt fehlende Pakete <strong>erneut (Retransmit)</strong></li>
+            <li>TCP nutzt <strong>Sequenznummern</strong>, um Reihenfolge beim Empf&auml;nger sicherzustellen</li>
+            <li>Erst wenn alle Pakete best&auml;tigt sind, gilt die &Uuml;bertragung als vollst&auml;ndig</li>
+          </ul>
+          <div class="olb-compare">
+            <div class="olb-col">
+              <strong>TCP</strong>
+              <span>✅ Zuverl&auml;ssig</span>
+              <span>✅ Reihenfolge garantiert</span>
+              <span>⚠️ Mehr Overhead</span>
+              <span style="color:#64a0ff">z.B. HTTP, E-Mail</span>
+            </div>
+            <div class="olb-col">
+              <strong>UDP</strong>
+              <span>⚡ Sehr schnell</span>
+              <span>❌ Keine Garantie</span>
+              <span>✅ Wenig Overhead</span>
+              <span style="color:#64a0ff">z.B. Video-Streaming, DNS</span>
+            </div>
+          </div>
+        </div>
       </div>
       <button id="s2-close-btn" class="overlay-btn">Weiter zum Assessment &rarr;</button>
     </div>
@@ -135,8 +219,9 @@
         <span><span class="stat-label">Richtig</span><span id="s3-correct">—</span></span>
         <span><span class="stat-label">Fehler</span><span id="s3-errors">—</span></span>
       </div>
-      <div style="display:flex;gap:12px;margin-top:8px;justify-content:center;">
+      <div style="display:flex;gap:12px;margin-top:8px;justify-content:center;flex-wrap:wrap;">
         <button id="s3-retry-btn" class="overlay-btn" style="background:rgba(100,160,255,0.15);border:1px solid rgba(100,160,255,0.4);">Nochmal</button>
+        <button id="s3-training-btn" class="overlay-btn" style="background:rgba(255,200,80,0.12);border:1px solid rgba(255,200,80,0.35);color:#ffc850;">&#8617; Trainingsmodus</button>
         <button id="s3-finish-btn" class="overlay-btn">Abschlie&szlig;en</button>
       </div>
     </div>

@@ -63,15 +63,17 @@
 #flash.bad  { background: rgba(200,30,30,0.22); opacity: 1; }
 
 #tutorial-start-overlay, #tutorial-complete-overlay,
-#complete-overlay, #s2-complete-overlay, #s3-briefing-overlay,
+#complete-overlay, #s2-briefing-overlay, #s2-complete-overlay, #s3-briefing-overlay,
 #s3-complete-overlay, #final-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
+  overflow-y: auto;
   font-family: 'Segoe UI', system-ui, sans-serif; color: #e8edf5;
+  padding: 24px 0;
 }
 #tutorial-start-overlay.hidden, #tutorial-complete-overlay.hidden,
-#complete-overlay.hidden, #s2-complete-overlay.hidden,
+#complete-overlay.hidden, #s2-briefing-overlay.hidden, #s2-complete-overlay.hidden,
 #s3-briefing-overlay.hidden, #s3-complete-overlay.hidden,
 #final-overlay.hidden { display: none; }
 
@@ -129,3 +131,65 @@
 .ls-row.active { color: #fff; font-weight: 600; }
 .ls-row.pending { color: rgba(200,216,240,0.45); }
 .ls-mark { font-size: 10px; flex-shrink: 0; }
+
+/* ── Tutorial Step Banner ─────────────────────────────────────────────────── */
+#step-banner {
+  position: fixed; bottom: 90px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 5000; pointer-events: none;
+  background: linear-gradient(135deg, rgba(15,20,30,0.95), rgba(25,35,55,0.92));
+  border: 1px solid rgba(245,197,24,0.45); border-radius: 18px;
+  padding: 22px 40px; text-align: center;
+  min-width: 340px; max-width: 500px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(245,197,24,0.1);
+  font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
+  opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#step-banner.visible {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+#step-banner.hidden { display: none; }
+.sb-counter {
+  font-size: 10px; color: #f5c518; letter-spacing: 2.5px;
+  text-transform: uppercase; font-weight: 700; margin-bottom: 8px;
+}
+.sb-icon { font-size: 42px; margin-bottom: 10px; line-height: 1; }
+.sb-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 14px; }
+.sb-keys { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.sb-keys kbd {
+  background: rgba(245,197,24,0.12); border: 1px solid rgba(245,197,24,0.5);
+  color: #f5c518; font-family: monospace; padding: 5px 12px;
+  border-radius: 7px; font-size: 14px; font-weight: 600;
+}
+.sb-desc { font-size: 13px; color: #9ab0cc; line-height: 1.6; }
+
+/* ── TCP/IP Lernboxen in Overlays ────────────────────────────────────────── */
+.overlay-learn-box {
+  background: rgba(100,160,255,0.06); border: 1px solid rgba(100,160,255,0.2);
+  border-radius: 12px; padding: 16px 20px; margin-top: 16px; text-align: left;
+}
+.olb-header {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: #64a0ff; margin-bottom: 10px;
+}
+.olb-list {
+  margin: 8px 0 8px 16px; padding: 0;
+  font-size: 13px; color: #c8d8f0; line-height: 1.8;
+}
+.olb-example {
+  font-size: 12px; background: rgba(0,0,0,0.25); padding: 6px 12px;
+  border-radius: 6px; margin-top: 10px; font-family: monospace; color: #88ddaa;
+}
+.olb-ranges { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12px; color: #9ab0cc; }
+.olb-next {
+  margin-top: 12px; font-size: 12px; color: #f5c518;
+  border-top: 1px solid rgba(245,197,24,0.2); padding-top: 10px;
+}
+.olb-compare { display: flex; gap: 12px; margin-top: 12px; }
+.olb-col {
+  flex: 1; background: rgba(0,0,0,0.2); border-radius: 8px;
+  padding: 10px 14px; display: flex; flex-direction: column;
+  gap: 4px; font-size: 12px; color: #c8d8f0;
+}
+.olb-col strong { font-size: 13px; color: #fff; margin-bottom: 4px; }
