@@ -1447,9 +1447,10 @@ function resetToS1() {
     el.object3D.scale.set(1, 1, 1);
     el.setAttribute('visible', 'true');
     el.classList.add('interactable', 'paket');
+    el.classList.remove('delivered-box');
     el.setAttribute('material', 'emissive', '#000000');
     el.setAttribute('material', 'emissiveIntensity', '0');
-    Array.from(el.querySelectorAll('a-text')).forEach(t => t.parentNode.removeChild(t));
+    Array.from(el.querySelectorAll(':scope > a-text')).forEach(t => t.parentNode.removeChild(t));
   });
 
   // Palette 4 ausblenden (nur S3)
@@ -1495,6 +1496,16 @@ function resetToS1() {
 
   document.getElementById('player').object3D.position.set(0, 0, 2);
   gameState = 'S1_ACTIVE';
+
+  // A-Frame-Komponenten-Flags zurücksetzen, damit Proximity-Trigger erneut feuern
+  const compEl = document.querySelector('[computer-proximity]');
+  if (compEl && compEl.components['computer-proximity']) {
+    compEl.components['computer-proximity'].triggered = false;
+  }
+  const npcEl = document.querySelector('[proximity-dialog]');
+  if (npcEl && npcEl.components['proximity-dialog']) {
+    npcEl.components['proximity-dialog'].triggered = false;
+  }
 
   updateLieferschein();
   showNPCBriefing();
