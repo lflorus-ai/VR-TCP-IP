@@ -1,0 +1,18 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - generic: ■ Lern-Szenario 1
+    - generic: Klicke ins Spiel, dann Fadenkreuz auf ein Paket richten und E drücken.
+  - generic:
+    - generic: 75%
+    - generic: ★ 0 Punkte
+    - generic: ⏱ 00:00
+  - generic: W A S D · Leertaste = Springen · E = Interagieren · Klick zum Maus sperren
+  - generic [ref=e3]:
+    - generic [ref=e4]: Steuer-Tutorial · Einführung
+    - generic [ref=e5]: 👷
+    - generic [ref=e6]: Willkommen im TCP/IP-Lagerhaus!
+    - generic [ref=e7]:
+      - text: Ich bin
+      - strong [ref=e8]: Max
+      - text: ", dein Lagerleiter. Bevor du anfängst, möchte ich sicherstellen, dass du weißt wie alles funktioniert — ich führe dich kurz durch die Steuerung."
+    - button "Tutorial starten →" [ref=e9] [cursor=pointer]

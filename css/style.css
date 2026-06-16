@@ -130,6 +130,7 @@
 .ls-row.done { color: #50e0a0; text-decoration: line-through; opacity: 0.65; }
 .ls-row.active { color: #fff; font-weight: 600; }
 .ls-row.pending { color: rgba(200,216,240,0.45); }
+.ls-row > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ls-mark { font-size: 10px; flex-shrink: 0; }
 
 /* ── Tutorial Step Banner ─────────────────────────────────────────────────── */

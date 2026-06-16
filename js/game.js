@@ -145,10 +145,10 @@ const TUTORIAL_STEP_CONTENT = [
 ];
 let _bannerHideTimer = null;
 
-function showStepBanner(index) {
+function showStepBanner(indexOrContent) {
   clearTimeout(_bannerHideTimer);
   _bannerHideTimer = null;
-  const s = TUTORIAL_STEP_CONTENT[index];
+  const s = typeof indexOrContent === 'number' ? TUTORIAL_STEP_CONTENT[indexOrContent] : indexOrContent;
   const banner = document.getElementById('step-banner');
   document.getElementById('sb-counter').textContent = s.counter;
   document.getElementById('sb-icon').textContent    = s.icon;
@@ -420,18 +420,17 @@ function showS2Transition() {
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = 'Lern-Szenario 2 — Paketverlust';
 
-  const badge = document.getElementById('selected-badge');
-  const task  = document.getElementById('task-text');
-  badge.textContent = 'Max — Schritt 1 von 2';
-  badge.classList.add('visible');
+  const task = document.getElementById('task-text');
   task.style.color = '#ffcc40';
-  task.textContent  = '① Warte! Der Empfänger meldet ein Problem — geh ins Büro und schau auf den Computer!';
+  task.textContent = '① Büro links durch die Tür — tritt an den Computer heran und drücke E';
 
-  s2BriefingTimeout = setTimeout(() => {
-    badge.classList.remove('visible');
-    task.style.color = '#e8edf5';
-    task.textContent  = '① Büro links (durch die Tür bei x≈-12) — Computer leuchtet rot. Tritt heran.';
-  }, 7000);
+  showStepBanner({
+    counter: 'Szenario 2 · Schritt 1 von 2',
+    icon: '🖥️',
+    title: 'Geh zum Computer',
+    keys: ['W','A','S','D'],
+    desc: 'Büro links durch die Tür — tritt an den Bildschirm heran und drücke E'
+  });
 
   // Computer-Screen rot blinken
   const screen = document.getElementById('computer-screen');
@@ -459,8 +458,9 @@ let s2Score = 0;
 
 function initS2() {
   const delivered = lieferschein.filter(p => p.done);
-  const lostCount = Math.min(2, delivered.length);
-  const shuffled = delivered.slice().sort(() => Math.random() - 0.5);
+  const source = delivered.length > 0 ? delivered : lieferschein;
+  const lostCount = Math.min(2, source.length);
+  const shuffled = source.slice().sort(() => Math.random() - 0.5);
   s2LostPackets = shuffled.slice(0, lostCount).map(p => ({
     id: p.id, ip: p.ip, network: p.network, done: false
   }));
@@ -482,27 +482,39 @@ function renderComputerScreen(lostPackets, fullList) {
 
   if (line1El) {
     const lostIds = activeLost.map(p => p.id);
-    const lines = ['FEHLERMELDUNG EMPFAENGER', '─────────────────'];
-    activeList.forEach(p => {
-      if (lostIds.includes(p.id)) {
-        lines.push('!!! ' + p.id + ' VERLOREN');
-      } else {
-        lines.push('OK  ' + p.id + '  ' + p.ip);
-      }
+    const palName = { 'palette-1':'LKW 1', 'palette-2':'LKW 2', 'palette-3':'LKW 3', 'palette-4':'LKW 4' };
+    const okCount = activeList.filter(p => !lostIds.includes(p.id)).length;
+
+    const lines = [
+      'TCP-FEHLERPROTOKOLL',
+      'VERLOREN: ' + activeLost.length + ' / ' + activeList.length,
+      '──────────────────',
+    ];
+
+    activeLost.forEach(p => {
+      const ziel = palName[netzwerkMap[p.network]] || '?';
+      lines.push('! ' + p.id + '  ' + p.ip);
+      lines.push('  Ziel: ' + ziel);
     });
-    lines.push('─────────────────');
-    lines.push('Pakete in Regal B.');
-    lines.push('[E = Schliessen]');
+
+    lines.push('──────────────────');
+    lines.push('Pakete in Regal B');
+    lines.push('TCP: Neuuebertragung');
+
     line1El.setAttribute('value', lines.join('\n'));
     line1El.setAttribute('color', '#00ff88');
     line1El.setAttribute('scale', '0.045 0.045 0.045');
-    line1El.setAttribute('position', '0 1.43 0.029');
+    line1El.setAttribute('position', '0 1.52 0.029');
+    line1El.setAttribute('baseline', 'top');
     line1El.setAttribute('wrap-count', '22');
   }
 }
 
 function startS2() {
   clearTimeout(s2BriefingTimeout);
+  hideStepBanner();
+  const hint = document.getElementById('computer-hint');
+  if (hint) hint.setAttribute('visible', 'false');
   initS2();
   renderComputerScreen();
   gameState = 'S2_ACTIVE';
@@ -513,7 +525,7 @@ function startS2() {
   const glow = document.getElementById('office-glow');
   if (glow) glow.setAttribute('visible', 'false');
 
-  renderLieferscheinList(s2LostPackets, 'lieferschein-list');
+  renderLieferscheinList(s2LostPackets, 'lieferschein-list', true);
 
   spawnS2Packages();
 
@@ -881,6 +893,18 @@ function interactWithPalette(pal) {
 }
 
 document.addEventListener('keydown', (e) => {
+  if ((e.key === 'e' || e.key === 'E') && (gameState === 'S2_BRIEFING' || gameState === 'S3_RETRANSMIT_BRIEFING')) {
+    const compEl = document.getElementById('office-computer-entity');
+    const comp = compEl && compEl.components['computer-proximity'];
+    const near = comp && comp._hintVisible;
+    if (!near) return;
+    if (comp) { comp.triggered = true; comp._hintVisible = false; }
+    const hint = document.getElementById('computer-hint');
+    if (hint) hint.setAttribute('visible', 'false');
+    if (gameState === 'S2_BRIEFING') startS2();
+    else confirmS3Retransmit();
+    return;
+  }
   if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
   if (e.key !== 'e' && e.key !== 'E') return;
   if (!hoveredEl) return;
@@ -923,16 +947,21 @@ function updateLieferschein() {
   renderLieferscheinList(lieferschein, 'lieferschein-list');
 }
 
-function renderLieferscheinList(entries, containerId) {
+function renderLieferscheinList(entries, containerId, showDest) {
   const listEl = document.getElementById(containerId);
   if (!listEl) return;
   while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+  const palName = { 'palette-1':'LKW 1', 'palette-2':'LKW 2', 'palette-3':'LKW 3', 'palette-4':'LKW 4' };
   const nextOpen = entries.findIndex(x => !x.done);
   entries.forEach((e, i) => {
     const row = document.createElement('div');
     row.className = 'ls-row ' + (e.done ? 'done' : i === nextOpen ? 'active' : 'pending');
     const label = document.createElement('span');
-    label.textContent = e.id + '  ' + e.ip;
+    let text = e.id + '  ' + e.ip;
+    if (showDest && e.network && netzwerkMap[e.network]) {
+      text += '  ' + palName[netzwerkMap[e.network]];
+    }
+    label.textContent = text;
     const mark = document.createElement('span');
     mark.className = 'ls-mark';
     mark.textContent = e.done ? 'v' : i === nextOpen ? '<<' : '-';
@@ -943,7 +972,7 @@ function renderLieferscheinList(entries, containerId) {
 }
 
 function updateS2Lieferschein() {
-  renderLieferscheinList(s2LostPackets, 'lieferschein-list');
+  renderLieferscheinList(s2LostPackets, 'lieferschein-list', true);
 }
 
 function showFeedback(msg, ok) {
@@ -1178,7 +1207,7 @@ function initS3() {
     pipsEl.appendChild(pip);
   });
 
-  renderLieferscheinList(s3Lieferschein, 'lieferschein-list');
+  renderLieferscheinList(s3Lieferschein, 'lieferschein-list', true);
   updateClipboard(s3Lieferschein, 'Assessment Phase 1');
   spawnS3Packages();
 }
@@ -1257,17 +1286,47 @@ function startS3Retransmit() {
   const shuffled = shuffle([...s3Lieferschein]);
   s3LostPackets = shuffled.slice(0, 3).map(p => ({ ...p, done: false }));
   playMaxAudio('max_s3_retransmit');
+  gameState = 'S3_RETRANSMIT_BRIEFING';
 
   const task = document.getElementById('task-text');
   task.style.color = '#ffcc40';
-  task.textContent = '⚠ Paketverlust erkannt! 3 Pakete retransmittieren — sie sind in Regal B (oben).';
+  task.textContent = '⚠ Paketverlust erkannt! Geh ins Büro und schau auf den Computer.';
 
-  const badge = document.getElementById('selected-badge');
-  badge.textContent = 'Max — Retransmission';
-  badge.classList.add('visible');
-  setTimeout(() => badge.classList.remove('visible'), 5000);
+  showStepBanner({
+    counter: 'Assessment · Retransmission',
+    icon: '🖥️',
+    title: 'Geh zum Computer',
+    keys: ['W','A','S','D'],
+    desc: 'Büro links durch die Tür — tritt an den Bildschirm heran und drücke E'
+  });
 
-  // Progress-Pips für Retransmit
+  const scrS3 = document.getElementById('computer-screen');
+  if (scrS3) {
+    scrS3.setAttribute('material', 'color:#200000;emissive:#cc0000;emissiveIntensity:0.9;shader:flat');
+    scrS3.setAttribute('animation__blink',
+      'property:material.emissiveIntensity;from:0.9;to:0.2;dur:600;dir:alternate;loop:true;easing:easeInOutSine');
+  }
+
+  const glow = document.getElementById('office-glow');
+  if (glow) glow.setAttribute('visible', 'true');
+  const waypoint = document.getElementById('computer-waypoint');
+  if (waypoint) waypoint.setAttribute('visible', 'true');
+
+  const compEl = document.getElementById('office-computer-entity');
+  const comp = compEl && compEl.components['computer-proximity'];
+  if (comp) { comp.triggered = false; comp._hintVisible = false; }
+}
+
+function confirmS3Retransmit() {
+  hideStepBanner();
+  const hint = document.getElementById('computer-hint');
+  if (hint) hint.setAttribute('visible', 'false');
+
+  const glow = document.getElementById('office-glow');
+  if (glow) glow.setAttribute('visible', 'false');
+  const waypoint = document.getElementById('computer-waypoint');
+  if (waypoint) waypoint.setAttribute('visible', 'false');
+
   const pipsEl = document.getElementById('progress-pips');
   while (pipsEl.firstChild) pipsEl.removeChild(pipsEl.firstChild);
   s3LostPackets.forEach((_, i) => {
@@ -1277,17 +1336,15 @@ function startS3Retransmit() {
     pipsEl.appendChild(pip);
   });
 
-  // PC-Bildschirm mit S3-Verluspdaten rot blinken lassen
-  const scrS3 = document.getElementById('computer-screen');
-  if (scrS3) {
-    scrS3.setAttribute('material', 'color:#200000;emissive:#cc0000;emissiveIntensity:0.9;shader:flat');
-    scrS3.setAttribute('animation__blink',
-      'property:material.emissiveIntensity;from:0.9;to:0.2;dur:600;dir:alternate;loop:true;easing:easeInOutSine');
-  }
   renderComputerScreen(s3LostPackets, s3Lieferschein);
-
-  renderLieferscheinList(s3LostPackets, 'lieferschein-list');
+  renderLieferscheinList(s3LostPackets, 'lieferschein-list', true);
   updateClipboard(s3LostPackets, 'Assessment Phase 2');
+  gameState = 'S3_ACTIVE';
+
+  const task = document.getElementById('task-text');
+  task.style.color = '#ffcc40';
+  task.textContent = '⚠ 3 Pakete retransmittieren — sie sind in Regal B (oben).';
+
   spawnS3RetransmitPackages();
 }
 
@@ -1357,7 +1414,7 @@ function updateClipboard(entries, title) {
 
 function updateS3Lieferschein() {
   const list = s3Phase === 'retransmit' ? s3LostPackets : s3Lieferschein;
-  renderLieferscheinList(list, 'lieferschein-list');
+  renderLieferscheinList(list, 'lieferschein-list', true);
   updateClipboard(list, s3Phase === 'retransmit' ? 'Assessment Phase 2' : 'Assessment Phase 1');
 
   // Pips aktualisieren

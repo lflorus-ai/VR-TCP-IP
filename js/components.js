@@ -22,17 +22,20 @@ AFRAME.registerComponent('computer-proximity', {
     this._cp = new AFRAME.THREE.Vector3();
     this._np = new AFRAME.THREE.Vector3();
     this.triggered = false;
+    this._hintVisible = false;
   },
   tick() {
     if (this.triggered) return;
-    if (typeof gameState === 'undefined' || gameState !== 'S2_BRIEFING') return;
+    if (typeof gameState === 'undefined' || (gameState !== 'S2_BRIEFING' && gameState !== 'S3_RETRANSMIT_BRIEFING')) return;
     const cam = this.el.sceneEl.camera;
     if (!cam) return;
     cam.getWorldPosition(this._cp);
     this.el.object3D.getWorldPosition(this._np);
-    if (this._cp.distanceTo(this._np) < 5.5) {
-      this.triggered = true;
-      startS2();
+    const near = this._cp.distanceTo(this._np) < 3.5;
+    if (near !== this._hintVisible) {
+      this._hintVisible = near;
+      const hint = document.getElementById('computer-hint');
+      if (hint) hint.setAttribute('visible', near ? 'true' : 'false');
     }
   }
 });

@@ -10,6 +10,16 @@ Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine intera
 
 **Kernidee:** Datenpakete = Kartons mit IP-Adressen. Der Spieler sortiert sie per IP-Netzwerk auf die richtige Palette/den richtigen LKW.
 
+## Quick Start / Kommandos
+
+```bash
+npm run serve      # Dev-Server auf http://localhost:8080 starten
+npm test           # Playwright-Tests headless ausführen
+npm run test:ui    # Playwright-Tests mit UI-Modus (interaktiv)
+```
+
+Tests liegen in `tests/ui.spec.js` (Playwright). Der `webServer` in `playwright.config.js` startet automatisch `serve` vor den Tests.
+
 ## Technologie-Stack
 
 | Komponente | Details |
@@ -66,6 +76,9 @@ index.html                              # HTML-Struktur + A-Frame-Scene
 css/style.css                           # Alle UI-Styles (HUD, Overlays, Banner)
 js/game.js                              # Spiellogik, Szenarien, State-Machine (~60KB)
 js/components.js                        # A-Frame-Custom-Komponenten
+tests/ui.spec.js                        # Playwright E2E-Tests
+playwright.config.js                    # Test-Konfiguration (baseURL: localhost:8080)
+audio/                                  # Audio-Assets (derzeit leer, DATEIEN.md vorhanden)
 lct_3000_07-_low_poly_model.glb         # LKW-3D-Modell
 warehouse_forklift_gameready.glb        # Gabelstapler
 warehouse_storage_racking_fbx_low_poly_free.glb  # Lagerregale (nicht direkt geladen)
@@ -95,6 +108,26 @@ Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
 | `#progress-pips` | Fortschritts-Punkte im HUD |
 | `#lieferschein-list` | Pakete-Liste im HUD |
 | `paket-A1` … `paket-A5` | Interaktive Pakete (Regal A) |
+
+## Bekannte Fallstricke / Gotchas
+
+### Lieferschein-Update in S2 / S3-Retransmit (computer-proximity + E-Handler)
+
+**Problem:** Der Lieferschein (`#lieferschein-list`) wird NICHT aktualisiert, wenn `startS2()` oder `confirmS3Retransmit()` zu früh ausgelöst werden — also bevor der Spieler wirklich am PC steht.
+
+**Ursache:** Der `keydown`-Handler für E prüft zwar `gameState === 'S2_BRIEFING'`, aber NICHT ob der Spieler nah am Computer ist. Ein versehentlicher E-Druck irgendwo im Lager ruft `initS2()` auf, bevor `lieferschein`-Einträge als `done: true` gesetzt sind → `s2LostPackets = []` → Lieferschein leer.
+
+**Fix (seit v7):**
+- E-Handler prüft `comp._hintVisible === true` als Proximity-Gate: `startS2()` / `confirmS3Retransmit()` feuern nur, wenn der `computer-proximity`-Hint gerade sichtbar ist (= Spieler < 3.5m vom PC).
+- `initS2()` hat Fallback: wenn `lieferschein.filter(p => p.done)` leer ist, wird auf alle Pakete zurückgegriffen, sodass `s2LostPackets` nie leer bleibt.
+
+**Wichtig bei zukünftigen Änderungen:** `computer-proximity.tick()` setzt `_hintVisible` auf `true/false` je nach Abstand. Das E-Gate hängt davon ab — `_hintVisible` darf nicht aus anderen Gründen auf `false` gesetzt bleiben.
+
+### S2-Transition: Lieferschein-Zustand
+
+- `showS2Transition()` leert den Lieferschein sofort (zeigt nichts während der Briefing-Phase)
+- Erst nach E-Druck am PC → `startS2()` → `renderLieferscheinList(s2LostPackets, 'lieferschein-list', true)` füllt ihn mit den 2 verlorenen Paketen (inkl. IP + Ziel-LKW)
+- Gleiches Muster für S3-Retransmit: `startS3Retransmit()` → Briefing → E am PC → `confirmS3Retransmit()`
 
 ## Debugging
 
