@@ -201,7 +201,7 @@ test.describe('P2 S2: Protokoll-Zuordnung', () => {
     });
     await page.locator('#p2s2-quiz-btn').click();
     await expect(page.locator('#p2s2-quiz')).not.toHaveClass(/hidden/);
-    await expect(page.locator('#p2s2-options .p2s1-option')).toHaveCount(4);
+    await expect(page.locator('#p2s2-options .p2s2-option')).toHaveCount(4);
   });
 
   test('Korrekte Quiz-Antwort: Feedback sichtbar + next-btn erscheint', async ({ page }) => {
@@ -213,7 +213,7 @@ test.describe('P2 S2: Protokoll-Zuordnung', () => {
     });
     await page.locator('#p2s2-quiz-btn').click();
     // Korrekte Antwort enthält "TCP garantiert"
-    await page.locator('#p2s2-options .p2s1-option', { hasText: 'TCP garantiert' }).click();
+    await page.locator('#p2s2-options .p2s2-option', { hasText: 'TCP garantiert' }).click();
     await expect(page.locator('#p2s2-feedback')).not.toHaveClass(/hidden/);
     await expect(page.locator('#p2s2-next-btn')).not.toHaveClass(/hidden/);
   });
@@ -226,7 +226,7 @@ test.describe('P2 S2: Protokoll-Zuordnung', () => {
       P2S2._dropForTest('ethernet', 'netzzugang');
     });
     await page.locator('#p2s2-quiz-btn').click();
-    await page.locator('#p2s2-options .p2s1-option', { hasText: 'TCP garantiert' }).click();
+    await page.locator('#p2s2-options .p2s2-option', { hasText: 'TCP garantiert' }).click();
     await page.locator('#p2s2-next-btn').click();
     await expect(page.locator('#p2-s2-overlay')).toHaveClass(/hidden/);
   });
