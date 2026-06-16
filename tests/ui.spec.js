@@ -174,11 +174,14 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
   });
 
   test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
-    await page.evaluate(() => L3.init(() => {}));
-    const before = await page.evaluate(() => L3.getScore());
-    await page.evaluate(() => L3._dropForTest('l3-paket-2', 'udp')); // tcp → udp (wrong)
+    await page.evaluate(() => {
+      L3.init(() => {});
+      L3._dropForTest('l3-paket-1', 'udp'); // correct: udp → udp (+100)
+    });
+    const before = await page.evaluate(() => L3.getScore()); // 100
+    await page.evaluate(() => L3._dropForTest('l3-paket-2', 'udp')); // wrong: tcp → udp (-20)
     const after = await page.evaluate(() => L3.getScore());
-    expect(after).toBe(before - 20);
+    expect(after).toBe(before - 20); // 80
   });
 
   test('Alle 6 korrekt zugeordnet entsperrt Quiz', async ({ page }) => {
@@ -250,11 +253,14 @@ test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
   });
 
   test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
-    await page.evaluate(() => L4.init(() => {}));
-    const before = await page.evaluate(() => L4.getScore());
-    await page.evaluate(() => L4._dropForTest('l4-paket-1', 'dns')); // http → dns (wrong)
+    await page.evaluate(() => {
+      L4.init(() => {});
+      L4._dropForTest('l4-paket-1', 'http'); // correct: http → http (+100)
+    });
+    const before = await page.evaluate(() => L4.getScore()); // 100
+    await page.evaluate(() => L4._dropForTest('l4-paket-2', 'http')); // wrong: dns → http (-20)
     const after = await page.evaluate(() => L4.getScore());
-    expect(after).toBe(before - 20);
+    expect(after).toBe(before - 20); // 80
   });
 
   test('Alle 6 korrekt → Quiz entsperrt', async ({ page }) => {
