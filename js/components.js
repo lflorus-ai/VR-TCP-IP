@@ -81,6 +81,17 @@ AFRAME.registerComponent('collision-walls', {
       { xmin:-22,   xmax:-12,    zmin:-2,    zmax:-1.8  },
       // Outdoor-Grenze
       { xmin:-30,   xmax:30,     zmin:33,    zmax:40    },
+      // Nordflügel Außenwände (z=-16..-30)
+      { xmin:-12.2, xmax:-11.85, zmin:-30,   zmax:-16   },
+      { xmin:11.85, xmax:12.2,   zmin:-30,   zmax:-16   },
+      // Nordflügel Rückwand z=-30 (Türlücke x=-2..+2)
+      { xmin:-20,   xmax:-3,     zmin:-30.2, zmax:-29.8 },
+      { xmin:3,     xmax:20,     zmin:-30.2, zmax:-29.8 },
+      // Tiefer Nordflügel Außenwände (z=-30..-40)
+      { xmin:-12.2, xmax:-11.85, zmin:-40,   zmax:-30   },
+      { xmin:11.85, xmax:12.2,   zmin:-40,   zmax:-30   },
+      // Tiefer Nordflügel Rückwand z=-40
+      { xmin:-12,   xmax:12,     zmin:-40.2, zmax:-39.8 },
     ];
     this._wp = new AFRAME.THREE.Vector3();
   },

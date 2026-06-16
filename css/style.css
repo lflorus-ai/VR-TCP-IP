@@ -64,7 +64,7 @@
 
 #tutorial-start-overlay, #tutorial-complete-overlay,
 #complete-overlay, #s2-briefing-overlay, #s2-complete-overlay, #s3-briefing-overlay,
-#s3-complete-overlay, #final-overlay {
+#s3-complete-overlay, #final-overlay, #s1-info-overlay, #s2-info-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
   display: flex; align-items: flex-start; justify-content: center;
@@ -75,8 +75,26 @@
 #tutorial-start-overlay.hidden, #tutorial-complete-overlay.hidden,
 #complete-overlay.hidden, #s2-briefing-overlay.hidden, #s2-complete-overlay.hidden,
 #s3-briefing-overlay.hidden, #s3-complete-overlay.hidden,
-#final-overlay.hidden { display: none; }
+#final-overlay.hidden, #s1-info-overlay.hidden, #s2-info-overlay.hidden { display: none; }
 .hidden { display: none; }
+
+/* P2 Info Overlays (S1 Schichten, S2 Protokolle) */
+.p2-info-box { max-width: 560px; }
+.p2-layer-list { display: flex; flex-direction: column; gap: 10px; margin: 4px 0; text-align: left; }
+.p2-layer-card {
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-left: 4px solid var(--lc); border-radius: 10px; padding: 12px 16px;
+}
+.p2-layer-num { font-size: 22px; font-weight: 700; color: var(--lc); min-width: 28px; text-align: center; }
+.p2-layer-info { display: flex; flex-direction: column; gap: 3px; }
+.p2-layer-name { font-size: 15px; font-weight: 600; color: var(--lc); }
+.p2-layer-desc { font-size: 12px; color: #8899bb; }
+.p2-proto-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.p2-proto-table th { background: rgba(100,160,255,0.1); color: #64a0ff; padding: 8px 14px; text-align: left; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid rgba(100,160,255,0.2); }
+.p2-proto-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.p2-proto-table tr:last-child td { border-bottom: none; }
+.p2-proto-table tr:hover td { background: rgba(255,255,255,0.03); }
 
 .hud-tag.tutorial { color: #f5c518; }
 

@@ -1,0 +1,10 @@
+[     777ms] [LOG] A-Frame Version: 1.7.1 (Date 2025-04-01, Commit #ceac308b) @ https://aframe.io/releases/1.7.1/aframe.min.js:0
+[     777ms] [LOG] THREE Version (https://github.com/supermedium/three.js): 173 @ https://aframe.io/releases/1.7.1/aframe.min.js:0
+[     778ms] [ERROR] Error: <svg> attribute height: Expected length, "auto". @ http://localhost:8080/:59
+[    1568ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/favicon.ico:0
+[   10141ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/audio/max_tutorial_01.mp3:0
+[   11730ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/audio/max_tutorial_03.mp3:0
+[   12672ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/audio/max_tutorial_04.mp3:0
+[   16064ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/audio/max_tutorial_complete.mp3:0
+[   16107ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/favicon.ico:0
+[   17662ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:8080/audio/max_briefing_s1.mp3:0

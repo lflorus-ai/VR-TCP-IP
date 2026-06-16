@@ -52,6 +52,37 @@ let selectedPaket = null;
 let score = 0;
 let gameState = 'INTRO';
 
+// Sequential zone completion tracking
+const _zoneDone = { s1: false, s2: false, transport: false, anwendung: false, routing: false };
+
+// Hard-gate collision boxes (added dynamically, removed when gate opens)
+const _gates = {
+  nordflugel: { box: { xmin:-2,    xmax:2,     zmin:-16.2, zmax:-15.7 }, entityId: 'gate-nordflugel', open: false },
+  anwendung:  { box: { xmin:-0.2,  xmax:0.2,   zmin:-30,   zmax:-16   }, entityId: 'gate-anwendung',  open: false },
+  routing:    { box: { xmin:-12.2, xmax:-11.85, zmin:-8,    zmax:-5    }, entityId: 'gate-routing',    open: false },
+  assessment: { box: { xmin:-2,    xmax:2,      zmin:-30.2, zmax:-29.8 }, entityId: 'gate-assessment', open: false },
+};
+
+function openGate(gateName) {
+  const gate = _gates[gateName];
+  if (!gate || gate.open) return;
+  gate.open = true;
+  const el = document.getElementById(gate.entityId);
+  if (el) el.setAttribute('visible', false);
+  const cam = document.querySelector('[collision-walls]');
+  if (cam && cam.components['collision-walls']) {
+    const boxes = cam.components['collision-walls'].boxes;
+    const idx = boxes.indexOf(gate.box);
+    if (idx !== -1) boxes.splice(idx, 1);
+  }
+}
+
+function initGates() {
+  const cam = document.querySelector('[collision-walls]');
+  if (!cam || !cam.components['collision-walls']) return;
+  Object.values(_gates).forEach(g => cam.components['collision-walls'].boxes.push(g.box));
+}
+
 // S3 state
 let s3Lieferschein = [];
 let s3LostPackets  = [];
@@ -454,23 +485,91 @@ function showS2Transition() {
 let s2LostPackets = [];
 let s2Score = 0;
 
+function enterZoneS1() {
+  if (_zoneDone.s1) return;
+  if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
+  gameState = 'ZONE_S1';
+  document.exitPointerLock?.();
+  document.getElementById('s1-info-overlay').classList.remove('hidden');
+}
+
+function enterZoneS2() {
+  if (_zoneDone.s2 || !_zoneDone.s1) return;
+  if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
+  gameState = 'ZONE_S2';
+  document.exitPointerLock?.();
+  document.getElementById('s2-info-overlay').classList.remove('hidden');
+}
+
 function enterZoneTransport() {
+  if (_zoneDone.transport) return;
+  if (!_zoneDone.s2) {
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = '🔒 Schließe zuerst S1 (links vom Eingang) und S2 (rechts vom Eingang) ab!';
+    return;
+  }
   if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
   gameState = 'ZONE_TRANSPORT';
   L3.init((score) => {
+    _zoneDone.transport = true;
     gameState = 'S1_ACTIVE';
-    const taskText = document.getElementById('task-text');
-    if (taskText) taskText.textContent = 'Transport abgeschlossen (' + score + ' P). Erkunde den Anwendungs-Flügel!';
+    openGate('anwendung');
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'S3 (Transport) abgeschlossen! Anwendungs-Flügel (linke Seite) freigeschaltet.';
   });
 }
 
 function enterZoneAnwendung() {
+  if (_zoneDone.anwendung) return;
+  if (!_zoneDone.transport) {
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = '🔒 Schließe zuerst S3 (Transport-Flügel, rechte Seite) ab!';
+    return;
+  }
   if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
   gameState = 'ZONE_ANWENDUNG';
   L4.init((score) => {
+    _zoneDone.anwendung = true;
     gameState = 'S1_ACTIVE';
-    const taskText = document.getElementById('task-text');
-    if (taskText) taskText.textContent = 'Anwendung abgeschlossen (' + score + ' P). Erkunde den Transport-Flügel!';
+    openGate('routing');
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'S4 (Anwendung) abgeschlossen! Büro-Flügel (Routing) freigeschaltet.';
+  });
+}
+
+function enterZoneRouting() {
+  if (_zoneDone.routing) return;
+  if (!_zoneDone.anwendung) {
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = '🔒 Schließe zuerst S4 (Anwendungs-Flügel, linke Seite im Nordflügel) ab!';
+    return;
+  }
+  if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
+  gameState = 'ZONE_ROUTING';
+  P5.init((score) => {
+    _zoneDone.routing = true;
+    gameState = 'S1_ACTIVE';
+    openGate('assessment');
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'S5 (Routing) abgeschlossen! Bewertungs-Flügel freigeschaltet.';
+  });
+}
+
+function enterZoneAssessment() {
+  if (!_zoneDone.routing) {
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = '🔒 Schließe zuerst S5 (Routing, Büro-Flügel) ab!';
+    return;
+  }
+  const allowed = ['S1_ACTIVE', 'INTRO', 'TUTORIAL', 'ZONE_TRANSPORT', 'ZONE_ANWENDUNG'];
+  if (!allowed.includes(gameState)) return;
+  if (gameState === 'ZONE_TRANSPORT') L3.teardown();
+  if (gameState === 'ZONE_ANWENDUNG') L4.teardown();
+  gameState = 'ZONE_ASSESSMENT';
+  P6.init((score) => {
+    gameState = 'S1_ACTIVE';
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'Bewertung abgeschlossen! Gesamtpunkte: ' + score + ' P';
   });
 }
 
@@ -672,8 +771,8 @@ document.querySelectorAll('.palette-zone').forEach(pal => {
   pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
 });
 
-// L3/L4 zone entities (paket-l3, belt-zone, quiz-option-l3, paket-l4, inbox-zone, quiz-option-l4)
-document.querySelectorAll('.paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4').forEach(el => {
+// Zone entities: S1, S2, L3, L4, P5, P6
+document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5, .quiz-option-p6').forEach(el => {
   el.addEventListener('mouseenter', () => { hoveredEl = el; });
   el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
 });
@@ -938,12 +1037,30 @@ document.addEventListener('keydown', (e) => {
     if (kioskComp) { kioskComp.toggle(); return; }
   }
 
+  // S1/S2 Info-Board trigger
+  if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState) && hoveredEl) {
+    if (hoveredEl.classList.contains('s1-info-board') && !_zoneDone.s1) { enterZoneS1(); return; }
+    if (hoveredEl.classList.contains('s2-info-board') && !_zoneDone.s2 && _zoneDone.s1) { enterZoneS2(); return; }
+  }
+
   // Zone-Modul Delegation
+  if (gameState === 'ZONE_S1' && hoveredEl) {
+    if (P1.handlePickup(hoveredEl)) return;
+  }
+  if (gameState === 'ZONE_S2' && hoveredEl) {
+    if (P2.handlePickup(hoveredEl)) return;
+  }
   if (gameState === 'ZONE_TRANSPORT' && hoveredEl) {
     if (L3.handlePickup(hoveredEl)) return;
   }
   if (gameState === 'ZONE_ANWENDUNG' && hoveredEl) {
     if (L4.handlePickup(hoveredEl)) return;
+  }
+  if (gameState === 'ZONE_ROUTING' && hoveredEl) {
+    if (P5.handlePickup(hoveredEl)) return;
+  }
+  if (gameState === 'ZONE_ASSESSMENT' && hoveredEl) {
+    if (P6.handlePickup(hoveredEl)) return;
   }
 
   if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
@@ -1676,35 +1793,71 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   document.getElementById('lieferschein-list').style.display = 'none';
   document.getElementById('progress-pips').style.display  = 'none';
 
-  // Zone-Detektion Nordflügel
+  // S1/S2 Info-Overlay Buttons
+  document.getElementById('s1-info-close').addEventListener('click', () => {
+    document.getElementById('s1-info-overlay').classList.add('hidden');
+    P1.init((s) => {
+      _zoneDone.s1 = true;
+      gameState = 'S1_ACTIVE';
+      document.getElementById('s2-station').setAttribute('visible', true);
+      const t = document.getElementById('task-text');
+      if (t) t.textContent = 'S1 abgeschlossen! Geh zur Protokoll-Tafel rechts vom Eingang für S2.';
+    });
+  });
+  document.getElementById('s2-info-close').addEventListener('click', () => {
+    document.getElementById('s2-info-overlay').classList.add('hidden');
+    P2.init((s) => {
+      _zoneDone.s2 = true;
+      gameState = 'S1_ACTIVE';
+      openGate('nordflugel');
+      const t = document.getElementById('task-text');
+      if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür!';
+    });
+  });
+
+  // Zone-Detektion (alle P2-Zonen)
+  initGates();
   let _zoneCheckInterval = setInterval(() => {
     const cam = document.querySelector('[camera]');
     if (!cam) return;
     const pos = new AFRAME.THREE.Vector3();
     cam.object3D.getWorldPosition(pos);
 
-    if (pos.z < -16.5) {
+    // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger)
+    if (pos.z < -30) {
+      const allowed = ['S1_ACTIVE', 'INTRO', 'TUTORIAL', 'ZONE_TRANSPORT', 'ZONE_ANWENDUNG'];
+      if (allowed.includes(gameState)) enterZoneAssessment();
+    } else if (pos.z < -16.5) {
       if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
-        if (pos.x >= 0) {
-          enterZoneTransport();
-        } else {
-          enterZoneAnwendung();
-        }
+        if (pos.x >= 0) enterZoneTransport();
+        else enterZoneAnwendung();
       }
+    } else if (pos.x < -12.5 && pos.z > -12 && pos.z < 0) {
+      if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) enterZoneRouting();
     }
-
+    // Exit — Nordflügel zurück in Haupthalle
     if (pos.z >= -15.5) {
       if (gameState === 'ZONE_TRANSPORT') {
-        L3.teardown();
-        gameState = 'S1_ACTIVE';
-        const taskText = document.getElementById('task-text');
-        if (taskText) taskText.textContent = 'Haupthalle — Sortiere Pakete nach IP-Netzwerken.';
+        L3.teardown(); gameState = 'S1_ACTIVE';
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Haupthalle — S3 abgebrochen. Geh erneut in den Transport-Flügel (rechts).';
       } else if (gameState === 'ZONE_ANWENDUNG') {
-        L4.teardown();
-        gameState = 'S1_ACTIVE';
-        const taskText = document.getElementById('task-text');
-        if (taskText) taskText.textContent = 'Haupthalle — Sortiere Pakete nach IP-Netzwerken.';
+        L4.teardown(); gameState = 'S1_ACTIVE';
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Haupthalle — S4 abgebrochen. Geh erneut in den Anwendungs-Flügel (links).';
       }
+    }
+    // Exit — Büro zurück in Haupthalle
+    if (pos.x >= -11.5 && gameState === 'ZONE_ROUTING') {
+      P5.teardown(); gameState = 'S1_ACTIVE';
+      const t = document.getElementById('task-text');
+      if (t) t.textContent = 'Haupthalle — S5 abgebrochen. Geh erneut ins Büro.';
+    }
+    // Exit — Bewertungs-Flügel zurück in Nordflügel
+    if (pos.z >= -29.5 && gameState === 'ZONE_ASSESSMENT') {
+      P6.teardown(); gameState = 'S1_ACTIVE';
+      const t = document.getElementById('task-text');
+      if (t) t.textContent = 'Nordflügel — S6 abgebrochen.';
     }
   }, 400);
 

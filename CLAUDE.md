@@ -44,8 +44,8 @@ Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab
 | **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | ~~Overlay-Prototyp (`p2-s2-protocols.js`) — ersetzt durch 3D-Räume~~ |
 | **P2 S3** | Lern | Transport-Flügel: TCP/UDP in der Lagerhalle (Layer 3) | 5 Min | LZ5: TCP vs. UDP unterscheiden | ✅ Prototyp — 3D-Raum, Pakete auf TCP/UDP-Band tragen (`js/scenarios/layer3-transport.js`), State: `ZONE_TRANSPORT` |
 | **P2 S4** | Lern | Anwendungs-Flügel: HTTP/DNS/FTP/SMTP-Briefkästen (Layer 4) | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | ✅ Prototyp — 3D-Raum, Pakete in Protokoll-Briefkasten tragen (`js/scenarios/layer4-anwendung.js`), State: `ZONE_ANWENDUNG` |
-| **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **fehlt** |
-| **P2 S6** | Bewertung | Vollständige TCP/IP-Kommunikation | 10 Min | LZ1–LZ5 (alle) | **fehlt** |
+| **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **fehlt** — 3D-Raum im Büro-Flügel (x<-12.5), State: `ZONE_ROUTING` (`js/scenarios/p2-s5-routing.js`) |
+| **P2 S6** | Bewertung | Vollständige TCP/IP-Kommunikation | 10 Min | LZ1–LZ5 (alle) | **fehlt** — 3D-Raum im tiefen Nordflügel (z<-30), State: `ZONE_ASSESSMENT` (`js/scenarios/p2-s6-assessment.js`) |
 
 **Lernziele (LZ):**
 - LZ1: Grundlegende Architektur des TCP/IP-Modells verstehen
@@ -76,8 +76,8 @@ Jedes neue Szenario bringt ein eigenes UI-Paradigma:
 | P2 S2 | ~~Drag & Drop (Protokoll → Schicht)~~ | ~~HTML5 `draggable`, `dragover/drop`~~ — ersetzt durch 3D |
 | P2 S3 | Paket auf TCP/UDP-Band tragen (E-Mechanik) | `class="interactable paket-l3"` / `belt-zone`; 3D-Raum Transport-Flügel |
 | P2 S4 | Paket in Protokoll-Briefkasten tragen (E-Mechanik) | `class="interactable paket-l4"` / `inbox-zone`; 3D-Raum Anwendungs-Flügel |
-| P2 S5 | Router-Routing-Entscheidung | Overlay-Diagramm oder 3D-Router in A-Frame |
-| P2 S6 | Mehrstufig ohne Hinweise, Musterlösung | Sequenz-Orchestrierung |
+| P2 S5 | Router-Routing-Entscheidung | 3D-Raum im Büro-Flügel (x<-12.5); `class="interactable routing-node"` / `router-zone`; State: `ZONE_ROUTING` |
+| P2 S6 | Mehrstufig ohne Hinweise, Musterlösung | 3D-Raum im tiefen Nordflügel (z<-30); Sequenz-Orchestrierung; State: `ZONE_ASSESSMENT` |
 
 ## Geplante State Machine (Erweiterung)
 
@@ -88,9 +88,13 @@ INTRO
   → S2_BRIEFING / S2_ACTIVE  (TCP-Retransmit — bestehend)
   → S3_BRIEFING / S3_ACTIVE  (Assessment — bestehend)
   → ZONE_TRANSPORT    (Transport-Flügel: TCP/UDP — layer3-transport.js)
+                       Trigger: pos.z < -16.5 && pos.x >= 0
   → ZONE_ANWENDUNG    (Anwendungs-Flügel: HTTP/DNS/FTP/SMTP — layer4-anwendung.js)
-  → P2_S5_ACTIVE      (Routing — fehlt)
-  → P2_S6_ACTIVE      (Bewertung, mehrstufig — fehlt)
+                       Trigger: pos.z < -16.5 && pos.x < 0
+  → ZONE_ROUTING      (Büro-Flügel: Routing-Tabellen — p2-s5-routing.js)
+                       Trigger: pos.x < -12.5 && pos.z > -12
+  → ZONE_ASSESSMENT   (Tiefer Nordflügel: Volltest — p2-s6-assessment.js)
+                       Trigger: pos.z < -30
   → FINAL             (Gesamtauswertung)
 ```
 
@@ -283,16 +287,42 @@ Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden
 
 Die Zonen-Erkennung für `ZONE_TRANSPORT` und `ZONE_ANWENDUNG` läuft per `setInterval`, das die Spieler-Position überwacht:
 
+Vollständige Raumgeometrie und Zone-Trigger:
+
+```
+         NORD (z=-30)
+    ┌────────────────────┐
+    │  ZONE_ASSESSMENT   │  z: -30..-44  (tiefer Nordflügel)
+    ├────────┬───────────┤
+    │ZONE_L4 │ ZONE_L3   │  z: -16..-30  (Nordflügel)
+    │ x<0    │  x>=0     │
+    ├────────┴───────────┼──────────┐
+    │ ZONE_ROUTING       │ Versand  │  z: 0..-16
+    │ (Büro, x<-12.5)   │ DO NOT   │
+    │                    │ TOUCH    │
+    └────────────────────┴──────────┘
+         SÜD (z=0, Eingang)
+```
+
+Zone-Detection-Pattern (alle vier Zonen im selben `setInterval`):
+
 ```js
-// Trigger: player.z < -16.5 → Spieler betritt Hinterflügel
-const cam = document.querySelector('#player');
-if (parseFloat(cam.getAttribute('position').z) < -16.5) { ... }
+if (pos.z < -30) {                              // Tiefer Nordflügel → Assessment
+  if (...) enterZoneAssessment();
+} else if (pos.z < -16.5) {                    // Nordflügel → Transport / Anwendung
+  if (pos.x >= 0 && ...) enterZoneTransport();
+  else if (pos.x < 0 && ...) enterZoneAnwendung();
+} else if (pos.x < -12.5 && pos.z > -12) {    // Büro-Flügel → Routing
+  if (...) enterZoneRouting();
+}
 ```
 
 **Wichtige Einschränkungen:**
 - Zone-Detection feuert **nur** aus den States `S1_ACTIVE`, `INTRO` oder `TUTORIAL` — nie während einer bereits aktiven Zone oder S2/S3-Phase.
-- Sobald `ZONE_TRANSPORT` oder `ZONE_ANWENDUNG` aktiv ist, wird das Intervall gestoppt; `teardown()` des Moduls startet es ggf. neu.
+- Sobald eine Zone aktiv ist, wird das Intervall gestoppt; `teardown()` des Moduls startet es ggf. neu.
 - Der Versandraum (rechte Seite, x=12..22) ist NICHT Teil der Zone-Detection — dieser Bereich bleibt unberührt.
+- `ZONE_ROUTING` und Büro-S2/S3 (`computer-proximity`) koexistieren: Die `computer-proximity`-Komponente bleibt, wird aber in `ZONE_ROUTING` ignoriert (anderer State).
+- `ZONE_ASSESSMENT` (z<-30) benötigt neue Geometrie hinter dem bestehenden Nordflügel.
 
 ## Debugging
 
@@ -311,13 +341,14 @@ if (parseFloat(cam.getAttribute('position').z) < -16.5) { ... }
 5. ~~**P2 S4 (Overlay)**~~ — Prototyp durch 3D-Zonen-Architektur ersetzt
 6. **ZONE_TRANSPORT** — `js/scenarios/layer3-transport.js`; Transport-Flügel (TCP/UDP), State: `ZONE_TRANSPORT`
 7. **ZONE_ANWENDUNG** — `js/scenarios/layer4-anwendung.js`; Anwendungs-Flügel (HTTP/DNS/FTP/SMTP), State: `ZONE_ANWENDUNG`
-8. **P2 S5** — `js/scenarios/p2-s5-routing.js`; Routing-Tabellen (Overlay-Diagramm bevorzugt über 3D-Router)
-9. **P2 S6** — `js/scenarios/p2-s6-assessment.js`; Orchestrierung S1–S5, keine Hinweise, Musterlösung
+8. **ZONE_ROUTING** — `js/scenarios/p2-s5-routing.js`; Büro-Flügel (x<-12.5), State: `ZONE_ROUTING`; Routing-Tabellen + 3D-Router-Knoten
+9. **ZONE_ASSESSMENT** — `js/scenarios/p2-s6-assessment.js`; Tiefer Nordflügel (z<-30), State: `ZONE_ASSESSMENT`; Orchestrierung aller Szenarien, keine Hinweise, Musterlösung
 
 ### Offene Architekturentscheidungen
 
 - **Bestehender Lernpfad (IP-Sortierung):** Soll S1–S3 (alt) erhalten bleiben oder komplett durch P2 ersetzt werden?
-- **P2 S5 Router:** Echte 3D-Router im A-Frame-Raum (hoher Aufwand) oder 2D-Overhead-Diagramm im Overlay (didaktisch ausreichend, schneller)?
+- ~~**P2 S5 Router:** Echte 3D-Router oder 2D-Overlay?~~ — **Entschieden:** 3D-Raum im Büro-Flügel (x<-12.5), Zone-Detection-Pattern analog zu L3/L4. `computer-proximity`-Komponente bleibt unberührt (anderer State).
+- ~~**P2 S6 Platzierung:**~~ — **Entschieden:** Tiefer Nordflügel (z<-30) hinter dem bestehenden L3/L4-Bereich; braucht neue Wandgeometrie (`z=-44`).
 
 ### Technische Basis
 

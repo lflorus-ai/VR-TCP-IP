@@ -103,6 +103,10 @@ const L4 = (() => {
       _selectedPaket = null;
       _onComplete = onComplete;
 
+      ['l4-inbox-http', 'l4-inbox-dns', 'l4-inbox-ftp', 'l4-inbox-smtp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('visible', true);
+      });
       PACKETS.forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', true);
@@ -118,6 +122,10 @@ const L4 = (() => {
     },
 
     teardown() {
+      ['l4-inbox-http', 'l4-inbox-dns', 'l4-inbox-ftp', 'l4-inbox-smtp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('visible', false);
+      });
       PACKETS.forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', false);

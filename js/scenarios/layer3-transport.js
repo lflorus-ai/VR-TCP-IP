@@ -103,6 +103,10 @@ const L3 = (() => {
       _selectedPaket = null;
       _onComplete = onComplete;
 
+      ['l3-belt-tcp', 'l3-belt-udp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('visible', true);
+      });
       PACKETS.forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', true);
@@ -118,6 +122,10 @@ const L3 = (() => {
     },
 
     teardown() {
+      ['l3-belt-tcp', 'l3-belt-udp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.setAttribute('visible', false);
+      });
       PACKETS.forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', false);

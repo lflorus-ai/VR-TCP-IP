@@ -1306,3 +1306,64 @@ git commit -m "test: L3/L4-Zone-Tests grün — Paketsortierung und Quiz verifiz
 - `L3._dropForTest(paketId, beltId)` / `L4._dropForTest(paketId, inboxProtocol)`: string IDs, consistent with test task 3
 - `L3._answerQuizForTest(correct)` / `L4._answerQuizForTest(correct)`: boolean, consistent with tests
 - `gameState = 'ZONE_TRANSPORT'` / `'ZONE_ANWENDUNG'`: string constants, consistent throughout
+
+---
+
+## Architecture Decision: S5 + S6 Zone Placement
+
+**Decision date:** 2026-06-16
+
+Die zwei verbleibenden Szenarien (P2 S5 Routing, P2 S6 Assessment) folgen demselben positions-basierten Zone-Detection-Pattern wie L3/L4.
+
+### Raumgeometrie (Gesamtübersicht)
+
+```
+         NORD
+    ┌────────────────────┐
+    │  ZONE_ASSESSMENT   │  z: -30..-44  (neu zu bauen)
+    ├────────┬───────────┤
+    │ZONE_L4 │ ZONE_L3   │  z: -16..-30  (Nordflügel, bestehend)
+    │ x<0    │  x>=0     │
+    ├────────┴───────────┼──────────┐
+    │ ZONE_ROUTING       │ Versand  │  z: 0..-16
+    │ (Büro, x<-12.5)   │ x>12     │
+    └────────────────────┴──────────┘
+         SÜD (Eingang)
+```
+
+### P2 S5 — ZONE_ROUTING (Büro-Flügel)
+
+**Trigger:** `pos.x < -12.5 && pos.z > -12 && pos.z < 0`
+
+**Begründung:** Das Büro existiert bereits (x: -22..-12, z: -2..-10), der Rechner steht dort (für S2/S3). Routing-Tabelle am PC ist didaktisch stimmig. Kein neuer Raum nötig — nur Zonen-Inhalt (Router-Knoten-Entities, Routing-Table-UI) hinzufügen.
+
+**Koexistenz mit computer-proximity:** Die `computer-proximity`-Komponente feuert weiterhin. Der E-Key-Handler in `game.js` delegiert an `P5.handlePickup()` wenn `gameState === 'ZONE_ROUTING'`, sonst zur bestehenden S2/S3-Logik — kein Konflikt.
+
+**Module:** `js/scenarios/p2-s5-routing.js`, exportiert `{ init(onComplete), teardown(), getScore(), handlePickup(target) }`
+
+### P2 S6 — ZONE_ASSESSMENT (Tiefer Nordflügel)
+
+**Trigger:** `pos.z < -30`
+
+**Begründung:** Der Spieler läuft den natürlichen Lernpfad: Haupthalle → Nordflügel (L3/L4) → tiefer Nordflügel (Assessment). Keine Richtungsänderung, linearer Fluss.
+
+**Neue Geometrie nötig:** Hinterwand des Nordflügels (`z=-30`) muss für einen Durchgang aufgesplittet werden (analog zur Rückwand bei z=-16). Neue Raumhülle: `x: -12..+12, z: -30..-44`.
+
+**Module:** `js/scenarios/p2-s6-assessment.js`, exportiert `{ init(onComplete), teardown(), getScore(), handlePickup(target) }`
+
+### Zone-Detection-Erweiterung in game.js
+
+```js
+// Erweiterung des bestehenden setInterval (nach L3/L4-Blöcken):
+if (pos.z < -30) {
+  if (!['ZONE_ASSESSMENT'].includes(gameState) && ['S1_ACTIVE','INTRO','TUTORIAL','ZONE_TRANSPORT','ZONE_ANWENDUNG'].includes(gameState)) {
+    enterZoneAssessment();
+  }
+} else if (pos.z < -16.5) {
+  // bestehende L3/L4-Logik bleibt unverändert
+} else if (pos.x < -12.5 && pos.z > -12) {
+  if (!['ZONE_ROUTING'].includes(gameState) && ['S1_ACTIVE','INTRO','TUTORIAL'].includes(gameState)) {
+    enterZoneRouting();
+  }
+}
+```
