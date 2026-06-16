@@ -261,3 +261,35 @@ AFRAME.registerComponent('package-follow', {
     pos.z += (tz - pos.z) * speed;
   }
 });
+
+AFRAME.registerComponent('kiosk-interaction', {
+  init() {
+    this._hintVisible = false;
+    this._open = false;
+    this._hintEl = this.el.querySelector('[id$="-hint"]');
+    this._textEl = this.el.querySelector('[id$="-text"]');
+  },
+  tick() {
+    const cam = document.querySelector('[camera]');
+    if (!cam) return;
+    const camPos = new AFRAME.THREE.Vector3();
+    cam.object3D.getWorldPosition(camPos);
+    const myPos = new AFRAME.THREE.Vector3();
+    this.el.object3D.getWorldPosition(myPos);
+    const dist = camPos.distanceTo(myPos);
+    const inRange = dist < 3.2;
+    if (inRange !== this._hintVisible) {
+      this._hintVisible = inRange;
+      if (this._hintEl) this._hintEl.setAttribute('visible', inRange);
+      if (!inRange && this._open) {
+        this._open = false;
+        if (this._textEl) this._textEl.setAttribute('visible', false);
+      }
+    }
+  },
+  toggle() {
+    if (!this._hintVisible) return;
+    this._open = !this._open;
+    if (this._textEl) this._textEl.setAttribute('visible', this._open);
+  }
+});
