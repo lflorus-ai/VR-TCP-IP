@@ -321,10 +321,6 @@ document.getElementById('tutorial-start-btn').addEventListener('click', () => {
 document.getElementById('tutorial-done-btn').addEventListener('click', () => {
   document.getElementById('tutorial-complete-overlay').classList.add('hidden');
 
-  // Lieferschein + Pips für S1 wieder einblenden
-  document.getElementById('lieferschein-list').style.display = '';
-  document.getElementById('progress-pips').style.display  = '';
-
   // Tutorial-Entities verstecken
   document.getElementById('tutorial-barrier').setAttribute('visible', 'false');
   document.getElementById('tutorial-floor').setAttribute('visible', 'false');
@@ -335,18 +331,30 @@ document.getElementById('tutorial-done-btn').addEventListener('click', () => {
   // Tutorial-HUD zurücksetzen
   document.getElementById('tutorial-steps').style.display = 'none';
   const hudTag = document.getElementById('hud-tag');
-  hudTag.textContent = '■ Lern-Szenario 1';
+  hudTag.textContent = '■ P2 · S1 — TCP/IP-Schichten';
   hudTag.classList.remove('tutorial');
 
   // Spieler zur Lagerhalle bewegen
   document.getElementById('player').object3D.position.set(0, 0, 2);
 
-  gameState = 'S1_ACTIVE';
-  const canvas = document.querySelector('a-scene canvas');
-  if (canvas) canvas.requestPointerLock();
-
-  showNPCBriefing();
-  updateLieferschein();
+  // P2 S1 starten
+  gameState = 'P2_S1_ACTIVE';
+  P2S1.init(() => {
+    // P2 S1 abgeschlossen → P2 S2 (Protokoll-Zuordnung)
+    gameState = 'P2_S2_ACTIVE';
+    document.getElementById('hud-tag').textContent = '■ P2 · S2 — Protokolle';
+    P2S2.init(() => {
+      // P2 S2 abgeschlossen → weiter zur Lagerhalle (alt S1)
+      gameState = 'S1_ACTIVE';
+      document.getElementById('hud-tag').textContent = '■ Lern-Szenario 1';
+      document.getElementById('lieferschein-list').style.display = '';
+      document.getElementById('progress-pips').style.display  = '';
+      const canvas = document.querySelector('a-scene canvas');
+      if (canvas) canvas.requestPointerLock();
+      showNPCBriefing();
+      updateLieferschein();
+    });
+  });
 });
 
 // Complete overlay
