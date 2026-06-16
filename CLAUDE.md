@@ -6,9 +6,9 @@ Alle Skills, Berechtigungen und Anweisungen, die Claude in diesem Projekt erteil
 
 ## Was ist das?
 
-Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine interaktive Lagerhallen-Metapher vermittelt. Entstanden als Seminararbeit (Integrationsseminar, Gruppe 08).
+Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine interaktive Lagerhallen-Metapher vermittelt. Entstanden als Seminararbeit (Integrationsseminar, Gruppe 08, DHBW Stuttgart WWI2023G).
 
-**Kernidee:** Datenpakete = Kartons mit IP-Adressen. Der Spieler sortiert sie per IP-Netzwerk auf die richtige Palette/den richtigen LKW.
+Die Anwendung befindet sich in einer **aktiven Weiterentwicklungsphase**: Der ursprüngliche Lernpfad (IP-Adresssortierung) wird durch ein vollständiges 7-Szenarien-Curriculum (P2, Konzept: Nadine) ersetzt bzw. erweitert, das das gesamte TCP/IP-Schichtenmodell abdeckt.
 
 ## Quick Start / Kommandos
 
@@ -28,20 +28,95 @@ Tests liegen in `tests/ui.spec.js` (Playwright). Der `webServer` in `playwright.
 | Sprache | Vanilla HTML/CSS/JavaScript (kein Build-Tool, kein Framework) |
 | 3D-Assets | `.glb`-Modelle (LKW, Gabelstapler, Lagerregale) |
 | Einstiegspunkt | `index.html` — HTML-Struktur |
-| Spiellogik     | `js/game.js` — gesamte Game-Logik (~60KB) |
-| Komponenten    | `js/components.js` — A-Frame-Komponenten |
-| Styles         | `css/style.css` — alle CSS-Definitionen |
+| Spiellogik | `js/game.js` — State-Machine + gesamte Game-Logik |
+| Komponenten | `js/components.js` — A-Frame-Custom-Komponenten |
+| Styles | `css/style.css` — alle CSS-Definitionen |
+| Szenario-Module | `js/scenarios/` — je ein Modul pro P2-Szenario (geplant) |
 
-## Spielmechanik (Szenario 1)
+## Lernpfad-Struktur (Zielzustand P2)
+
+Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab:
+
+| ID | Typ | Titel | Dauer | Lernziele | Status |
+|---|---|---|---|---|---|
+| **S0** | Steuer | Die Logistikhalle | 1–2 Min | Orientierung + Aktivierung | ✅ fertig — SVG-Hallenplan + 5 Lernziele im `#tutorial-start-overlay` |
+| **P2 S1** | Lern | Vier Bereiche, vier Schichten: Das TCP/IP-Modell | 5 Min | LZ1: Architektur TCP/IP-Modell | **fehlt** |
+| **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | **fehlt** |
+| **P2 S3** | Lern | TCP vs. UDP: Zwei Förderbänder im Vergleich | 5 Min | LZ5: TCP vs. UDP unterscheiden | **fehlt** |
+| **P2 S4** | Lern | Adressetikett: IP-Adressen und OSI-Schichtenvergleich | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | **fehlt** |
+| **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **fehlt** |
+| **P2 S6** | Bewertung | Vollständige TCP/IP-Kommunikation | 10 Min | LZ1–LZ5 (alle) | **fehlt** |
+
+**Lernziele (LZ):**
+- LZ1: Grundlegende Architektur des TCP/IP-Modells verstehen
+- LZ2: Weg eines Datenpakets durch ein Netzwerk nachvollziehen
+- LZ3: Rolle von Routern und IP-Adressen bei der Weiterleitung
+- LZ4: Internet-Schicht (TCP/IP) ↔ OSI-Netzwerkschicht (Layer 3) zuordnen
+- LZ5: Typische Protokolle den jeweiligen TCP/IP-Schichten zuordnen
+
+## Bestehende Spielmechanik (S0–S3 alt, bleibt als Basis)
+
+Der aktuell implementierte Lernpfad deckt IP-Adresssortierung ab und bleibt im Code erhalten, bis P2 vollständig implementiert ist:
 
 1. Spieler startet in einem Lagerhaus mit Regal A (links) und Regal B (rechts)
 2. Pakete tragen IP-Adressen (`192.168.1.x`, `10.0.0.x`, `172.16.5.x`)
-3. `E`-Taste: Paket aus dem Regal aufnehmen → dann Palette anvisieren und erneut `E`
+3. `E`-Taste: Paket aus dem Regal aufnehmen → Palette anvisieren → erneut `E`
 4. Jede Palette entspricht einem Zielnetz (LKW 1/2/3)
-5. Richtig → +100 Punkte, Falsch → −20 Punkte + Feedback mit korrekter Palette
+5. Richtig → +100 Punkte, Falsch → −20 Punkte + Feedback
 6. Timer läuft ab erstem Paket-Pick; Abschluss-Overlay nach Zustellung aller Pakete
 
-**Lernziel:** IP-Adressklassen (A/B/C private Ranges) und Subnetz-Zugehörigkeit anhand der ersten Oktette erkennen.
+## Neue Interaktionsmuster (P2)
+
+Jedes neue Szenario bringt ein eigenes UI-Paradigma:
+
+| Szenario | Interaktionstyp | Technischer Ansatz |
+|---|---|---|
+| P2 S0 Update | Hallenplan-Klick + Lernziele-Overlay | Overlay erweitern, SVG-Karte |
+| P2 S1 | Karten-Klick + Multiple Choice | Overlay-Panel, Event-Listener |
+| P2 S2 | Drag & Drop (Protokoll → Schicht) | HTML5 `draggable`, `dragover/drop` |
+| P2 S3 | Klick-Zuordnung (Szenario → Förderband) | CSS-Förderband-Animation, Klick-Handler |
+| P2 S4 | Paket-Auswahl + Linien-Drawing (OSI ↔ TCP/IP) | SVG-Overlay, Maus-Events |
+| P2 S5 | Router-Routing-Entscheidung | Overlay-Diagramm oder 3D-Router in A-Frame |
+| P2 S6 | Mehrstufig ohne Hinweise, Musterlösung | Sequenz-Orchestrierung |
+
+## Geplante State Machine (Erweiterung)
+
+```
+INTRO
+  → TUTORIAL          (S0: Steuerung — bestehend)
+  → P2_S1_ACTIVE      (Schichtenmodell)
+  → P2_S2_ACTIVE      (Protokoll-Zuordnung)
+  → P2_S3_ACTIVE      (TCP vs. UDP)
+  → P2_S4_ACTIVE      (IP + OSI-Mapping)
+  → P2_S5_ACTIVE      (Routing)
+  → P2_S6_ACTIVE      (Bewertung, mehrstufig)
+  → FINAL             (Gesamtauswertung)
+```
+
+Neue States werden analog zu den bestehenden `S1_ACTIVE / S2_BRIEFING / S2_ACTIVE` in `js/game.js` ergänzt. Jedes Szenario-Modul unter `js/scenarios/` exportiert `init()`, `teardown()` und `getScore()`.
+
+## Geplante Dateistruktur (Zielzustand)
+
+```
+index.html                              # HTML-Struktur + A-Frame-Scene
+css/style.css                           # Alle UI-Styles (HUD, Overlays, Banner,
+                                        #   .drag-card, .drop-zone, .conveyor-belt,
+                                        #   .routing-table, .line-connector)
+js/game.js                              # State-Machine (alt + P2-States)
+js/components.js                        # A-Frame-Custom-Komponenten
+js/scenarios/
+  p2-s1-layers.js                       # Schichten-Karten + MC-Frage
+  p2-s2-protocols.js                    # Drag&Drop Protokoll→Schicht
+  p2-s3-tcpudp.js                       # Förderband-Klick-Zuordnung
+  p2-s4-addressing.js                   # Paket-Auswahl + SVG-Linien
+  p2-s5-routing.js                      # Routing-Tabellen + Forwarding
+  p2-s6-assessment.js                   # Kombinierter Bewertungsablauf
+tests/ui.spec.js                        # Playwright E2E-Tests
+playwright.config.js                    # Test-Konfiguration (baseURL: localhost:8080)
+audio/                                  # Audio-Assets (derzeit leer)
+lct_3000_07-_low_poly_model.glb         # LKW-3D-Modell
+warehouse_forklift_gameready.glb        # Gabelstapler
+```
 
 ## A-Frame-Komponenten (custom)
 
@@ -52,7 +127,7 @@ Tests liegen in `tests/ui.spec.js` (Playwright). Der `webServer` in `playwright.
 | `jump-controls` | js/components.js | Sprung-Physik (Leertaste, feste Gravitationskonstante) |
 | `proximity-dialog` | js/components.js | NPC "Max" spricht Spieler an, wenn nah genug |
 
-## Schlüssel-Datenstrukturen
+## Schlüssel-Datenstrukturen (bestehend)
 
 ```js
 // Auftragsliste (shuffled beim Start)
@@ -69,24 +144,9 @@ const netzwerkMap = {
 };
 ```
 
-## Dateistruktur
+Neue Szenario-Module verwalten ihren eigenen State intern und kommunizieren mit `game.js` nur über `init()` / `teardown()` / `getScore()`.
 
-```
-index.html                              # HTML-Struktur + A-Frame-Scene
-css/style.css                           # Alle UI-Styles (HUD, Overlays, Banner)
-js/game.js                              # Spiellogik, Szenarien, State-Machine (~60KB)
-js/components.js                        # A-Frame-Custom-Komponenten
-tests/ui.spec.js                        # Playwright E2E-Tests
-playwright.config.js                    # Test-Konfiguration (baseURL: localhost:8080)
-audio/                                  # Audio-Assets (derzeit leer, DATEIEN.md vorhanden)
-lct_3000_07-_low_poly_model.glb         # LKW-3D-Modell
-warehouse_forklift_gameready.glb        # Gabelstapler
-warehouse_storage_racking_fbx_low_poly_free.glb  # Lagerregale (nicht direkt geladen)
-set_of_cardboard_boxes.glb              # Kartons (nicht direkt geladen)
-Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
-```
-
-## Wichtige IDs / DOM-Elemente
+## Wichtige IDs / DOM-Elemente (bestehend)
 
 | ID | Bedeutung |
 |---|---|
@@ -108,6 +168,10 @@ Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
 | `#progress-pips` | Fortschritts-Punkte im HUD |
 | `#lieferschein-list` | Pakete-Liste im HUD |
 | `paket-A1` … `paket-A5` | Interaktive Pakete (Regal A) |
+| `#s0-map` | SVG-Grundriss der Lagerhalle (4 Zonen = 4 TCP/IP-Schichten), inline in `#tutorial-start-overlay` |
+| `.s0-two-col` / `.s0-lz-*` | Hallenplan + Lernziele-Spalten-Layout (CSS-Namespace `.s0-*` für S0-Elemente) |
+
+Neue P2-Overlays erhalten IDs nach dem Schema `#p2-s{N}-overlay` und `#p2-s{N}-complete-overlay`.
 
 ## Bekannte Fallstricke / Gotchas
 
@@ -129,13 +193,44 @@ Integrationsseminar_Gruppe08.pdf        # Seminararbeit / Projektdokumentation
 - Erst nach E-Druck am PC → `startS2()` → `renderLieferscheinList(s2LostPackets, 'lieferschein-list', true)` füllt ihn mit den 2 verlorenen Paketen (inkl. IP + Ziel-LKW)
 - Gleiches Muster für S3-Retransmit: `startS3Retransmit()` → Briefing → E am PC → `confirmS3Retransmit()`
 
+### CSS-Spezifität bei gemischten Selektoren in Overlays
+
+`.klasse span` (Spezifität 0,1,1) schlägt `.badge-klasse` (0,1,0), auch wenn beide auf dasselbe Element zutreffen. Wenn ein Overlay sowohl eine Badge-Klasse als auch einen Descendant-`span`-Selektor hat, `:not()` verwenden: `.s0-lz-item span:not(.s0-lz-badge)` — verhindert ungewollte Überschreibung. Gilt analog für alle künftigen `.p2-s{N}-*`-Namensräume.
+
+### SVG-Testbarkeit (Playwright)
+
+SVG-Elemente für Playwright: Zone-Rects brauchen `data-zone="..."` — sonst nicht von Rahmen/Eingang-Rects unterscheidbar. Selektor-Pattern: `rect[data-zone]` statt `rect:nth-child(n)`.
+
+### Neue Szenario-Module: Overlay-Pointer-Events
+
+Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden (Maus-Look blockiert Drag&Drop). Das Overlay-Element braucht `pointer-events: all` und die A-Frame-Scene muss temporär `document.exitPointerLock()` aufrufen — analog zu den bestehenden Overlay-Screens.
+
 ## Debugging
 
 - `F2` im Browser: Kollisionsboxen als rote transparente Quader einblenden/ausblenden
 - Alle Pakete haben `class="interactable paket"`, Paletten `class="interactable palette-zone"`
+- Neue Szenario-Module: `window.__p2debug = true` (Konvention, noch nicht implementiert) für Einzelschritte überspringen
 
 ## Offene Punkte / Roadmap
 
-- Alle 3 Szenarien + Tutorial sind implementiert und spielbar
-- `resetToS1()` in `js/game.js` setzt das Spiel von S3 in den Trainingsmodus (S1) zurück
+### Implementierungsreihenfolge (priorisiert)
+
+1. ~~**S0 Update**~~ — ✅ fertig (SVG-Hallenplan + Lernziele, 2026-06-16)
+2. **P2 S1** — `js/scenarios/p2-s1-layers.js` + Overlay `#p2-s1-overlay`; 4 Schichten-Karten klickbar, MC-Frage ← **nächstes**
+3. **P2 S2** — `js/scenarios/p2-s2-protocols.js`; Drag&Drop mit HTML5-API; Protokollkarten: HTTP, TCP, UDP, IP, Ethernet
+4. **P2 S3** — `js/scenarios/p2-s3-tcpudp.js`; CSS-Förderbänder, 5 Kommunikationsszenarien als Karten
+5. **P2 S4** — `js/scenarios/p2-s4-addressing.js`; IP-Auswahl + SVG-Linien für OSI-Mapping
+6. **P2 S5** — `js/scenarios/p2-s5-routing.js`; Routing-Tabellen (Overlay-Diagramm bevorzugt über 3D-Router)
+7. **P2 S6** — `js/scenarios/p2-s6-assessment.js`; Orchestrierung S1–S5, keine Hinweise, Musterlösung
+
+### Offene Architekturentscheidungen
+
+- **Bestehender Lernpfad (IP-Sortierung):** Soll S1–S3 (alt) erhalten bleiben oder komplett durch P2 ersetzt werden?
+- **P2 S5 Router:** Echte 3D-Router im A-Frame-Raum (hoher Aufwand) oder 2D-Overhead-Diagramm im Overlay (didaktisch ausreichend, schneller)?
+- **P2 S4 Linien-Drawing:** SVG-Overlay über dem 3D-Raum oder rein 2D im Overlay-Panel?
+
+### Technische Basis
+
+- `resetToS1()` in `js/game.js` setzt das Spiel von S3 in den Trainingsmodus zurück
 - Deploy: `index.html` + `css/` + `js/` + `.glb`-Dateien (keine weiteren Abhängigkeiten außer A-Frame CDN)
+- Szenarien-Referenzdokument: `Szenarien Nadine.pdf` (nicht im Repo, liegt lokal)
