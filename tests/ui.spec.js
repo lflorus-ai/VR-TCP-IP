@@ -139,3 +139,95 @@ test.describe('S0-Update: Hallenplan + Lernziele', () => {
     await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
   });
 });
+
+test.describe('P2 S2: Protokoll-Zuordnung', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    // P2S2 direkt initialisieren (überspringt Tutorial + P2S1)
+    await page.evaluate(() => P2S2.init(() => {}));
+  });
+
+  test('Overlay ist nach init() sichtbar', async ({ page }) => {
+    await expect(page.locator('#p2-s2-overlay')).not.toHaveClass(/hidden/);
+  });
+
+  test('7 Protokollkarten mit draggable-Attribut vorhanden', async ({ page }) => {
+    const cards = page.locator('#p2s2-card-bank [draggable="true"]');
+    await expect(cards).toHaveCount(7);
+  });
+
+  test('4 Drop-Zonen mit data-layer-Attribut vorhanden', async ({ page }) => {
+    const zones = page.locator('#p2s2-drop-col [data-layer]');
+    await expect(zones).toHaveCount(4);
+  });
+
+  test('Korrekte Drop: Karte verschwindet aus der Bank', async ({ page }) => {
+    await page.evaluate(() => P2S2._dropForTest('http', 'anwendung'));
+    await expect(page.locator('#p2s2-card-bank [data-id="http"]')).toHaveCount(0);
+  });
+
+  test('Korrekte Drop: Chip erscheint in der Zielzone', async ({ page }) => {
+    await page.evaluate(() => P2S2._dropForTest('http', 'anwendung'));
+    const chip = page.locator('[data-layer="anwendung"] .p2s2-placed-chip');
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toHaveText('HTTP');
+  });
+
+  test('Falscher Drop: Karte bleibt in der Bank', async ({ page }) => {
+    await page.evaluate(() => P2S2._dropForTest('http', 'transport')); // HTTP gehört zu Anwendung
+    await expect(page.locator('#p2s2-card-bank [data-id="http"]')).toHaveCount(1);
+  });
+
+  test('Quiz-Button erscheint nach korrekter Platzierung aller 7 Karten', async ({ page }) => {
+    await expect(page.locator('#p2s2-quiz-btn')).toHaveClass(/hidden/);
+    await page.evaluate(() => {
+      P2S2._dropForTest('http',     'anwendung');
+      P2S2._dropForTest('ftp',      'anwendung');
+      P2S2._dropForTest('tcp',      'transport');
+      P2S2._dropForTest('udp',      'transport');
+      P2S2._dropForTest('ip',       'internet');
+      P2S2._dropForTest('arp',      'internet');
+      P2S2._dropForTest('ethernet', 'netzzugang');
+    });
+    await expect(page.locator('#p2s2-quiz-btn')).not.toHaveClass(/hidden/);
+  });
+
+  test('Quiz zeigt Frage und 4 Antwortoptionen nach Quiz-Button-Klick', async ({ page }) => {
+    await page.evaluate(() => {
+      P2S2._dropForTest('http', 'anwendung'); P2S2._dropForTest('ftp', 'anwendung');
+      P2S2._dropForTest('tcp', 'transport');  P2S2._dropForTest('udp', 'transport');
+      P2S2._dropForTest('ip', 'internet');    P2S2._dropForTest('arp', 'internet');
+      P2S2._dropForTest('ethernet', 'netzzugang');
+    });
+    await page.locator('#p2s2-quiz-btn').click();
+    await expect(page.locator('#p2s2-quiz')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#p2s2-options .p2s1-option')).toHaveCount(4);
+  });
+
+  test('Korrekte Quiz-Antwort: Feedback sichtbar + next-btn erscheint', async ({ page }) => {
+    await page.evaluate(() => {
+      P2S2._dropForTest('http', 'anwendung'); P2S2._dropForTest('ftp', 'anwendung');
+      P2S2._dropForTest('tcp', 'transport');  P2S2._dropForTest('udp', 'transport');
+      P2S2._dropForTest('ip', 'internet');    P2S2._dropForTest('arp', 'internet');
+      P2S2._dropForTest('ethernet', 'netzzugang');
+    });
+    await page.locator('#p2s2-quiz-btn').click();
+    // Korrekte Antwort enthält "TCP garantiert"
+    await page.locator('#p2s2-options .p2s1-option', { hasText: 'TCP garantiert' }).click();
+    await expect(page.locator('#p2s2-feedback')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#p2s2-next-btn')).not.toHaveClass(/hidden/);
+  });
+
+  test('next-btn versteckt das Overlay', async ({ page }) => {
+    await page.evaluate(() => {
+      P2S2._dropForTest('http', 'anwendung'); P2S2._dropForTest('ftp', 'anwendung');
+      P2S2._dropForTest('tcp', 'transport');  P2S2._dropForTest('udp', 'transport');
+      P2S2._dropForTest('ip', 'internet');    P2S2._dropForTest('arp', 'internet');
+      P2S2._dropForTest('ethernet', 'netzzugang');
+    });
+    await page.locator('#p2s2-quiz-btn').click();
+    await page.locator('#p2s2-options .p2s1-option', { hasText: 'TCP garantiert' }).click();
+    await page.locator('#p2s2-next-btn').click();
+    await expect(page.locator('#p2-s2-overlay')).toHaveClass(/hidden/);
+  });
+});
