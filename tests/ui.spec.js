@@ -140,3 +140,138 @@ test.describe('S0-Update: Hallenplan + Lernziele', () => {
   });
 });
 
+test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => {
+      gameState = 'S1_ACTIVE';
+    });
+  });
+
+  test('L3-Pakete sind im DOM mit data-protocol Attributen', async ({ page }) => {
+    const packets = [
+      { id: 'l3-paket-1', protocol: 'udp' },
+      { id: 'l3-paket-2', protocol: 'tcp' },
+      { id: 'l3-paket-3', protocol: 'udp' },
+      { id: 'l3-paket-4', protocol: 'tcp' },
+      { id: 'l3-paket-5', protocol: 'udp' },
+      { id: 'l3-paket-6', protocol: 'tcp' },
+    ];
+    for (const p of packets) {
+      const el = page.locator(`#${p.id}`);
+      await expect(el).toBeAttached();
+      const proto = await el.getAttribute('data-protocol');
+      expect(proto).toBe(p.protocol);
+    }
+  });
+
+  test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
+    await page.evaluate(() => L3.init(() => {}));
+    const before = await page.evaluate(() => L3.getScore());
+    await page.evaluate(() => L3._dropForTest('l3-paket-1', 'udp'));
+    const after = await page.evaluate(() => L3.getScore());
+    expect(after).toBe(before + 100);
+  });
+
+  test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
+    await page.evaluate(() => L3.init(() => {}));
+    const before = await page.evaluate(() => L3.getScore());
+    await page.evaluate(() => L3._dropForTest('l3-paket-2', 'udp')); // tcp → udp (wrong)
+    const after = await page.evaluate(() => L3.getScore());
+    expect(after).toBe(before - 20);
+  });
+
+  test('Alle 6 korrekt zugeordnet entsperrt Quiz', async ({ page }) => {
+    await page.evaluate(() => L3.init(() => {}));
+    await page.evaluate(() => {
+      L3._dropForTest('l3-paket-1', 'udp');
+      L3._dropForTest('l3-paket-2', 'tcp');
+      L3._dropForTest('l3-paket-3', 'udp');
+      L3._dropForTest('l3-paket-4', 'tcp');
+      L3._dropForTest('l3-paket-5', 'udp');
+      L3._dropForTest('l3-paket-6', 'tcp');
+    });
+    await page.waitForTimeout(1000);
+    const quizVisible = await page.evaluate(() => {
+      const t = document.getElementById('l3-quiz-terminal');
+      return t && t.getAttribute('visible') !== 'false';
+    });
+    expect(quizVisible).toBe(true);
+  });
+
+  test('Korrektes Quiz-Answer ruft onComplete auf', async ({ page }) => {
+    await page.evaluate(() => {
+      window.__l3Complete = false;
+      L3.init(() => { window.__l3Complete = true; });
+      L3._dropForTest('l3-paket-1', 'udp');
+      L3._dropForTest('l3-paket-2', 'tcp');
+      L3._dropForTest('l3-paket-3', 'udp');
+      L3._dropForTest('l3-paket-4', 'tcp');
+      L3._dropForTest('l3-paket-5', 'udp');
+      L3._dropForTest('l3-paket-6', 'tcp');
+    });
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => L3._answerQuizForTest(true));
+    await page.waitForTimeout(2000);
+    const completed = await page.evaluate(() => window.__l3Complete);
+    expect(completed).toBe(true);
+  });
+});
+
+test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => { gameState = 'S1_ACTIVE'; });
+  });
+
+  test('L4-Pakete sind im DOM mit data-protocol Attributen', async ({ page }) => {
+    const packets = [
+      { id: 'l4-paket-1', protocol: 'http' },
+      { id: 'l4-paket-2', protocol: 'dns'  },
+      { id: 'l4-paket-3', protocol: 'ftp'  },
+      { id: 'l4-paket-4', protocol: 'smtp' },
+      { id: 'l4-paket-5', protocol: 'http' },
+      { id: 'l4-paket-6', protocol: 'dns'  },
+    ];
+    for (const p of packets) {
+      const el = page.locator(`#${p.id}`);
+      await expect(el).toBeAttached();
+      const proto = await el.getAttribute('data-protocol');
+      expect(proto).toBe(p.protocol);
+    }
+  });
+
+  test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
+    await page.evaluate(() => L4.init(() => {}));
+    const before = await page.evaluate(() => L4.getScore());
+    await page.evaluate(() => L4._dropForTest('l4-paket-1', 'http'));
+    const after = await page.evaluate(() => L4.getScore());
+    expect(after).toBe(before + 100);
+  });
+
+  test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
+    await page.evaluate(() => L4.init(() => {}));
+    const before = await page.evaluate(() => L4.getScore());
+    await page.evaluate(() => L4._dropForTest('l4-paket-1', 'dns')); // http → dns (wrong)
+    const after = await page.evaluate(() => L4.getScore());
+    expect(after).toBe(before - 20);
+  });
+
+  test('Alle 6 korrekt → Quiz entsperrt', async ({ page }) => {
+    await page.evaluate(() => L4.init(() => {}));
+    await page.evaluate(() => {
+      L4._dropForTest('l4-paket-1', 'http');
+      L4._dropForTest('l4-paket-2', 'dns');
+      L4._dropForTest('l4-paket-3', 'ftp');
+      L4._dropForTest('l4-paket-4', 'smtp');
+      L4._dropForTest('l4-paket-5', 'http');
+      L4._dropForTest('l4-paket-6', 'dns');
+    });
+    await page.waitForTimeout(1000);
+    const quizVisible = await page.evaluate(() => {
+      const t = document.getElementById('l4-quiz-terminal');
+      return t && t.getAttribute('visible') !== 'false';
+    });
+    expect(quizVisible).toBe(true);
+  });
+});
