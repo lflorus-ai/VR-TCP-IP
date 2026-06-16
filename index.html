@@ -265,6 +265,45 @@
     </div>
   </div>
 
+  <!-- P2 S1 — Vier Bereiche, vier Schichten -->
+  <div id="p2-s1-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 1 &middot; TCP/IP-Architektur</div>
+      <div class="overlay-title">Vier Bereiche &mdash; vier Schichten</div>
+      <p class="overlay-body" id="p2s1-intro-text">
+        Klicke auf jede Zone, um ihre Aufgabe im TCP/IP-Schichtenmodell zu entdecken. Wenn du alle vier gesehen hast, wartet ein kurzes Quiz auf dich.
+      </p>
+      <div id="p2s1-cards" class="p2s1-cards-grid"></div>
+      <div id="p2s1-quiz" class="p2s1-quiz hidden">
+        <div class="p2s1-question">Welche TCP/IP-Schicht ist f&uuml;r die logische Adressierung (IP-Adressen) und das Routing zust&auml;ndig?</div>
+        <div id="p2s1-options" class="p2s1-options"></div>
+        <div id="p2s1-feedback" class="p2s1-feedback hidden"></div>
+      </div>
+      <button id="p2s1-quiz-btn" class="overlay-btn hidden" style="margin-top:16px">Quiz starten &rarr;</button>
+      <button id="p2s1-next-btn" class="overlay-btn hidden" style="margin-top:12px">Weiter zur Lagerhalle &rarr;</button>
+    </div>
+  </div>
+
+  <!-- P2 S2 — Protokoll-Zuordnung: Drag & Drop -->
+  <div id="p2-s2-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 2 &middot; Protokoll-Zuordnung</div>
+      <div class="overlay-title">Protokolle auf die Schichten verteilen</div>
+      <p class="overlay-body" id="p2s2-intro-text">Ziehe jedes Protokoll-K&auml;rtchen auf die richtige TCP/IP-Schicht.</p>
+      <div id="p2s2-dnd" class="p2s2-dnd-layout">
+        <div id="p2s2-card-bank" class="p2s2-card-bank"></div>
+        <div id="p2s2-drop-col" class="p2s2-drop-col"></div>
+      </div>
+      <button id="p2s2-quiz-btn" class="overlay-btn hidden">Zum Quiz &rarr;</button>
+      <div id="p2s2-quiz" class="hidden">
+        <div id="p2s2-question" class="p2s1-question"></div>
+        <div id="p2s2-options" class="p2s1-options"></div>
+        <div id="p2s2-feedback" class="p2s1-feedback hidden"></div>
+      </div>
+      <button id="p2s2-next-btn" class="overlay-btn hidden" style="margin-top:12px">Weiter zur Lagerhalle &rarr;</button>
+    </div>
+  </div>
+
   <!-- Gesamtauswertung -->
   <div id="final-overlay" class="hidden">
     <div class="overlay-box">
@@ -847,6 +886,8 @@
 
   </a-scene>
 
+  <script src="js/scenarios/p2-s1-layers.js?v=1"></script>
+  <script src="js/scenarios/p2-s2-protocols.js?v=1"></script>
   <script src="js/game.js?v=7"></script>
 </body>
 </html>
