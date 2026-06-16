@@ -7,7 +7,7 @@ test.describe('Intro & HUD', () => {
   });
 
   test('Intro-Overlay ist beim Laden sichtbar', async ({ page }) => {
-    const overlay = page.locator('#intro-overlay');
+    const overlay = page.locator('#tutorial-start-overlay');
     await expect(overlay).toBeVisible();
     await expect(overlay).not.toHaveClass(/hidden/);
   });
@@ -23,8 +23,8 @@ test.describe('Intro & HUD', () => {
   });
 
   test('Intro-Button schließt das Overlay', async ({ page }) => {
-    await page.locator('#intro-start-btn').click();
-    await expect(page.locator('#intro-overlay')).toHaveClass(/hidden/);
+    await page.locator('#tutorial-start-btn').click();
+    await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
   });
 
   test('Startpunktestand ist 0', async ({ page }) => {
