@@ -194,3 +194,15 @@
   gap: 4px; font-size: 12px; color: #c8d8f0;
 }
 .olb-col strong { font-size: 13px; color: #fff; margin-bottom: 4px; }
+
+/* ── S0-Update: Hallenplan + Lernziele ───────────────────────────────────── */
+.s0-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.s0-map-box { border: 1px solid rgba(245,197,24,0.35); border-radius: 10px; padding: 12px; }
+.s0-map-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #f5c518; margin-bottom: 8px; }
+.s0-lz-box { border: 1px solid rgba(80,224,160,0.3); border-radius: 10px; padding: 12px; }
+.s0-lz-label { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #50e0a0; margin-bottom: 10px; }
+.s0-lz-list { display: flex; flex-direction: column; gap: 7px; }
+.s0-lz-item { display: flex; gap: 6px; align-items: flex-start; }
+.s0-lz-badge { font-size: 9px; font-weight: 700; color: #64a0ff; background: rgba(100,160,255,0.12); border-radius: 4px; padding: 1px 5px; white-space: nowrap; margin-top: 1px; flex-shrink: 0; }
+.s0-lz-item span { font-size: 10.5px; color: #c8d8f0; line-height: 1.4; }
+@media (max-width: 480px) { .s0-two-col { grid-template-columns: 1fr; } }
