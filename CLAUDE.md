@@ -40,10 +40,10 @@ Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab
 | ID | Typ | Titel | Dauer | Lernziele | Status |
 |---|---|---|---|---|---|
 | **S0** | Steuer | Die Logistikhalle | 1–2 Min | Orientierung + Aktivierung | ✅ fertig — SVG-Hallenplan + 5 Lernziele im `#tutorial-start-overlay` |
-| **P2 S1** | Lern | Vier Bereiche, vier Schichten: Das TCP/IP-Modell | 5 Min | LZ1: Architektur TCP/IP-Modell | ✅ Prototyp — 4 Karten + 1 MC-Frage (`js/scenarios/p2-s1-layers.js`) |
-| **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | ✅ Prototyp — 7 Karten DnD + 1 MC-Frage (`js/scenarios/p2-s2-protocols.js`) |
-| **P2 S3** | Lern | TCP vs. UDP: Zwei Förderbänder im Vergleich | 5 Min | LZ5: TCP vs. UDP unterscheiden | **fehlt** |
-| **P2 S4** | Lern | Adressetikett: IP-Adressen und OSI-Schichtenvergleich | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | **fehlt** |
+| **P2 S1** | Lern | Vier Bereiche, vier Schichten: Das TCP/IP-Modell | 5 Min | LZ1: Architektur TCP/IP-Modell | ~~Overlay-Prototyp (`p2-s1-layers.js`) — ersetzt durch 3D-Räume~~ |
+| **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | ~~Overlay-Prototyp (`p2-s2-protocols.js`) — ersetzt durch 3D-Räume~~ |
+| **P2 S3** | Lern | Transport-Flügel: TCP/UDP in der Lagerhalle (Layer 3) | 5 Min | LZ5: TCP vs. UDP unterscheiden | ✅ Prototyp — 3D-Raum, Pakete auf TCP/UDP-Band tragen (`js/scenarios/layer3-transport.js`), State: `ZONE_TRANSPORT` |
+| **P2 S4** | Lern | Anwendungs-Flügel: HTTP/DNS/FTP/SMTP-Briefkästen (Layer 4) | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | ✅ Prototyp — 3D-Raum, Pakete in Protokoll-Briefkasten tragen (`js/scenarios/layer4-anwendung.js`), State: `ZONE_ANWENDUNG` |
 | **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **fehlt** |
 | **P2 S6** | Bewertung | Vollständige TCP/IP-Kommunikation | 10 Min | LZ1–LZ5 (alle) | **fehlt** |
 
@@ -72,10 +72,10 @@ Jedes neue Szenario bringt ein eigenes UI-Paradigma:
 | Szenario | Interaktionstyp | Technischer Ansatz |
 |---|---|---|
 | P2 S0 Update | Hallenplan-Klick + Lernziele-Overlay | Overlay erweitern, SVG-Karte |
-| P2 S1 | Karten-Klick + Multiple Choice | Overlay-Panel, Event-Listener |
-| P2 S2 | Drag & Drop (Protokoll → Schicht) | HTML5 `draggable`, `dragover/drop` |
-| P2 S3 | Klick-Zuordnung (Szenario → Förderband) | CSS-Förderband-Animation, Klick-Handler |
-| P2 S4 | Paket-Auswahl + Linien-Drawing (OSI ↔ TCP/IP) | SVG-Overlay, Maus-Events |
+| P2 S1 | ~~Karten-Klick + Multiple Choice~~ | ~~Overlay-Panel, Event-Listener~~ — ersetzt durch 3D |
+| P2 S2 | ~~Drag & Drop (Protokoll → Schicht)~~ | ~~HTML5 `draggable`, `dragover/drop`~~ — ersetzt durch 3D |
+| P2 S3 | Paket auf TCP/UDP-Band tragen (E-Mechanik) | `class="interactable paket-l3"` / `belt-zone`; 3D-Raum Transport-Flügel |
+| P2 S4 | Paket in Protokoll-Briefkasten tragen (E-Mechanik) | `class="interactable paket-l4"` / `inbox-zone`; 3D-Raum Anwendungs-Flügel |
 | P2 S5 | Router-Routing-Entscheidung | Overlay-Diagramm oder 3D-Router in A-Frame |
 | P2 S6 | Mehrstufig ohne Hinweise, Musterlösung | Sequenz-Orchestrierung |
 
@@ -84,12 +84,13 @@ Jedes neue Szenario bringt ein eigenes UI-Paradigma:
 ```
 INTRO
   → TUTORIAL          (S0: Steuerung — bestehend)
-  → P2_S1_ACTIVE      (Schichtenmodell)
-  → P2_S2_ACTIVE      (Protokoll-Zuordnung)
-  → P2_S3_ACTIVE      (TCP vs. UDP)
-  → P2_S4_ACTIVE      (IP + OSI-Mapping)
-  → P2_S5_ACTIVE      (Routing)
-  → P2_S6_ACTIVE      (Bewertung, mehrstufig)
+  → S1_ACTIVE         (IP-Sortierung — bestehend)
+  → S2_BRIEFING / S2_ACTIVE  (TCP-Retransmit — bestehend)
+  → S3_BRIEFING / S3_ACTIVE  (Assessment — bestehend)
+  → ZONE_TRANSPORT    (Transport-Flügel: TCP/UDP — layer3-transport.js)
+  → ZONE_ANWENDUNG    (Anwendungs-Flügel: HTTP/DNS/FTP/SMTP — layer4-anwendung.js)
+  → P2_S5_ACTIVE      (Routing — fehlt)
+  → P2_S6_ACTIVE      (Bewertung, mehrstufig — fehlt)
   → FINAL             (Gesamtauswertung)
 ```
 
@@ -105,12 +106,11 @@ css/style.css                           # Alle UI-Styles (HUD, Overlays, Banner,
 js/game.js                              # State-Machine (alt + P2-States)
 js/components.js                        # A-Frame-Custom-Komponenten
 js/scenarios/
-  p2-s1-layers.js                       # Schichten-Karten + MC-Frage
-  p2-s2-protocols.js                    # Drag&Drop Protokoll→Schicht
-  p2-s3-tcpudp.js                       # Förderband-Klick-Zuordnung
-  p2-s4-addressing.js                   # Paket-Auswahl + SVG-Linien
-  p2-s5-routing.js                      # Routing-Tabellen + Forwarding
-  p2-s6-assessment.js                   # Kombinierter Bewertungsablauf
+  layer3-transport.js                   # Transport-Flügel: Pakete auf TCP/UDP-Band tragen (ZONE_TRANSPORT)
+  layer4-anwendung.js                   # Anwendungs-Flügel: Pakete in Protokoll-Briefkasten (ZONE_ANWENDUNG)
+  p2-s5-routing.js                      # Routing-Tabellen + Forwarding (fehlt)
+  p2-s6-assessment.js                   # Kombinierter Bewertungsablauf (fehlt)
+  # Entfernt/ersetzt: p2-s1-layers.js, p2-s2-protocols.js, p2-s3-tcpudp.js, p2-s4-addressing.js
 tests/ui.spec.js                        # Playwright E2E-Tests
 playwright.config.js                    # Test-Konfiguration (baseURL: localhost:8080)
 audio/                                  # Audio-Assets (derzeit leer)
@@ -126,6 +126,7 @@ warehouse_forklift_gameready.glb        # Gabelstapler
 | `auto-collider` | js/components.js | Berechnet OBB aus GLTF-Bounding-Box automatisch |
 | `jump-controls` | js/components.js | Sprung-Physik (Leertaste, feste Gravitationskonstante) |
 | `proximity-dialog` | js/components.js | NPC "Max" spricht Spieler an, wenn nah genug |
+| `kiosk-interaction` | js/components.js | Proximity + E-Toggle für Info-Kioske in 3D-Räumen; zeigt Info-Text wenn Spieler nah genug und E drückt |
 
 ## Schlüssel-Datenstrukturen (bestehend)
 
@@ -246,9 +247,52 @@ const zone = overlay ? overlay.querySelector(`[data-layer="${layerId}"]`) : null
 ```
 Gilt analog für alle zukünftigen Module.
 
+### cloneNode(true) nur für einfache Buttons — nicht für Panels mit Kind-IDs
+
+Container-Elemente mit benannten Kinder-IDs (z.B. Belt-Panels, die `#p2s3-chips-tcp` enthalten) dürfen nicht per `cloneNode(true)` bereinigt werden — doppelte IDs entstehen im DOM. Fix: Handler als Property am Element speichern:
+```js
+if (el._p2s3Handler) el.removeEventListener('click', el._p2s3Handler);
+el._p2s3Handler = () => handler();
+el.addEventListener('click', el._p2s3Handler);
+```
+Einfache Buttons ohne Kind-IDs (quiz-btn, next-btn) weiterhin per `cloneNode(true)` + `replaceWith()` bereinigen.
+
+### Test-Helper-Signaturen je Szenario
+
+Jedes Modul exportiert einen eigenen Test-Helper (kein globaler Standard):
+- P2S1: kein Helper (Karten direkt per Playwright klicken)
+- P2S2: `_dropForTest(protocolId, layerId)` — simuliert Drag&Drop
+- P2S3: `_assignForTest(scenarioId, protocol)` — setzt `_selected` und ruft `_onBeltClick`
+- P2S4: `_matchForTest(tcpipId, osiGroupId)` — setzt `_selectedTcpip` und ruft `_onOsiClick`
+
+### SVG-Linien zwischen zwei DOM-Spalten (P2 S4)
+
+SVG liegt `position: absolute; inset: 0; pointer-events: none; overflow: visible` über einem `position: relative`-Container. Linien-Koordinaten per `getBoundingClientRect()` relativ zum SVG berechnen:
+```js
+const svgRect = svg.getBoundingClientRect();
+const x1 = el.getBoundingClientRect().right - svgRect.left;
+const y1 = el.getBoundingClientRect().top + el.offsetHeight / 2 - svgRect.top;
+```
+`overflow: visible` ist nötig, damit Linien über die SVG-Bounds hinausragen. `pointer-events: none` verhindert, dass das SVG Klicks auf darunterliegenden Elementen blockiert.
+
 ### Neue Szenario-Module: Overlay-Pointer-Events
 
 Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden (Maus-Look blockiert Drag&Drop). Das Overlay-Element braucht `pointer-events: all` und die A-Frame-Scene muss temporär `document.exitPointerLock()` aufrufen — analog zu den bestehenden Overlay-Screens.
+
+### Zone-Detection via setInterval (player.z < -16.5)
+
+Die Zonen-Erkennung für `ZONE_TRANSPORT` und `ZONE_ANWENDUNG` läuft per `setInterval`, das die Spieler-Position überwacht:
+
+```js
+// Trigger: player.z < -16.5 → Spieler betritt Hinterflügel
+const cam = document.querySelector('#player');
+if (parseFloat(cam.getAttribute('position').z) < -16.5) { ... }
+```
+
+**Wichtige Einschränkungen:**
+- Zone-Detection feuert **nur** aus den States `S1_ACTIVE`, `INTRO` oder `TUTORIAL` — nie während einer bereits aktiven Zone oder S2/S3-Phase.
+- Sobald `ZONE_TRANSPORT` oder `ZONE_ANWENDUNG` aktiv ist, wird das Intervall gestoppt; `teardown()` des Moduls startet es ggf. neu.
+- Der Versandraum (rechte Seite, x=12..22) ist NICHT Teil der Zone-Detection — dieser Bereich bleibt unberührt.
 
 ## Debugging
 
@@ -261,18 +305,19 @@ Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden
 ### Implementierungsreihenfolge (priorisiert)
 
 1. ~~**S0 Update**~~ — ✅ fertig (SVG-Hallenplan + Lernziele, 2026-06-16)
-2. ~~**P2 S1**~~ — ✅ Prototyp fertig (4 Karten klickbar + 1 MC-Frage, 2026-06-16)
-3. ~~**P2 S2**~~ — ✅ Prototyp fertig (7 DnD-Karten + 1 MC-Frage, 2026-06-16)
-4. **P2 S3** — `js/scenarios/p2-s3-tcpudp.js`; CSS-Förderbänder, 5 Kommunikationsszenarien als Karten
-5. **P2 S4** — `js/scenarios/p2-s4-addressing.js`; IP-Auswahl + SVG-Linien für OSI-Mapping
-6. **P2 S5** — `js/scenarios/p2-s5-routing.js`; Routing-Tabellen (Overlay-Diagramm bevorzugt über 3D-Router)
-7. **P2 S6** — `js/scenarios/p2-s6-assessment.js`; Orchestrierung S1–S5, keine Hinweise, Musterlösung
+2. ~~**P2 S1 (Overlay)**~~ — Prototyp durch 3D-Zonen-Architektur ersetzt
+3. ~~**P2 S2 (Overlay)**~~ — Prototyp durch 3D-Zonen-Architektur ersetzt
+4. ~~**P2 S3 (Overlay)**~~ — Prototyp durch 3D-Zonen-Architektur ersetzt
+5. ~~**P2 S4 (Overlay)**~~ — Prototyp durch 3D-Zonen-Architektur ersetzt
+6. **ZONE_TRANSPORT** — `js/scenarios/layer3-transport.js`; Transport-Flügel (TCP/UDP), State: `ZONE_TRANSPORT`
+7. **ZONE_ANWENDUNG** — `js/scenarios/layer4-anwendung.js`; Anwendungs-Flügel (HTTP/DNS/FTP/SMTP), State: `ZONE_ANWENDUNG`
+8. **P2 S5** — `js/scenarios/p2-s5-routing.js`; Routing-Tabellen (Overlay-Diagramm bevorzugt über 3D-Router)
+9. **P2 S6** — `js/scenarios/p2-s6-assessment.js`; Orchestrierung S1–S5, keine Hinweise, Musterlösung
 
 ### Offene Architekturentscheidungen
 
 - **Bestehender Lernpfad (IP-Sortierung):** Soll S1–S3 (alt) erhalten bleiben oder komplett durch P2 ersetzt werden?
 - **P2 S5 Router:** Echte 3D-Router im A-Frame-Raum (hoher Aufwand) oder 2D-Overhead-Diagramm im Overlay (didaktisch ausreichend, schneller)?
-- **P2 S4 Linien-Drawing:** SVG-Overlay über dem 3D-Raum oder rein 2D im Overlay-Panel?
 
 ### Technische Basis
 
