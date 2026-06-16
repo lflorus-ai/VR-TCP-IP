@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>TCP/IP Lagerhalle</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-  <script src="js/components.js?v=7"></script>
+  <script src="js/components.js?v=8"></script>
   <link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
@@ -500,7 +500,8 @@
     <a-text value="AUSGANG" color="#44ff99" scale="0.155 0.155 0.155" position="11.1 5.05 -15.68" align="center" material="shader:flat"></a-text>
 
     <!-- Gabelstapler GLTF (inch-Modell mit eingebautem 0.0254-Scale → scale 1 korrekt) -->
-    <a-gltf-model src="#model-forklift" position="0 0 -14" rotation="0 90 0" scale="1 1 1" auto-collider></a-gltf-model>
+    <!-- Seitlich geparkt — weg vom Türdurchgang (x=-2..+2, z=-16) -->
+    <a-gltf-model src="#model-forklift" position="-8 0 -9" rotation="0 180 0" scale="1 1 1" auto-collider></a-gltf-model>
 
 
     <!-- Deckenlampen-Körper -->
@@ -904,7 +905,7 @@
              material="color:#50e0a0;opacity:0.0;transparent:true" width="2.0" height="0.9" depth="0.9" position="0 0.6 0.45"></a-box>
     </a-entity>
 
-    <a-entity id="l4-inbox-smtp" position="-1 0 -29">
+    <a-entity id="l4-inbox-smtp" position="-1.2 0 -29">
       <a-box material="color:#200800;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
       <a-plane material="color:#140400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
         <a-text value="SMTP" color="#ff7850" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
