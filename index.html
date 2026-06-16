@@ -51,7 +51,45 @@
       <div class="overlay-avatar">&#128119;</div>
       <div class="overlay-title">Willkommen im TCP/IP-Lagerhaus!</div>
       <div class="overlay-body">
-        Ich bin <strong>Max</strong>, dein Lagerleiter. Bevor du anfängst, möchte ich sicherstellen, dass du weißt wie alles funktioniert &mdash; ich führe dich kurz durch die Steuerung.
+        Ich bin <strong>Max</strong>, dein Lagerleiter. Diese Halle bildet das <strong>TCP/IP-Schichtenmodell</strong> nach &mdash; vier Bereiche, vier Schichten. Ich führe dich kurz durch die Steuerung.
+      </div>
+      <div class="s0-two-col">
+        <!-- Hallenplan -->
+        <div class="s0-map-box">
+          <div class="s0-map-label">&#128506; Hallenplan</div>
+          <svg id="s0-map" viewBox="0 0 180 128" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="174" height="116" rx="6" fill="none" stroke="rgba(100,160,255,0.25)" stroke-width="1.5"/>
+            <rect x="80" y="111" width="20" height="8" rx="2" fill="rgba(100,160,255,0.1)" stroke="rgba(100,160,255,0.4)" stroke-width="1"/>
+            <text x="90" y="117.5" font-size="4.5" fill="#64a0ff" text-anchor="middle">Eingang</text>
+            <rect data-zone="anwendung" x="7" y="7" width="82" height="50" rx="4" fill="rgba(80,224,160,0.1)" stroke="rgba(80,224,160,0.5)" stroke-width="1"/>
+            <text x="48" y="24" font-size="6.5" fill="#50e0a0" text-anchor="middle" font-weight="bold">Anwendung</text>
+            <text x="48" y="33" font-size="5" fill="rgba(80,224,160,0.65)" text-anchor="middle">Schicht 4</text>
+            <text x="48" y="49" font-size="13" text-anchor="middle">&#128241;</text>
+            <rect data-zone="transport" x="93" y="7" width="82" height="50" rx="4" fill="rgba(100,160,255,0.1)" stroke="rgba(100,160,255,0.5)" stroke-width="1"/>
+            <text x="134" y="24" font-size="6.5" fill="#64a0ff" text-anchor="middle" font-weight="bold">Transport</text>
+            <text x="134" y="33" font-size="5" fill="rgba(100,160,255,0.65)" text-anchor="middle">Schicht 3</text>
+            <text x="134" y="49" font-size="13" text-anchor="middle">&#128279;</text>
+            <rect data-zone="internet" x="7" y="61" width="82" height="46" rx="4" fill="rgba(245,197,24,0.1)" stroke="rgba(245,197,24,0.5)" stroke-width="1"/>
+            <text x="48" y="77" font-size="6.5" fill="#f5c518" text-anchor="middle" font-weight="bold">Internet</text>
+            <text x="48" y="86" font-size="5" fill="rgba(245,197,24,0.65)" text-anchor="middle">Schicht 2</text>
+            <text x="48" y="100" font-size="13" text-anchor="middle">&#127760;</text>
+            <rect data-zone="netzzugang" x="93" y="61" width="82" height="46" rx="4" fill="rgba(255,120,80,0.1)" stroke="rgba(255,120,80,0.5)" stroke-width="1"/>
+            <text x="134" y="77" font-size="6.5" fill="#ff7850" text-anchor="middle" font-weight="bold">Netzzugang</text>
+            <text x="134" y="86" font-size="5" fill="rgba(255,120,80,0.65)" text-anchor="middle">Schicht 1</text>
+            <text x="134" y="100" font-size="13" text-anchor="middle">&#128225;</text>
+          </svg>
+        </div>
+        <!-- Lernziele -->
+        <div class="s0-lz-box">
+          <div class="s0-lz-label">&#127919; Lernziele</div>
+          <div class="s0-lz-list">
+            <div class="s0-lz-item"><span class="s0-lz-badge">LZ1</span><span>Architektur TCP/IP-Modell verstehen</span></div>
+            <div class="s0-lz-item"><span class="s0-lz-badge">LZ2</span><span>Weg eines Datenpakets nachvollziehen</span></div>
+            <div class="s0-lz-item"><span class="s0-lz-badge">LZ3</span><span>Rolle von Routern &amp; IP-Adressen</span></div>
+            <div class="s0-lz-item"><span class="s0-lz-badge">LZ4</span><span>Internet-Schicht &#8596; OSI Layer 3 zuordnen</span></div>
+            <div class="s0-lz-item"><span class="s0-lz-badge">LZ5</span><span>Protokolle den TCP/IP-Schichten zuordnen</span></div>
+          </div>
+        </div>
       </div>
       <button id="tutorial-start-btn" class="overlay-btn">Tutorial starten &rarr;</button>
     </div>
