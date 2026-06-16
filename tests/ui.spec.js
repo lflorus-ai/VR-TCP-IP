@@ -104,3 +104,38 @@ test.describe('IP-Netzwerk-Logik', () => {
     }
   });
 });
+
+test.describe('S0-Update: Hallenplan + Lernziele', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('SVG-Hallenplan ist im Intro-Overlay vorhanden', async ({ page }) => {
+    const svg = page.locator('#tutorial-start-overlay svg#s0-map');
+    await expect(svg).toBeAttached();
+  });
+
+  test('Hallenplan enthält 4 Zonen-Rechtecke (ohne Außenrahmen und Eingang)', async ({ page }) => {
+    // Der SVG hat: 1 Außenrahmen + 1 Eingang + 4 Zonen = 6 rects gesamt
+    // Zonen-Rects haben ein data-zone-Attribut
+    const zones = page.locator('#s0-map rect[data-zone]');
+    await expect(zones).toHaveCount(4);
+  });
+
+  test('Lernziele-Liste enthält genau 5 Einträge', async ({ page }) => {
+    const items = page.locator('#tutorial-start-overlay .s0-lz-item');
+    await expect(items).toHaveCount(5);
+  });
+
+  test('Jeder Lernziel-Eintrag hat ein LZ-Badge', async ({ page }) => {
+    const badges = page.locator('#tutorial-start-overlay .s0-lz-badge');
+    await expect(badges).toHaveCount(5);
+    const texts = await badges.allTextContents();
+    expect(texts).toEqual(['LZ1', 'LZ2', 'LZ3', 'LZ4', 'LZ5']);
+  });
+
+  test('Tutorial-Button funktioniert weiterhin nach S0-Update', async ({ page }) => {
+    await page.locator('#tutorial-start-btn').click();
+    await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
+  });
+});
