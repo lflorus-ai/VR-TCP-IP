@@ -454,6 +454,26 @@ function showS2Transition() {
 let s2LostPackets = [];
 let s2Score = 0;
 
+function enterZoneTransport() {
+  if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
+  gameState = 'ZONE_TRANSPORT';
+  L3.init((score) => {
+    gameState = 'S1_ACTIVE';
+    const taskText = document.getElementById('task-text');
+    if (taskText) taskText.textContent = 'Transport abgeschlossen (' + score + ' P). Erkunde den Anwendungs-Flügel!';
+  });
+}
+
+function enterZoneAnwendung() {
+  if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
+  gameState = 'ZONE_ANWENDUNG';
+  L4.init((score) => {
+    gameState = 'S1_ACTIVE';
+    const taskText = document.getElementById('task-text');
+    if (taskText) taskText.textContent = 'Anwendung abgeschlossen (' + score + ' P). Erkunde den Transport-Flügel!';
+  });
+}
+
 function initS2() {
   const delivered = lieferschein.filter(p => p.done);
   const source = delivered.length > 0 ? delivered : lieferschein;
@@ -903,8 +923,24 @@ document.addEventListener('keydown', (e) => {
     else confirmS3Retransmit();
     return;
   }
-  if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
   if (e.key !== 'e' && e.key !== 'E') return;
+
+  // Kiosk-Interaktion (works in any state)
+  if (hoveredEl) {
+    const kioskEl = hoveredEl.closest ? hoveredEl.closest('[kiosk-interaction]') : null;
+    const kioskComp = kioskEl && kioskEl.components && kioskEl.components['kiosk-interaction'];
+    if (kioskComp) { kioskComp.toggle(); return; }
+  }
+
+  // Zone-Modul Delegation
+  if (gameState === 'ZONE_TRANSPORT' && hoveredEl) {
+    if (L3.handlePickup(hoveredEl)) return;
+  }
+  if (gameState === 'ZONE_ANWENDUNG' && hoveredEl) {
+    if (L4.handlePickup(hoveredEl)) return;
+  }
+
+  if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
   if (!hoveredEl) return;
 
   const cam = document.querySelector('[camera]');
@@ -1633,5 +1669,37 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   // Lieferschein + Pips während Tutorial ausblenden
   document.getElementById('lieferschein-list').style.display = 'none';
   document.getElementById('progress-pips').style.display  = 'none';
+
+  // Zone-Detektion Nordflügel
+  let _zoneCheckInterval = setInterval(() => {
+    const cam = document.querySelector('[camera]');
+    if (!cam) return;
+    const pos = new AFRAME.THREE.Vector3();
+    cam.object3D.getWorldPosition(pos);
+
+    if (pos.z < -16.5) {
+      if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+        if (pos.x >= 0) {
+          enterZoneTransport();
+        } else {
+          enterZoneAnwendung();
+        }
+      }
+    }
+
+    if (pos.z >= -15.5) {
+      if (gameState === 'ZONE_TRANSPORT') {
+        L3.teardown();
+        gameState = 'S1_ACTIVE';
+        const taskText = document.getElementById('task-text');
+        if (taskText) taskText.textContent = 'Haupthalle — Sortiere Pakete nach IP-Netzwerken.';
+      } else if (gameState === 'ZONE_ANWENDUNG') {
+        L4.teardown();
+        gameState = 'S1_ACTIVE';
+        const taskText = document.getElementById('task-text');
+        if (taskText) taskText.textContent = 'Haupthalle — Sortiere Pakete nach IP-Netzwerken.';
+      }
+    }
+  }, 400);
 
 });
