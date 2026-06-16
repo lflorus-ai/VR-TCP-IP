@@ -204,5 +204,5 @@
 .s0-lz-list { display: flex; flex-direction: column; gap: 7px; }
 .s0-lz-item { display: flex; gap: 6px; align-items: flex-start; }
 .s0-lz-badge { font-size: 9px; font-weight: 700; color: #64a0ff; background: rgba(100,160,255,0.12); border-radius: 4px; padding: 1px 5px; white-space: nowrap; margin-top: 1px; flex-shrink: 0; }
-.s0-lz-item span { font-size: 10.5px; color: #c8d8f0; line-height: 1.4; }
+.s0-lz-item span:not(.s0-lz-badge) { font-size: 10.5px; color: #c8d8f0; line-height: 1.4; }
 @media (max-width: 480px) { .s0-two-col { grid-template-columns: 1fr; } }
