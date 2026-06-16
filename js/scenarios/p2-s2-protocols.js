@@ -130,13 +130,20 @@ const P2S2 = (() => {
   }
 
   function _dropForTest(protocolId, layerId) {
-    const zone = document.querySelector(`[data-layer="${layerId}"]`);
+    const overlay = document.getElementById('p2-s2-overlay');
+    const zone = overlay ? overlay.querySelector(`[data-layer="${layerId}"]`) : null;
     if (zone) _onDrop(protocolId, layerId, zone);
   }
 
   function _bindButtons() {
-    document.getElementById('p2s2-quiz-btn').addEventListener('click', _showQuiz, { once: true });
-    document.getElementById('p2s2-next-btn').addEventListener('click', () => {
+    const quizBtn = document.getElementById('p2s2-quiz-btn');
+    const nextBtn = document.getElementById('p2s2-next-btn');
+    const freshQuiz = quizBtn.cloneNode(true);
+    const freshNext = nextBtn.cloneNode(true);
+    quizBtn.replaceWith(freshQuiz);
+    nextBtn.replaceWith(freshNext);
+    freshQuiz.addEventListener('click', _showQuiz, { once: true });
+    freshNext.addEventListener('click', () => {
       teardown();
       if (_onComplete) _onComplete(_score);
     }, { once: true });
@@ -158,6 +165,7 @@ const P2S2 = (() => {
       const btn = document.createElement('button');
       btn.className = 'p2s2-option';
       btn.textContent = opt.text;
+      btn._opt = opt;
       btn.addEventListener('click', () => _onOptionClick(btn, opt), { once: true });
       opts.appendChild(btn);
     });
@@ -177,7 +185,7 @@ const P2S2 = (() => {
     } else {
       btn.classList.add('wrong');
       document.querySelectorAll('#p2s2-options .p2s2-option').forEach(b => {
-        if (QUIZ.options.find(o => o.correct && o.text === b.textContent)) b.classList.add('correct');
+        if (b._opt && b._opt.correct) b.classList.add('correct');
       });
       feedback.className = 'p2s2-feedback wrong';
       feedback.textContent = QUIZ.feedbackWrong;
