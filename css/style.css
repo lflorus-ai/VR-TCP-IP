@@ -262,3 +262,6 @@
 .p2s2-option.correct { background: rgba(80,224,160,0.12); border-color: rgba(80,224,160,0.5); color: #50e0a0; }
 .p2s2-option.wrong { background: rgba(255,80,80,0.08); border-color: rgba(255,80,80,0.35); color: #ff9999; }
 .p2s2-option.disabled { cursor: default; }
+.p2s2-feedback { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; }
+.p2s2-feedback.correct { background: rgba(80,224,160,0.08); border: 1px solid rgba(80,224,160,0.3); color: #80eec0; }
+.p2s2-feedback.wrong { background: rgba(255,80,80,0.06); border: 1px solid rgba(255,80,80,0.25); color: #ffaaaa; }

@@ -158,7 +158,7 @@ const P2S2 = (() => {
       const btn = document.createElement('button');
       btn.className = 'p2s2-option';
       btn.textContent = opt.text;
-      btn.addEventListener('click', () => _onOptionClick(btn, opt));
+      btn.addEventListener('click', () => _onOptionClick(btn, opt), { once: true });
       opts.appendChild(btn);
     });
   }
@@ -172,14 +172,14 @@ const P2S2 = (() => {
     if (opt.correct) {
       _score += 30;
       btn.classList.add('correct');
-      feedback.className = 'p2s1-feedback correct';
+      feedback.className = 'p2s2-feedback correct';
       feedback.textContent = QUIZ.feedbackCorrect;
     } else {
       btn.classList.add('wrong');
       document.querySelectorAll('#p2s2-options .p2s2-option').forEach(b => {
         if (QUIZ.options.find(o => o.correct && o.text === b.textContent)) b.classList.add('correct');
       });
-      feedback.className = 'p2s1-feedback wrong';
+      feedback.className = 'p2s2-feedback wrong';
       feedback.textContent = QUIZ.feedbackWrong;
     }
     feedback.classList.remove('hidden');
