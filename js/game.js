@@ -331,40 +331,20 @@ document.getElementById('tutorial-done-btn').addEventListener('click', () => {
   // Tutorial-HUD zurücksetzen
   document.getElementById('tutorial-steps').style.display = 'none';
   const hudTag = document.getElementById('hud-tag');
-  hudTag.textContent = '■ P2 · S1 — TCP/IP-Schichten';
+  hudTag.textContent = '■ Lern-Szenario 1';
   hudTag.classList.remove('tutorial');
 
   // Spieler zur Lagerhalle bewegen
   document.getElementById('player').object3D.position.set(0, 0, 2);
 
-  // P2 S1 starten
-  gameState = 'P2_S1_ACTIVE';
-  P2S1.init(() => {
-    // P2 S1 abgeschlossen → P2 S2 (Protokoll-Zuordnung)
-    gameState = 'P2_S2_ACTIVE';
-    document.getElementById('hud-tag').textContent = '■ P2 · S2 — Protokolle';
-    P2S2.init(() => {
-      // P2 S2 abgeschlossen → P2 S3 (TCP vs. UDP)
-      gameState = 'P2_S3_ACTIVE';
-      document.getElementById('hud-tag').textContent = '■ P2 · S3 — TCP vs. UDP';
-      P2S3.init(() => {
-        // P2 S3 abgeschlossen → P2 S4 (IP-Adressen + OSI-Mapping)
-        gameState = 'P2_S4_ACTIVE';
-        document.getElementById('hud-tag').textContent = '■ P2 · S4 — IP & OSI';
-        P2S4.init(() => {
-          // P2 S4 abgeschlossen → weiter zur Lagerhalle (alt S1)
-          gameState = 'S1_ACTIVE';
-          document.getElementById('hud-tag').textContent = '■ Lern-Szenario 1';
-          document.getElementById('lieferschein-list').style.display = '';
-          document.getElementById('progress-pips').style.display  = '';
-          const canvas = document.querySelector('a-scene canvas');
-          if (canvas) canvas.requestPointerLock();
-          showNPCBriefing();
-          updateLieferschein();
-        });
-      });
-    });
-  });
+  // Direkt zu S1_ACTIVE
+  gameState = 'S1_ACTIVE';
+  document.getElementById('lieferschein-list').style.display = '';
+  document.getElementById('progress-pips').style.display  = '';
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+  showNPCBriefing();
+  updateLieferschein();
 });
 
 // Complete overlay
