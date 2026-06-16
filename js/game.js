@@ -672,6 +672,12 @@ document.querySelectorAll('.palette-zone').forEach(pal => {
   pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
 });
 
+// L3/L4 zone entities (paket-l3, belt-zone, quiz-option-l3, paket-l4, inbox-zone, quiz-option-l4)
+document.querySelectorAll('.paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4').forEach(el => {
+  el.addEventListener('mouseenter', () => { hoveredEl = el; });
+  el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
+});
+
 // B: Netzklasse ermitteln
 function getNetClass(ip) {
   const first = parseInt(ip.split('.')[0]);
