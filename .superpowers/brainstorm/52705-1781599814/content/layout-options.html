@@ -1,0 +1,109 @@
+<h2>S0-Intro-Overlay: Welches Layout?</h2>
+<p class="subtitle">Das bestehende Overlay begrüßt den Spieler und leitet ins Tutorial — jetzt kommt Hallenplan + 5 Lernziele dazu. Wie soll das aussehen?</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:rgba(0,0,0,0.3);border-radius:8px;font-family:monospace;font-size:11px;line-height:1.8;color:#9ab0cc">
+      <div style="color:#64a0ff;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Steuer-Tutorial · Einführung</div>
+      <div style="font-size:20px;margin-bottom:6px">👷 Willkommen im TCP/IP-Lagerhaus!</div>
+      <div style="font-size:11px;color:#7a90b0;margin-bottom:10px">Max begrüßt den Spieler …</div>
+      <div style="border:1px solid rgba(100,160,255,0.3);border-radius:8px;padding:8px;margin-bottom:8px">
+        <div style="color:#f5c518;font-size:10px;margin-bottom:6px">🗺 HALLENPLAN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px">
+          <div style="background:rgba(100,160,255,0.12);padding:4px 6px;border-radius:4px">📦 Schicht 1</div>
+          <div style="background:rgba(100,160,255,0.12);padding:4px 6px;border-radius:4px">🔗 Schicht 2</div>
+          <div style="background:rgba(100,160,255,0.12);padding:4px 6px;border-radius:4px">🌐 Schicht 3</div>
+          <div style="background:rgba(100,160,255,0.12);padding:4px 6px;border-radius:4px">📡 Schicht 4</div>
+        </div>
+      </div>
+      <div style="border:1px solid rgba(100,255,150,0.25);border-radius:8px;padding:8px;margin-bottom:10px">
+        <div style="color:#50e0a0;font-size:10px;margin-bottom:6px">🎯 LERNZIELE</div>
+        <div style="font-size:10px;color:#7a90b0">LZ1 · LZ2 · LZ3 · LZ4 · LZ5</div>
+      </div>
+      <div style="background:#1a4a8a;border-radius:16px;padding:6px;font-size:11px;text-align:center">Tutorial starten →</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Alles in einem Overlay</h3>
+      <p>Max-Text, Hallenplan und Lernziele sind im selben Kasten. Spieler sieht alles auf einen Blick — scrollt ggf. bei kleinen Screens.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:rgba(0,0,0,0.3);border-radius:8px;font-family:monospace;font-size:11px;color:#9ab0cc">
+      <div style="color:#64a0ff;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Seite 1 von 2</div>
+      <div style="font-size:18px;margin-bottom:4px">👷 Willkommen …</div>
+      <div style="font-size:10px;color:#7a90b0;margin-bottom:10px">Max-Text (kurz)</div>
+      <div style="border:1px solid rgba(100,255,150,0.25);border-radius:8px;padding:8px;margin-bottom:8px">
+        <div style="color:#50e0a0;font-size:10px;margin-bottom:4px">🎯 5 LERNZIELE</div>
+        <div style="font-size:10px;color:#c8d8f0;line-height:1.6">
+          LZ1: Architektur TCP/IP<br>
+          LZ2: Paketverlauf<br>
+          LZ3: Router &amp; IP<br>
+          LZ4: OSI-Mapping<br>
+          LZ5: Protokolle
+        </div>
+      </div>
+      <div style="background:#1a4a8a;border-radius:16px;padding:6px;font-size:11px;text-align:center">Weiter: Hallenplan →</div>
+      <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;color:#64a0ff;font-size:10px;text-transform:uppercase;letter-spacing:2px">Seite 2 von 2</div>
+      <div style="border:1px solid rgba(100,160,255,0.3);border-radius:8px;padding:8px;margin-top:6px">
+        <div style="color:#f5c518;font-size:10px;margin-bottom:4px">🗺 HALLENPLAN</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:9px">
+          <div style="background:rgba(100,160,255,0.12);padding:3px 5px;border-radius:3px">Bereich A</div>
+          <div style="background:rgba(100,160,255,0.12);padding:3px 5px;border-radius:3px">Bereich B</div>
+          <div style="background:rgba(100,160,255,0.12);padding:3px 5px;border-radius:3px">Bereich C</div>
+          <div style="background:rgba(100,160,255,0.12);padding:3px 5px;border-radius:3px">Bereich D</div>
+        </div>
+      </div>
+      <div style="background:#1a4a8a;border-radius:16px;padding:6px;font-size:11px;text-align:center;margin-top:8px">Tutorial starten →</div>
+    </div>
+    <div class="card-body">
+      <h3>B — 2-Seiten-Wizard</h3>
+      <p>Seite 1: Max + Lernziele. Seite 2: Hallenplan. Weniger Scroll, klare Trennung — aber zwei Klicks statt einem.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:rgba(0,0,0,0.3);border-radius:8px;font-family:monospace;font-size:11px;color:#9ab0cc">
+      <div style="color:#64a0ff;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Steuer-Tutorial · Einführung</div>
+      <div style="font-size:18px;margin-bottom:4px">👷 Willkommen …</div>
+      <div style="font-size:10px;color:#7a90b0;margin-bottom:10px">Max-Text (kurz)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div style="border:1px solid rgba(100,160,255,0.3);border-radius:8px;padding:8px">
+          <div style="color:#f5c518;font-size:9px;margin-bottom:6px">🗺 HALLENPLAN</div>
+          <div style="font-size:9px;color:#9ab0cc;line-height:1.5">
+            Vier Lagerbereiche<br>
+            = vier TCP/IP-Schichten
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:6px">
+            <div style="background:rgba(80,224,160,0.15);border-radius:3px;padding:2px 4px;font-size:8px;color:#50e0a0">App</div>
+            <div style="background:rgba(100,160,255,0.15);border-radius:3px;padding:2px 4px;font-size:8px;color:#64a0ff">Trans</div>
+            <div style="background:rgba(245,197,24,0.15);border-radius:3px;padding:2px 4px;font-size:8px;color:#f5c518">Net</div>
+            <div style="background:rgba(255,120,80,0.15);border-radius:3px;padding:2px 4px;font-size:8px;color:#ff7850">Link</div>
+          </div>
+        </div>
+        <div style="border:1px solid rgba(100,255,150,0.25);border-radius:8px;padding:8px">
+          <div style="color:#50e0a0;font-size:9px;margin-bottom:6px">🎯 LERNZIELE</div>
+          <div style="font-size:9px;color:#c8d8f0;line-height:1.7">
+            LZ1 Architektur<br>
+            LZ2 Paketverlauf<br>
+            LZ3 Router<br>
+            LZ4 OSI<br>
+            LZ5 Protokolle
+          </div>
+        </div>
+      </div>
+      <div style="background:#1a4a8a;border-radius:16px;padding:6px;font-size:11px;text-align:center">Tutorial starten →</div>
+    </div>
+    <div class="card-body">
+      <h3>C — 2-Spalten kompakt</h3>
+      <p>Hallenplan und Lernziele nebeneinander in zwei Spalten. Kompakt, alles auf einen Blick — passt gut zum bestehenden Overlay-Stil.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Klicke eine Option an und/oder sag mir im Terminal, was du bevorzugst.</p>

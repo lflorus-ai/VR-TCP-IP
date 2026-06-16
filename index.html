@@ -304,6 +304,88 @@
     </div>
   </div>
 
+  <!-- P2 S3 — TCP vs. UDP: Zwei Förderbänder -->
+  <div id="p2-s3-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 3 &middot; TCP vs. UDP</div>
+      <div class="overlay-title">Zwei F&ouml;rderbänder &mdash; welches Protokoll passt?</div>
+      <p class="overlay-body" id="p2s3-intro-text">
+        Klicke auf ein Kommunikations-Szenario, dann auf das passende F&ouml;rderband.
+      </p>
+      <div id="p2s3-main">
+        <div id="p2s3-card-bank" class="p2s3-card-bank"></div>
+        <div class="p2s3-hint">Szenario w&auml;hlen &rarr; F&ouml;rderband klicken</div>
+        <div class="p2s3-belts">
+          <div class="p2s3-belt-panel" id="p2s3-belt-tcp" data-protocol="tcp">
+            <div class="p2s3-belt-header">
+              <span class="p2s3-belt-name" style="color:#64a0ff">TCP</span>
+              <span class="p2s3-belt-sub">Zuverl&auml;ssig &middot; Verbindungsorientiert</span>
+            </div>
+            <div class="p2s3-belt-track tcp"></div>
+            <div class="p2s3-belt-chips" id="p2s3-chips-tcp"></div>
+          </div>
+          <div class="p2s3-belt-panel" id="p2s3-belt-udp" data-protocol="udp">
+            <div class="p2s3-belt-header">
+              <span class="p2s3-belt-name" style="color:#f5c518">UDP</span>
+              <span class="p2s3-belt-sub">Schnell &middot; Verbindungslos</span>
+            </div>
+            <div class="p2s3-belt-track udp"></div>
+            <div class="p2s3-belt-chips" id="p2s3-chips-udp"></div>
+          </div>
+        </div>
+      </div>
+      <button id="p2s3-quiz-btn" class="overlay-btn hidden">Zum Quiz &rarr;</button>
+      <div id="p2s3-quiz" class="hidden">
+        <div id="p2s3-question" class="p2s1-question"></div>
+        <div id="p2s3-options" class="p2s1-options"></div>
+        <div id="p2s3-feedback" class="p2s3-feedback hidden"></div>
+      </div>
+      <button id="p2s3-next-btn" class="overlay-btn hidden" style="margin-top:12px">Weiter zur Lagerhalle &rarr;</button>
+    </div>
+  </div>
+
+  <!-- P2 S4 — IP-Adressen & OSI-Mapping -->
+  <div id="p2-s4-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 4 &middot; IP-Adressen &amp; OSI-Vergleich</div>
+      <div class="overlay-title">Adressetikett: IP &amp; das Netzwerkmodell</div>
+
+      <!-- Phase 1: Info-Karten -->
+      <div id="p2s4-info-phase">
+        <p class="overlay-body">Klicke auf jede Karte, um mehr &uuml;ber IP-Adressen und das OSI-Modell zu erfahren.</p>
+        <div id="p2s4-info-cards" class="p2s4-info-grid"></div>
+        <button id="p2s4-map-btn" class="overlay-btn hidden" style="margin-top:16px">Zum Schichten-Mapping &rarr;</button>
+      </div>
+
+      <!-- Phase 2: Schichten-Mapping TCP/IP ↔ OSI -->
+      <div id="p2s4-map-phase" class="hidden">
+        <div class="p2s4-map-wrapper">
+          <div class="p2s4-col-wrap">
+            <div class="p2s4-col-header">TCP/IP</div>
+            <div id="p2s4-tcpip-col" class="p2s4-layer-col"></div>
+          </div>
+          <div></div>
+          <div class="p2s4-col-wrap">
+            <div class="p2s4-col-header">OSI</div>
+            <div id="p2s4-osi-col" class="p2s4-layer-col"></div>
+          </div>
+          <svg id="p2s4-lines-svg" class="p2s4-lines-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div id="p2s4-map-hint" class="p2s4-map-hint">TCP/IP-Schicht ausw&auml;hlen &rarr; OSI-Gruppe klicken</div>
+        <button id="p2s4-quiz-btn" class="overlay-btn hidden" style="margin-top:12px">Zum Quiz &rarr;</button>
+      </div>
+
+      <!-- Quiz -->
+      <div id="p2s4-quiz" class="hidden">
+        <div id="p2s4-question" class="p2s1-question"></div>
+        <div id="p2s4-options" class="p2s1-options"></div>
+        <div id="p2s4-feedback" class="p2s4-feedback hidden"></div>
+      </div>
+
+      <button id="p2s4-next-btn" class="overlay-btn hidden" style="margin-top:12px">Weiter zur Lagerhalle &rarr;</button>
+    </div>
+  </div>
+
   <!-- Gesamtauswertung -->
   <div id="final-overlay" class="hidden">
     <div class="overlay-box">
@@ -888,6 +970,8 @@
 
   <script src="js/scenarios/p2-s1-layers.js?v=1"></script>
   <script src="js/scenarios/p2-s2-protocols.js?v=1"></script>
+  <script src="js/scenarios/p2-s3-tcpudp.js?v=1"></script>
+  <script src="js/scenarios/p2-s4-addressing.js?v=1"></script>
   <script src="js/game.js?v=7"></script>
 </body>
 </html>
