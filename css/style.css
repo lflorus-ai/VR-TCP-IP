@@ -64,7 +64,7 @@
 
 #tutorial-start-overlay, #tutorial-complete-overlay,
 #complete-overlay, #s2-briefing-overlay, #s2-complete-overlay, #s3-briefing-overlay,
-#s3-complete-overlay, #final-overlay {
+#s3-complete-overlay, #final-overlay, #p2-s1-overlay, #p2-s2-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
   display: flex; align-items: flex-start; justify-content: center;
@@ -75,7 +75,8 @@
 #tutorial-start-overlay.hidden, #tutorial-complete-overlay.hidden,
 #complete-overlay.hidden, #s2-briefing-overlay.hidden, #s2-complete-overlay.hidden,
 #s3-briefing-overlay.hidden, #s3-complete-overlay.hidden,
-#final-overlay.hidden { display: none; }
+#final-overlay.hidden, #p2-s1-overlay.hidden, #p2-s2-overlay.hidden { display: none; }
+.hidden { display: none; }
 
 .hud-tag.tutorial { color: #f5c518; }
 
@@ -206,3 +207,58 @@
 .s0-lz-badge { font-size: 9px; font-weight: 700; color: #64a0ff; background: rgba(100,160,255,0.12); border-radius: 4px; padding: 1px 5px; white-space: nowrap; margin-top: 1px; flex-shrink: 0; }
 .s0-lz-item span:not(.s0-lz-badge) { font-size: 10.5px; color: #c8d8f0; line-height: 1.4; }
 @media (max-width: 480px) { .s0-two-col { grid-template-columns: 1fr; } }
+
+/* ── P2 S1 — Vier Schichten: Karten + Quiz ──────────────────────────────── */
+.p2s1-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; text-align: left; }
+.p2s1-card { background: rgba(20,32,55,0.8); border: 1px solid rgba(100,160,255,0.2); border-radius: 12px; padding: 14px; cursor: pointer; transition: border-color 0.2s, transform 0.15s, background 0.2s; }
+.p2s1-card:hover { transform: translateY(-2px); background: rgba(30,45,75,0.9); }
+.p2s1-card.open { border-color: var(--card-stroke); background: rgba(28,42,70,0.95); }
+.p2s1-card.viewed .p2s1-card-badge::after { content: ' ✓'; color: #50e0a0; }
+.p2s1-card-badge { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(180,200,240,0.45); margin-bottom: 8px; }
+.p2s1-card-icon { font-size: 26px; margin-bottom: 5px; }
+.p2s1-card-name { font-size: 14px; font-weight: 700; }
+.p2s1-card-detail { display: none; margin-top: 10px; }
+.p2s1-card.open .p2s1-card-detail { display: block; }
+.p2s1-card-desc { font-size: 11px; color: #c8d8f0; line-height: 1.5; margin-bottom: 8px; }
+.p2s1-card-protocols { font-size: 9.5px; color: #8899bb; font-family: monospace; background: rgba(0,0,0,0.25); border-radius: 6px; padding: 4px 8px; }
+.p2s1-quiz { margin: 0 0 16px; text-align: left; }
+.p2s1-question { font-size: 14px; color: #e8edf5; line-height: 1.55; margin-bottom: 14px; font-weight: 600; }
+.p2s1-options { display: flex; flex-direction: column; gap: 8px; }
+.p2s1-option { background: rgba(20,32,55,0.8); border: 1px solid rgba(100,160,255,0.2); border-radius: 8px; padding: 10px 14px; cursor: pointer; font-size: 12.5px; color: #c8d8f0; text-align: left; transition: all 0.15s; width: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+.p2s1-option:hover:not(.disabled) { background: rgba(100,160,255,0.12); border-color: rgba(100,160,255,0.5); color: #fff; }
+.p2s1-option.correct { background: rgba(80,224,160,0.12); border-color: rgba(80,224,160,0.5); color: #50e0a0; }
+.p2s1-option.wrong { background: rgba(255,80,80,0.08); border-color: rgba(255,80,80,0.35); color: #ff9999; }
+.p2s1-option.disabled { cursor: default; }
+.p2s1-feedback { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; line-height: 1.55; }
+.p2s1-feedback.correct { background: rgba(80,224,160,0.08); border: 1px solid rgba(80,224,160,0.3); color: #80eec0; }
+.p2s1-feedback.wrong { background: rgba(255,80,80,0.06); border: 1px solid rgba(255,80,80,0.25); color: #ffaaaa; }
+
+/* ── P2 S2 — Protokoll-Zuordnung: Drag & Drop ───────────────────────────── */
+.p2s2-dnd-layout { display: flex; gap: 14px; margin: 0 0 16px; min-height: 280px; }
+.p2s2-card-bank  { display: flex; flex-direction: column; gap: 7px; width: 100px; flex-shrink: 0; }
+.p2s2-drop-col   { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+.p2s2-proto-card { background: rgba(20,32,55,0.8); border: 1px solid rgba(100,160,255,0.2); border-radius: 8px; padding: 8px 10px; font-size: 12px; font-weight: 700; color: #c8d8f0; cursor: grab; text-align: center; user-select: none; transition: border-color 0.15s, opacity 0.15s; }
+.p2s2-proto-card:hover { border-color: rgba(100,160,255,0.5); color: #fff; }
+.p2s2-proto-card.dragging { opacity: 0.35; cursor: grabbing; }
+
+.p2s2-drop-zone { border: 1.5px dashed var(--zone-stroke, rgba(100,160,255,0.3)); border-radius: 10px; padding: 8px 10px; flex: 1; transition: border-color 0.15s, background 0.15s; }
+.p2s2-drop-zone.dragover { border-color: var(--zone-color); background: rgba(255,255,255,0.04); }
+.p2s2-zone-header { display: flex; gap: 6px; align-items: baseline; margin-bottom: 5px; }
+.p2s2-zone-num { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(180,200,240,0.45); }
+.p2s2-zone-name { font-size: 12px; font-weight: 700; }
+.p2s2-chips { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; }
+.p2s2-placed-chip { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: rgba(80,224,160,0.1); border: 1px solid rgba(80,224,160,0.3); color: #80eec0; }
+
+@keyframes p2s2-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
+}
+.p2s2-drop-zone.shake { animation: p2s2-shake 0.3s ease; border-color: rgba(255,80,80,0.5); }
+
+.p2s2-option { background: rgba(20,32,55,0.8); border: 1px solid rgba(100,160,255,0.2); border-radius: 8px; padding: 10px 14px; cursor: pointer; font-size: 12.5px; color: #c8d8f0; text-align: left; transition: all 0.15s; width: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+.p2s2-option:hover:not(.disabled) { background: rgba(100,160,255,0.12); border-color: rgba(100,160,255,0.5); color: #fff; }
+.p2s2-option.correct { background: rgba(80,224,160,0.12); border-color: rgba(80,224,160,0.5); color: #50e0a0; }
+.p2s2-option.wrong { background: rgba(255,80,80,0.08); border-color: rgba(255,80,80,0.35); color: #ff9999; }
+.p2s2-option.disabled { cursor: default; }
