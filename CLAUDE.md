@@ -40,8 +40,8 @@ Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab
 | ID | Typ | Titel | Dauer | Lernziele | Status |
 |---|---|---|---|---|---|
 | **S0** | Steuer | Die Logistikhalle | 1–2 Min | Orientierung + Aktivierung | ✅ fertig — SVG-Hallenplan + 5 Lernziele im `#tutorial-start-overlay` |
-| **P2 S1** | Lern | Vier Bereiche, vier Schichten: Das TCP/IP-Modell | 5 Min | LZ1: Architektur TCP/IP-Modell | **fehlt** |
-| **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | **fehlt** |
+| **P2 S1** | Lern | Vier Bereiche, vier Schichten: Das TCP/IP-Modell | 5 Min | LZ1: Architektur TCP/IP-Modell | ✅ Prototyp — 4 Karten + 1 MC-Frage (`js/scenarios/p2-s1-layers.js`) |
+| **P2 S2** | Lern | Transportzone: Protokolle der Transportschicht | 5 Min | LZ5: Protokolle den Schichten zuordnen | ✅ Prototyp — 7 Karten DnD + 1 MC-Frage (`js/scenarios/p2-s2-protocols.js`) |
 | **P2 S3** | Lern | TCP vs. UDP: Zwei Förderbänder im Vergleich | 5 Min | LZ5: TCP vs. UDP unterscheiden | **fehlt** |
 | **P2 S4** | Lern | Adressetikett: IP-Adressen und OSI-Schichtenvergleich | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | **fehlt** |
 | **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **fehlt** |
@@ -201,6 +201,51 @@ Neue P2-Overlays erhalten IDs nach dem Schema `#p2-s{N}-overlay` und `#p2-s{N}-c
 
 SVG-Elemente für Playwright: Zone-Rects brauchen `data-zone="..."` — sonst nicht von Rahmen/Eingang-Rects unterscheidbar. Selektor-Pattern: `rect[data-zone]` statt `rect:nth-child(n)`.
 
+### Kein generisches `.hidden` im CSS (vor P2 S1)
+
+Das Projekt definierte `.hidden` nur für spezifische Overlay-IDs (`#overlay-id.hidden { display: none }`), nicht global. Neue Elemente (Buttons, Divs), die `classList.add('hidden')` nutzen, blieben sichtbar. Mit P2 S1 wurde `.hidden { display: none; }` als generische Regel ergänzt — seitdem funktioniert `classList.add/remove('hidden')` für alle Elemente.
+
+### Neue Overlays in `style.css` registrieren (zwei Stellen)
+
+1. **Display-Selektor** (~Zeile 65): ID zur `position: fixed; display: flex`-Regel hinzufügen
+2. **Hidden-Selektor** (~Zeile 75): ID zur `display: none`-Regel hinzufügen
+
+Fehlt einer der beiden Einträge → Overlay bleibt immer sichtbar oder lässt sich nicht ausblenden.
+
+### Szenario-Module: Einbindung und Struktur
+
+Script-Tag **vor** `game.js` einfügen, mit Cache-Busting-Suffix:
+```html
+<script src="js/scenarios/p2-s1-layers.js?v=1"></script>
+```
+Alle Module in `js/scenarios/` ablegen. Modul-Pattern: IIFE, das `{ init(onComplete), teardown(), getScore(), _dropForTest }` (bzw. äquivalenter Test-Helper) exportiert. `init()` ruft `document.exitPointerLock()` auf und registriert Event-Listener; `teardown()` versteckt das Overlay; `onComplete(score)` wird nach Abschluss aufgerufen und übergibt die Kontrolle an `game.js` zurück.
+
+### IIFE-Module: Listener-Akkumulation bei erneutem `init()`
+
+`addEventListener({ once: true })` reicht nicht, wenn `init()` mehrfach aufgerufen werden kann (z.B. Reset-Flow). Fix: `cloneNode(true)` + `replaceWith()` vor dem Neuregistrieren:
+```js
+const fresh = btn.cloneNode(true);
+btn.replaceWith(fresh);
+fresh.addEventListener('click', handler, { once: true });
+```
+
+### Quiz-Antwort-Highlighting: Referenz statt textContent-Matching
+
+`b.textContent === opt.text` ist fragil (Whitespace, zukünftige Edits). Stattdessen Option direkt als Property speichern:
+```js
+btn._opt = opt;  // in _showQuiz()
+// in wrong-Branch: if (b._opt && b._opt.correct) b.classList.add('correct');
+```
+
+### Test-Helper `_dropForTest()` immer auf Overlay scoppen
+
+`document.querySelector('[data-layer="..."]')` trifft auch andere Module mit demselben Attribut. Immer auf den eigenen Overlay scoppen:
+```js
+const overlay = document.getElementById('p2-sN-overlay');
+const zone = overlay ? overlay.querySelector(`[data-layer="${layerId}"]`) : null;
+```
+Gilt analog für alle zukünftigen Module.
+
 ### Neue Szenario-Module: Overlay-Pointer-Events
 
 Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden (Maus-Look blockiert Drag&Drop). Das Overlay-Element braucht `pointer-events: all` und die A-Frame-Scene muss temporär `document.exitPointerLock()` aufrufen — analog zu den bestehenden Overlay-Screens.
@@ -216,8 +261,8 @@ Sobald ein P2-Overlay sichtbar ist, muss A-Frame-Kamera-Input deaktiviert werden
 ### Implementierungsreihenfolge (priorisiert)
 
 1. ~~**S0 Update**~~ — ✅ fertig (SVG-Hallenplan + Lernziele, 2026-06-16)
-2. **P2 S1** — `js/scenarios/p2-s1-layers.js` + Overlay `#p2-s1-overlay`; 4 Schichten-Karten klickbar, MC-Frage ← **nächstes**
-3. **P2 S2** — `js/scenarios/p2-s2-protocols.js`; Drag&Drop mit HTML5-API; Protokollkarten: HTTP, TCP, UDP, IP, Ethernet
+2. ~~**P2 S1**~~ — ✅ Prototyp fertig (4 Karten klickbar + 1 MC-Frage, 2026-06-16)
+3. ~~**P2 S2**~~ — ✅ Prototyp fertig (7 DnD-Karten + 1 MC-Frage, 2026-06-16)
 4. **P2 S3** — `js/scenarios/p2-s3-tcpudp.js`; CSS-Förderbänder, 5 Kommunikationsszenarien als Karten
 5. **P2 S4** — `js/scenarios/p2-s4-addressing.js`; IP-Auswahl + SVG-Linien für OSI-Mapping
 6. **P2 S5** — `js/scenarios/p2-s5-routing.js`; Routing-Tabellen (Overlay-Diagramm bevorzugt über 3D-Router)
