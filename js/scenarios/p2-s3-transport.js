@@ -6,6 +6,8 @@ const P2S3 = (() => {
   let _selectedPaket = null;
   let _feedbackTimeout = null;
   let _carryRaf = null;
+  let _activePackets = null;
+  let _dynamicEntities = [];
 
   const PACKETS = [
     {
@@ -27,6 +29,24 @@ const P2S3 = (() => {
     {
       id: 'l3-paket-5', protocol: 'tcp', label: 'Webseitenanfrage',
       reason: '✓ TCP — HTTP(S) braucht TCP: Webseiten müssen vollständig laden.',
+    },
+  ];
+
+  const ASSESSMENT_EXTRA = [
+    {
+      id: 'l3-paket-6', protocol: 'udp', label: 'DNS-Anfrage',
+      pos: [4.2, 1.18, -21.5],
+      reason: '✓ UDP — DNS-Abfragen sind kurz; Geschwindigkeit zählt mehr als Garantie.',
+    },
+    {
+      id: 'l3-paket-7', protocol: 'tcp', label: 'SSH-Verbindung',
+      pos: [5.2, 1.18, -21.3],
+      reason: '✓ TCP — SSH braucht eine zuverlässige, gesicherte Verbindung.',
+    },
+    {
+      id: 'l3-paket-8', protocol: 'udp', label: 'VoIP-Telefonie',
+      pos: [6.2, 1.18, -21.7],
+      reason: '✓ UDP — VoIP toleriert kurze Verluste, braucht keine Bestätigung.',
     },
   ];
 
@@ -81,8 +101,32 @@ const P2S3 = (() => {
     }
   }
 
+  function _spawnExtraPackets() {
+    const scene = document.querySelector('a-scene');
+    if (!scene) return;
+    ASSESSMENT_EXTRA.forEach(p => {
+      const el = document.createElement('a-entity');
+      el.setAttribute('id', p.id);
+      el.setAttribute('class', 'interactable paket-l3');
+      el.setAttribute('data-protocol', p.protocol);
+      el.setAttribute('geometry', 'primitive:box;width:0.45;height:0.35;depth:0.35');
+      el.setAttribute('material', 'color:#c8a060;roughness:0.9');
+      el.setAttribute('position', p.pos.join(' '));
+      el.setAttribute('shadow', 'cast:true;receive:true');
+      const txt = document.createElement('a-text');
+      txt.setAttribute('value', p.label);
+      txt.setAttribute('align', 'center');
+      txt.setAttribute('color', '#ffffff');
+      txt.setAttribute('scale', '0.5 0.5 0.5');
+      txt.setAttribute('position', '0 0.28 0.18');
+      el.appendChild(txt);
+      scene.appendChild(el);
+      _dynamicEntities.push(el);
+    });
+  }
+
   function _onDrop(paketId, beltId) {
-    const packet = PACKETS.find(p => p.id === paketId);
+    const packet = _activePackets.find(p => p.id === paketId);
     if (!packet) return;
 
     const el = document.getElementById(paketId);
@@ -108,7 +152,7 @@ const P2S3 = (() => {
     const scorePill = document.getElementById('score-pill');
     if (scorePill) scorePill.textContent = _score + ' P';
 
-    if (_processed >= PACKETS.length) {
+    if (_processed >= _activePackets.length) {
       clearTimeout(_feedbackTimeout);
       const panel = document.getElementById('l3-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
@@ -116,31 +160,48 @@ const P2S3 = (() => {
     }
   }
 
+  function _commonInit(onComplete, packets, taskText) {
+    _score = 0;
+    _assigned = 0;
+    _processed = 0;
+    _selectedPaket = null;
+    _onComplete = onComplete;
+    _activePackets = packets;
+    _stopCarrying();
+
+    ['l3-belt-tcp', 'l3-belt-udp', 'l3-belt-feed', 'l3-belt-junction'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('visible', true);
+    });
+    _activePackets.forEach(p => {
+      const el = document.getElementById(p.id);
+      if (el) el.setAttribute('visible', true);
+    });
+    const panel = document.getElementById('l3-feedback-panel');
+    if (panel) panel.setAttribute('visible', false);
+
+    const taskTextEl = document.getElementById('task-text');
+    if (taskTextEl) taskTextEl.textContent = taskText;
+    const scorePill = document.getElementById('score-pill');
+    if (scorePill) scorePill.textContent = '0 P';
+  }
+
   return {
     init(onComplete) {
-      _score = 0;
-      _assigned = 0;
-      _processed = 0;
-      _selectedPaket = null;
-      _onComplete = onComplete;
-      _stopCarrying();
+      _commonInit(
+        onComplete,
+        PACKETS,
+        'Transport-Flügel: Nimm ein Paket (E) und trage es auf das richtige Förderband — TCP oder UDP',
+      );
+    },
 
-      ['l3-belt-tcp', 'l3-belt-udp', 'l3-belt-feed', 'l3-belt-junction'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.setAttribute('visible', true);
-      });
-      PACKETS.forEach(p => {
-        const el = document.getElementById(p.id);
-        if (el) el.setAttribute('visible', true);
-      });
-      const panel = document.getElementById('l3-feedback-panel');
-      if (panel) panel.setAttribute('visible', false);
-
-      const taskText = document.getElementById('task-text');
-      if (taskText) taskText.textContent = 'Transport-Flügel: Nimm ein Paket (E) und trage es auf das richtige Förderband — TCP oder UDP';
-
-      const scorePill = document.getElementById('score-pill');
-      if (scorePill) scorePill.textContent = '0 P';
+    initAssessment(onComplete) {
+      _spawnExtraPackets();
+      _commonInit(
+        onComplete,
+        [...PACKETS, ...ASSESSMENT_EXTRA],
+        'Assessment Transport-Flügel: 8 Pakete — TCP oder UDP (E)',
+      );
     },
 
     teardown() {
@@ -150,10 +211,13 @@ const P2S3 = (() => {
         const el = document.getElementById(id);
         if (el) el.setAttribute('visible', false);
       });
-      PACKETS.forEach(p => {
+      (_activePackets || PACKETS).forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', false);
       });
+      _dynamicEntities.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+      _dynamicEntities = [];
+      _activePackets = null;
       const panel = document.getElementById('l3-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
       _selectedPaket = null;

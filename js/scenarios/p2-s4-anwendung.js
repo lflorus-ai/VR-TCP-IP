@@ -5,6 +5,8 @@ const P2S4 = (() => {
   let _selectedPaket = null;
   let _feedbackTimeout = null;
   let _carryRaf = null;
+  let _activePackets = null;
+  let _dynamicEntities = [];
 
   const PACKETS = [
     {
@@ -30,6 +32,29 @@ const P2S4 = (() => {
     {
       id: 'l4-paket-6', protocol: 'dns', label: 'Mail-Server finden',
       reason: '✓ DNS — MX-Einträge im DNS liefern den zuständigen Mailserver.',
+    },
+  ];
+
+  const ASSESSMENT_EXTRA = [
+    {
+      id: 'l4-paket-7', protocol: 'http', label: 'REST-API-Aufruf',
+      pos: [-4.5, 1.18, -23.3],
+      reason: '✓ HTTP — REST-Dienste nutzen HTTP als Übertragungsprotokoll.',
+    },
+    {
+      id: 'l4-paket-8', protocol: 'smtp', label: 'Newsletter senden',
+      pos: [-5.5, 1.18, -23.1],
+      reason: '✓ SMTP — Auch Massen-E-Mails werden per SMTP versendet.',
+    },
+    {
+      id: 'l4-paket-9', protocol: 'ftp', label: 'Backup hochladen',
+      pos: [-6.5, 1.18, -23.5],
+      reason: '✓ FTP — FTP überträgt große Dateien wie Backups zuverlässig.',
+    },
+    {
+      id: 'l4-paket-10', protocol: 'dns', label: 'MX-Record abfragen',
+      pos: [-7.5, 1.18, -23.3],
+      reason: '✓ DNS — MX-Records im DNS verweisen auf Mailserver.',
     },
   ];
 
@@ -100,8 +125,32 @@ const P2S4 = (() => {
     }
   }
 
+  function _spawnExtraPackets() {
+    const scene = document.querySelector('a-scene');
+    if (!scene) return;
+    ASSESSMENT_EXTRA.forEach(p => {
+      const el = document.createElement('a-entity');
+      el.setAttribute('id', p.id);
+      el.setAttribute('class', 'interactable paket-l4');
+      el.setAttribute('data-protocol', p.protocol);
+      el.setAttribute('geometry', 'primitive:box;width:0.45;height:0.35;depth:0.35');
+      el.setAttribute('material', 'color:#c8a060;roughness:0.9');
+      el.setAttribute('position', p.pos.join(' '));
+      el.setAttribute('shadow', 'cast:true;receive:true');
+      const txt = document.createElement('a-text');
+      txt.setAttribute('value', p.label);
+      txt.setAttribute('align', 'center');
+      txt.setAttribute('color', '#ffffff');
+      txt.setAttribute('scale', '0.5 0.5 0.5');
+      txt.setAttribute('position', '0 0.28 0.18');
+      el.appendChild(txt);
+      scene.appendChild(el);
+      _dynamicEntities.push(el);
+    });
+  }
+
   function _onDrop(paketId, inboxProtocol) {
-    const packet = PACKETS.find(p => p.id === paketId);
+    const packet = _activePackets.find(p => p.id === paketId);
     if (!packet) return;
 
     const el = document.getElementById(paketId);
@@ -124,7 +173,7 @@ const P2S4 = (() => {
     const scorePill = document.getElementById('score-pill');
     if (scorePill) scorePill.textContent = _score + ' P';
 
-    if (_processed >= PACKETS.length) {
+    if (_processed >= _activePackets.length) {
       clearTimeout(_feedbackTimeout);
       const panel = document.getElementById('l4-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
@@ -132,30 +181,47 @@ const P2S4 = (() => {
     }
   }
 
+  function _commonInit(onComplete, packets, taskText) {
+    _score = 0;
+    _processed = 0;
+    _selectedPaket = null;
+    _onComplete = onComplete;
+    _activePackets = packets;
+    _stopCarrying();
+
+    ['l4-inbox-http', 'l4-inbox-dns', 'l4-inbox-ftp', 'l4-inbox-smtp'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('visible', true);
+    });
+    _activePackets.forEach(p => {
+      const el = document.getElementById(p.id);
+      if (el) el.setAttribute('visible', true);
+    });
+    const panel = document.getElementById('l4-feedback-panel');
+    if (panel) panel.setAttribute('visible', false);
+
+    const taskTextEl = document.getElementById('task-text');
+    if (taskTextEl) taskTextEl.textContent = taskText;
+    const scorePill = document.getElementById('score-pill');
+    if (scorePill) scorePill.textContent = '0 P';
+  }
+
   return {
     init(onComplete) {
-      _score = 0;
-      _processed = 0;
-      _selectedPaket = null;
-      _onComplete = onComplete;
-      _stopCarrying();
+      _commonInit(
+        onComplete,
+        PACKETS,
+        'Anwendungs-Flügel: Nimm ein Paket (E) und lege es in den richtigen Protokoll-Briefkasten',
+      );
+    },
 
-      ['l4-inbox-http', 'l4-inbox-dns', 'l4-inbox-ftp', 'l4-inbox-smtp'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.setAttribute('visible', true);
-      });
-      PACKETS.forEach(p => {
-        const el = document.getElementById(p.id);
-        if (el) el.setAttribute('visible', true);
-      });
-      const panel = document.getElementById('l4-feedback-panel');
-      if (panel) panel.setAttribute('visible', false);
-
-      const taskText = document.getElementById('task-text');
-      if (taskText) taskText.textContent = 'Anwendungs-Flügel: Nimm ein Paket (E) und lege es in den richtigen Protokoll-Briefkasten';
-
-      const scorePill = document.getElementById('score-pill');
-      if (scorePill) scorePill.textContent = '0 P';
+    initAssessment(onComplete) {
+      _spawnExtraPackets();
+      _commonInit(
+        onComplete,
+        [...PACKETS, ...ASSESSMENT_EXTRA],
+        'Assessment Anwendungs-Flügel: 10 Pakete — HTTP/DNS/FTP/SMTP-Briefkasten (E)',
+      );
     },
 
     teardown() {
@@ -166,10 +232,13 @@ const P2S4 = (() => {
         const el = document.getElementById(id);
         if (el) el.setAttribute('visible', false);
       });
-      PACKETS.forEach(p => {
+      (_activePackets || PACKETS).forEach(p => {
         const el = document.getElementById(p.id);
         if (el) el.setAttribute('visible', false);
       });
+      _dynamicEntities.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+      _dynamicEntities = [];
+      _activePackets = null;
       const panel = document.getElementById('l4-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
       _selectedPaket = null;

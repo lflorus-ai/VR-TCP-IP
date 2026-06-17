@@ -55,6 +55,9 @@ let gameState = 'INTRO';
 // Sequential zone completion tracking
 const _zoneDone = { s1: false, s2: false, s3: false, s4: false, s5: false };
 
+let _assessmentMode = false;
+let _s5aExtras = []; // dynamically created paket-A entities for S5 assessment
+
 let _arrowTarget = null;
 
 function setInstruction(text) {
@@ -597,6 +600,66 @@ function showS5CompleteOverlay() {
   document.getElementById('s5-complete-overlay').classList.remove('hidden');
 }
 
+// ── Assessment Zone Entry Functions ──────────────────────────────────────────
+
+function enterZoneS1A() {
+  if (P2S6.isDone('s1') || gameState !== 'S1_ACTIVE') return;
+  gameState = 'ZONE_S1';
+  setArrowTarget(null, null); setInstruction('');
+  document.exitPointerLock?.();
+  document.getElementById('s1-info-overlay').classList.remove('hidden');
+}
+
+function enterZoneS2A() {
+  if (P2S6.isDone('s2') || !P2S6.isDone('s1') || gameState !== 'S1_ACTIVE') return;
+  gameState = 'ZONE_S2';
+  setArrowTarget(null, null); setInstruction('');
+  document.exitPointerLock?.();
+  document.getElementById('s2-info-overlay').classList.remove('hidden');
+}
+
+function enterZoneS3A() {
+  if (P2S6.isDone('s3') || !P2S6.isDone('s2') || gameState !== 'S1_ACTIVE') return;
+  gameState = 'ZONE_S3';
+  setArrowTarget(null, null); setInstruction('');
+  const hudTag = document.getElementById('hud-tag');
+  if (hudTag) hudTag.textContent = '■ Assessment — Transport';
+  P2S3.initAssessment((s) => {
+    P2S6.markDone('s3');
+    gameState = 'S1_ACTIVE';
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'Assessment S3 abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
+    setArrowTarget(-5, -20);
+    setInstruction('Assessment: Geh nach links in den Anwendungs-Flügel (S4)');
+  });
+}
+
+function enterZoneS4A() {
+  if (P2S6.isDone('s4') || !P2S6.isDone('s3') || gameState !== 'S1_ACTIVE') return;
+  gameState = 'ZONE_S4';
+  setArrowTarget(null, null); setInstruction('');
+  const hudTag = document.getElementById('hud-tag');
+  if (hudTag) hudTag.textContent = '■ Assessment — Anwendung';
+  P2S4.initAssessment((s) => {
+    P2S6.markDone('s4');
+    gameState = 'S1_ACTIVE';
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'Assessment S4 abgeschlossen! Büro-Flügel für S5 (Routing).';
+    setArrowTarget(-13, -6);
+    setInstruction('Assessment: Geh ins Büro links (S5 — Routing)');
+  });
+}
+
+function enterZoneS5A() {
+  if (P2S6.isDone('s5') || !P2S6.isDone('s4') || gameState !== 'S1_ACTIVE') return;
+  gameState = 'ZONE_S5';
+  setArrowTarget(null, null); setInstruction('');
+  const hudTag = document.getElementById('hud-tag');
+  if (hudTag) hudTag.textContent = '■ Assessment — IP-Routing';
+  document.exitPointerLock();
+  document.getElementById('s5-briefing-overlay').classList.remove('hidden');
+}
+
 
 function initS2() {
   const delivered = lieferschein.filter(p => p.done);
@@ -1070,9 +1133,14 @@ document.addEventListener('keydown', (e) => {
   }
 
   // S1/S2 Info-Board trigger
-  if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState) && hoveredEl) {
-    if (hoveredEl.classList.contains('s1-info-board') && !_zoneDone.s1) { enterZoneS1(); return; }
-    if (hoveredEl.classList.contains('s2-info-board') && !_zoneDone.s2 && _zoneDone.s1) { enterZoneS2(); return; }
+  if (hoveredEl) {
+    if (_assessmentMode && gameState === 'S1_ACTIVE') {
+      if (hoveredEl.classList.contains('s1-info-board')) { enterZoneS1A(); return; }
+      if (hoveredEl.classList.contains('s2-info-board')) { enterZoneS2A(); return; }
+    } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+      if (hoveredEl.classList.contains('s1-info-board') && !_zoneDone.s1) { enterZoneS1(); return; }
+      if (hoveredEl.classList.contains('s2-info-board') && !_zoneDone.s2 && _zoneDone.s1) { enterZoneS2(); return; }
+    }
   }
 
   // Zone-Modul Delegation
@@ -1764,21 +1832,30 @@ function resetToS1() {
 }
 
 function showFinalSummary() {
-  gameState = 'ASSESSMENT';
-  P2S6.init(function(s6Score) {
-    playMaxAudio('max_final_hi');
-    var pct = Math.round((s6Score / 170) * 100);
-    document.getElementById('final-s1').textContent = 'abgeschlossen';
-    document.getElementById('final-s2').textContent = 'abgeschlossen';
-    document.getElementById('final-s3').textContent = s6Score + ' Pkt (' + pct + ' %)';
-    document.getElementById('final-total').textContent = s6Score + ' Pkt';
-    document.getElementById('final-time').textContent = '—';
-    document.getElementById('final-max-quote').textContent = pct >= 70
-      ? '"Hervorragend! Du hast das Assessment bestanden (' + pct + ' %)." — Max'
-      : '"Weiter üben! Du hast ' + pct + ' % der Punkte erreicht." — Max';
-    document.getElementById('final-overlay').classList.remove('hidden');
-    gameState = 'FINAL';
-  });
+  _assessmentMode = true;
+  P2S6.start(function() { _showFinalOverlay(); });
+  const hudTag = document.getElementById('hud-tag');
+  if (hudTag) hudTag.textContent = '■ Assessment — alle Zonen';
+  const taskText = document.getElementById('task-text');
+  if (taskText) taskText.textContent = '🎯 Assessment! Besuche alle Zonen erneut. Start: S1-Tafel (links).';
+  gameState = 'S1_ACTIVE';
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+  setArrowTarget(-7, 0);
+  setInstruction('Assessment: Geh zur S1-Tafel (links vom Eingang)');
+}
+
+function _showFinalOverlay() {
+  playMaxAudio('max_final_hi');
+  document.exitPointerLock?.();
+  document.getElementById('final-s1').textContent = 'abgeschlossen';
+  document.getElementById('final-s2').textContent = 'abgeschlossen';
+  document.getElementById('final-s3').textContent = 'Assessment — abgeschlossen';
+  document.getElementById('final-total').textContent = 'Alle Szenarien & Assessment';
+  document.getElementById('final-time').textContent = '—';
+  document.getElementById('final-max-quote').textContent =
+    '"Hervorragend! Du hast alle Lernszenarien und das Assessment abgeschlossen." — Max';
+  document.getElementById('final-overlay').classList.remove('hidden');
 }
 
 function resetPaletteStatuses() {
@@ -1819,50 +1896,70 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   // S1/S2 Info-Overlay Buttons
   document.getElementById('s1-info-close').addEventListener('click', () => {
     document.getElementById('s1-info-overlay').classList.add('hidden');
-    P1.init((s) => {
-      _zoneDone.s1 = true;
-      gameState = 'S1_ACTIVE';
-      document.getElementById('s2-station').setAttribute('visible', true);
-      const hudTag = document.getElementById('hud-tag');
-      if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
-      const wpS1 = document.getElementById('waypoint-s1');
-      if (wpS1) wpS1.setAttribute('visible', 'false');
-      const wpS2 = document.getElementById('waypoint-s2');
-      if (wpS2) wpS2.setAttribute('visible', 'true');
-      const t = document.getElementById('task-text');
-      if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
-      setArrowTarget(7, 0.15);
-      setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
-    });
+    const canvas = document.querySelector('a-scene canvas');
+    if (canvas) canvas.requestPointerLock();
+    if (_assessmentMode) {
+      P1.initAssessment((s) => {
+        P2S6.markDone('s1');
+        gameState = 'S1_ACTIVE';
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Assessment S1 abgeschlossen! Geh zur grünen Tafel rechts für S2.';
+        setArrowTarget(7, 0.15);
+        setInstruction('Assessment: Geh zur grünen S2-Tafel (E)');
+      });
+    } else {
+      P1.init((s) => {
+        _zoneDone.s1 = true;
+        gameState = 'S1_ACTIVE';
+        document.getElementById('s2-station').setAttribute('visible', true);
+        const hudTag = document.getElementById('hud-tag');
+        if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
+        const wpS1 = document.getElementById('waypoint-s1');
+        if (wpS1) wpS1.setAttribute('visible', 'false');
+        const wpS2 = document.getElementById('waypoint-s2');
+        if (wpS2) wpS2.setAttribute('visible', 'true');
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
+        setArrowTarget(7, 0.15);
+        setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
+      });
+    }
   });
   document.getElementById('s2-info-close').addEventListener('click', () => {
     document.getElementById('s2-info-overlay').classList.add('hidden');
-    P2.init((s) => {
-      _zoneDone.s2 = true;
-      gameState = 'S1_ACTIVE';
-      openGate('s3door');
-      const hudTag = document.getElementById('hud-tag');
-      if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
-      const wpS2 = document.getElementById('waypoint-s2');
-      if (wpS2) wpS2.setAttribute('visible', 'false');
-      const wpS3 = document.getElementById('waypoint-s3');
-      if (wpS3) wpS3.setAttribute('visible', 'true');
-      const t = document.getElementById('task-text');
-      if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
-      setArrowTarget(5, -20);
-      setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
-    });
+    const canvas = document.querySelector('a-scene canvas');
+    if (canvas) canvas.requestPointerLock();
+    if (_assessmentMode) {
+      P2.initAssessment((s) => {
+        P2S6.markDone('s2');
+        gameState = 'S1_ACTIVE';
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Assessment S2 abgeschlossen! Geh durch die Tür rechts für S3 (Transport).';
+        setArrowTarget(5, -20);
+        setInstruction('Assessment: Geh nach Norden — Transport-Flügel rechts (S3)');
+      });
+    } else {
+      P2.init((s) => {
+        _zoneDone.s2 = true;
+        gameState = 'S1_ACTIVE';
+        openGate('s3door');
+        const hudTag = document.getElementById('hud-tag');
+        if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
+        const wpS2 = document.getElementById('waypoint-s2');
+        if (wpS2) wpS2.setAttribute('visible', 'false');
+        const wpS3 = document.getElementById('waypoint-s3');
+        if (wpS3) wpS3.setAttribute('visible', 'true');
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
+        setArrowTarget(5, -20);
+        setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
+      });
+    }
   });
 
-  // S5-Briefing: Spielmechanik starten
-  document.getElementById('s5-briefing-start-btn').addEventListener('click', () => {
-    document.getElementById('s5-briefing-overlay').classList.add('hidden');
-
-    // Pakete in Regale zurücksetzen
-    dropSelectedPaket();
-    shuffle(slotPool);
-    let _slotIdx = 0;
-    ['paket-A1','paket-A2','paket-A3','paket-A4','paket-A5'].forEach(id => {
+  function _resetS5Packets(baseIds, slotOffset) {
+    let _slotIdx = slotOffset || 0;
+    baseIds.forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       const [x, y, z] = slotPool[_slotIdx++];
@@ -1879,6 +1976,73 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       el.setAttribute('material', 'emissiveIntensity', '0');
       Array.from(el.querySelectorAll(':scope > a-text')).forEach(t => t.parentNode.removeChild(t));
     });
+  }
+
+  function _spawnS5ExtraPackets() {
+    const S5A_EXTRAS = [
+      { elemId: 'paket-A6', lieferId: '24518', ip: '10.1.0.5',  network: '10.1.0' },
+      { elemId: 'paket-A7', lieferId: '24519', ip: '10.1.0.22', network: '10.1.0' },
+      { elemId: 'paket-A8', lieferId: '24520', ip: '10.1.0.8',  network: '10.1.0' },
+    ];
+    const scene = document.querySelector('a-scene');
+    S5A_EXTRAS.forEach((extra, i) => {
+      lieferschein.push({ id: extra.lieferId, ip: extra.ip, network: extra.network, done: false });
+
+      const [x, y, z] = slotPool[5 + i];
+      const el = document.createElement('a-entity');
+      el.setAttribute('id', extra.elemId);
+      el.setAttribute('class', 'interactable paket');
+      el.setAttribute('data-ip', extra.ip);
+      el.setAttribute('data-id', extra.lieferId);
+      el.setAttribute('geometry', 'primitive:box;width:0.58;height:0.48;depth:0.48');
+      el.setAttribute('material', 'color:#c8a060;roughness:0.9;emissive:#ffaa00;emissiveIntensity:0.4');
+      el.setAttribute('shadow', 'cast:true;receive:true');
+      el.setAttribute('position', `${x} ${y} ${z}`);
+
+      const labelWrapper = document.createElement('a-entity');
+      labelWrapper.setAttribute('look-at', '[camera]');
+      labelWrapper.setAttribute('position', '0 0.30 0');
+      const bg = document.createElement('a-plane');
+      bg.setAttribute('material', 'color:#0a1828;opacity:0.9;shader:flat;side:double');
+      bg.setAttribute('width', '0.58');
+      bg.setAttribute('height', '0.14');
+      const txt = document.createElement('a-text');
+      txt.setAttribute('value', extra.ip);
+      txt.setAttribute('color', '#ffcc40');
+      txt.setAttribute('scale', '0.65 0.65 0.65');
+      txt.setAttribute('align', 'center');
+      txt.setAttribute('position', '0 0 0.002');
+      txt.setAttribute('material', 'shader:flat');
+      labelWrapper.appendChild(bg);
+      labelWrapper.appendChild(txt);
+      el.appendChild(labelWrapper);
+
+      scene.appendChild(el);
+      _s5aExtras.push(el);
+    });
+  }
+
+  function _cleanupS5Extras() {
+    _s5aExtras.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+    _s5aExtras = [];
+    // Remove extra lieferschein entries (IDs 24518-24520)
+    const extraIds = new Set(['24518', '24519', '24520']);
+    for (let i = lieferschein.length - 1; i >= 0; i--) {
+      if (extraIds.has(lieferschein[i].id)) lieferschein.splice(i, 1);
+    }
+    const p4 = document.getElementById('palette-4');
+    if (p4) p4.setAttribute('visible', false);
+  }
+
+  // S5-Briefing: Spielmechanik starten
+  document.getElementById('s5-briefing-start-btn').addEventListener('click', () => {
+    document.getElementById('s5-briefing-overlay').classList.add('hidden');
+
+    dropSelectedPaket();
+    shuffle(slotPool);
+
+    // Pakete in Regale zurücksetzen
+    _resetS5Packets(['paket-A1','paket-A2','paket-A3','paket-A4','paket-A5'], 0);
 
     // Paletten zurücksetzen
     resetPaletteStatuses();
@@ -1887,6 +2051,14 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     // Lieferschein zurücksetzen
     lieferschein.forEach(e => { e.done = false; });
     shuffle(lieferschein);
+
+    if (_assessmentMode) {
+      // Assessment: 3 extra IP-Pakete + palette-4 aktivieren
+      _cleanupS5Extras();
+      const p4 = document.getElementById('palette-4');
+      if (p4) p4.setAttribute('visible', true);
+      _spawnS5ExtraPackets();
+    }
 
     // Score und Timer zurücksetzen
     score = 0;
@@ -1911,21 +2083,31 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     updateLieferschein();
 
     const taskText = document.getElementById('task-text');
-    if (taskText) taskText.textContent = 'S5: Nimm ein Paket (E), prüfe die IP-Adresse und lege es auf die richtige Palette (E).';
+    if (taskText) taskText.textContent = _assessmentMode
+      ? 'Assessment S5: 8 Pakete sortieren — prüfe die IP-Adresse und lege es auf die richtige Palette (E).'
+      : 'S5: Nimm ein Paket (E), prüfe die IP-Adresse und lege es auf die richtige Palette (E).';
 
     gameState = 'S5_ACTIVE';
     const canvas = document.querySelector('a-scene canvas');
     if (canvas) canvas.requestPointerLock();
     setArrowTarget(0, -5);
-    setInstruction('Geh zurück zur Lagerhalle und sortiere die IP-Pakete');
+    setInstruction(_assessmentMode
+      ? 'Assessment: Sortiere 8 IP-Pakete (inkl. 10.1.0.x → LKW 4)'
+      : 'Geh zurück zur Lagerhalle und sortiere die IP-Pakete');
   });
 
   // S5-Abschluss: Gesamtauswertung anzeigen
   document.getElementById('s5-complete-btn').addEventListener('click', () => {
     document.getElementById('s5-complete-overlay').classList.add('hidden');
-    _zoneDone.s5 = true;
-    gameState = 'S1_ACTIVE';
-    showFinalSummary();
+    if (_assessmentMode) {
+      _cleanupS5Extras();
+      gameState = 'S1_ACTIVE';
+      P2S6.markDone('s5');
+    } else {
+      _zoneDone.s5 = true;
+      gameState = 'S1_ACTIVE';
+      showFinalSummary();
+    }
   });
 
   // Zone-Detektion (alle P2-Zonen)
@@ -1938,12 +2120,19 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
 
     // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger)
     if (pos.z < -16.5) {
-      if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+      if (_assessmentMode && gameState === 'S1_ACTIVE') {
+        if (pos.x >= 0) enterZoneS3A();
+        else            enterZoneS4A();
+      } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
         if (pos.x >= 0) enterZoneS3();
-        else enterZoneS4();
+        else            enterZoneS4();
       }
     } else if (pos.x < -12.5 && pos.z > -12 && pos.z < 0) {
-      if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) enterZoneS5();
+      if (_assessmentMode && gameState === 'S1_ACTIVE') {
+        enterZoneS5A();
+      } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+        enterZoneS5();
+      }
     }
     // Exit — Nordflügel zurück in Haupthalle
     if (pos.z >= -15.5) {
