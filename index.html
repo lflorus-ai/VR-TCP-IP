@@ -275,6 +275,155 @@
     </div>
   </div>
 
+  <!-- Lern-Szenario 5: Briefing -->
+  <div id="s5-briefing-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 5 &middot; Internet-Schicht</div>
+      <div class="overlay-avatar">&#127760;</div>
+      <div class="overlay-title">IP-Routing: Pakete auf dem richtigen Weg</div>
+      <div class="overlay-body">
+        Jetzt geht es um die <strong>Internet-Schicht (IP)</strong>: Jedes Paket tr&auml;gt eine Ziel-IP-Adresse &mdash; der Router liest diese Adresse und entscheidet, welchem Netz das Paket geh&ouml;rt.
+        <div class="overlay-learn-box">
+          <div class="olb-header">&#127760; Schicht 2 &middot; IP &mdash; Adressierung &amp; Routing</div>
+          <ul class="olb-list">
+            <li><strong>IP-Adresse:</strong> z.B. <code>192.168.1.10</code> &mdash; eindeutige Adresse im Netz</li>
+            <li><strong>Subnetz:</strong> Die ersten 3 Oktette bestimmen das Netz (z.B. <code>192.168.1</code>)</li>
+            <li><strong>Routing:</strong> Der Router ordnet jedes Paket dem richtigen Zielnetz zu</li>
+          </ul>
+          <p style="font-size:12px;color:#9ab0cc;margin:8px 0 0">
+            Deine Aufgabe: Geh zur&uuml;ck in die Lagerhalle &mdash; nimm ein Paket aus dem Regal ([E]), pr&uuml;fe die IP-Adresse im Lieferschein und lege es auf die richtige Palette ([E]).
+          </p>
+        </div>
+      </div>
+      <div class="overlay-controls">
+        <span class="ctrl-key">E</span><span>Paket greifen &amp; Palette w&auml;hlen</span>
+        <span class="ctrl-key">W A S D</span><span>Bewegen</span>
+      </div>
+      <button id="s5-briefing-start-btn" class="overlay-btn">Los geht&#39;s &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Lern-Szenario 5: Abschluss -->
+  <div id="s5-complete-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Lern-Szenario 5 &middot; Abgeschlossen</div>
+      <div class="overlay-avatar">&#127760;</div>
+      <div class="overlay-title">Alle Pakete korrekt zugestellt!</div>
+      <div class="overlay-stats">
+        <span><span class="stat-label">Punkte</span><span id="s5-score">&mdash;</span></span>
+      </div>
+      <div class="overlay-body">
+        Genau so funktioniert <strong>IP-Routing</strong>: Jedes Datenpaket wird anhand seiner Ziel-IP-Adresse dem richtigen Netz zugeordnet &mdash; genauso wie du gerade Pakete nach Subnetz sortiert hast.
+        <div class="overlay-learn-box">
+          <div class="olb-header">&#127760; Was du getan hast &mdash; Internet-Schicht (IP)</div>
+          <ul class="olb-list">
+            <li>IP-Adresse lesen und das <strong>Subnetz</strong> bestimmen</li>
+            <li>Paket dem <strong>richtigen Zielnetz</strong> zuordnen (= Routing)</li>
+            <li>Router trifft diese Entscheidung f&uuml;r jedes Paket automatisch</li>
+          </ul>
+        </div>
+      </div>
+      <button id="s5-complete-btn" class="overlay-btn">Weiter zur Abschlussbewertung &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Bewertungs-Szenario 6: Assessment -->
+  <div id="p2-s6-overlay" class="hidden">
+    <div class="overlay-box s6-box">
+      <div class="s6-header">
+        <div class="overlay-tag" style="margin-bottom:0">Bewertungs-Szenario 6</div>
+        <div class="s6-timer-wrap">&#9201; <span id="s6-timer">0:00</span></div>
+      </div>
+
+      <!-- Step 0: Intro -->
+      <div id="s6-step-0" class="s6-step">
+        <div class="overlay-avatar">&#128203;</div>
+        <div class="overlay-title">Abschluss-Assessment</div>
+        <div class="overlay-body">Jetzt zeigst du, was du gelernt hast. Drei Aufgaben warten auf dich &mdash; kein Feedback bis zur Auswertung. Der Timer l&auml;uft von Beginn an.</div>
+        <div class="s6-task-preview">
+          <div>&#128204; Aufgabe&nbsp;1 &mdash; Protokolle den TCP/IP-Schichten zuordnen</div>
+          <div>&#128260; Aufgabe&nbsp;2 &mdash; TCP oder UDP ausw&auml;hlen</div>
+          <div>&#127760; Aufgabe&nbsp;3 &mdash; Routing-Entscheidungen treffen</div>
+        </div>
+        <button id="s6-start-btn" class="overlay-btn">Assessment starten &rarr;</button>
+      </div>
+
+      <!-- Step 1: Protocol assignment -->
+      <div id="s6-step-1" class="s6-step hidden">
+        <div class="s6-step-label">Aufgabe 1 / 3 &mdash; Protokolle zuordnen</div>
+        <div class="s6-step-desc">Klicke ein Protokoll, dann die passende TCP/IP-Schicht. Keine Hinweise &mdash; vertraue deinem Wissen.</div>
+        <div class="s6-proto-chips"><!-- filled by JS --></div>
+        <div class="s6-layer-zones">
+          <div class="s6-layer-zone" data-layer="app">
+            <div class="s6-layer-name">Anwendungsschicht <span class="s6-layer-num">4</span></div>
+            <div class="s6-layer-items"></div>
+          </div>
+          <div class="s6-layer-zone" data-layer="transport">
+            <div class="s6-layer-name">Transportschicht <span class="s6-layer-num">3</span></div>
+            <div class="s6-layer-items"></div>
+          </div>
+          <div class="s6-layer-zone" data-layer="internet">
+            <div class="s6-layer-name">Internet-Schicht <span class="s6-layer-num">2</span></div>
+            <div class="s6-layer-items"></div>
+          </div>
+          <div class="s6-layer-zone" data-layer="netaccess">
+            <div class="s6-layer-name">Netzzugangsschicht <span class="s6-layer-num">1</span></div>
+            <div class="s6-layer-items"></div>
+          </div>
+        </div>
+        <div class="s6-actions">
+          <button class="s6-check-btn overlay-btn" disabled>Pr&uuml;fen</button>
+          <button class="s6-next-btn overlay-btn hidden">Weiter &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 2: TCP vs UDP -->
+      <div id="s6-step-2" class="s6-step hidden">
+        <div class="s6-step-label">Aufgabe 2 / 3 &mdash; TCP oder UDP?</div>
+        <div class="s6-step-desc">W&auml;hle f&uuml;r jedes Szenario das richtige Transportprotokoll.</div>
+        <div class="s6-scenario-list"><!-- filled by JS --></div>
+        <div class="s6-actions">
+          <button class="s6-check-btn overlay-btn" disabled>Pr&uuml;fen</button>
+          <button class="s6-next-btn overlay-btn hidden">Weiter &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Routing -->
+      <div id="s6-step-3" class="s6-step hidden">
+        <div class="s6-step-label">Aufgabe 3 / 3 &mdash; Routing</div>
+        <div class="s6-step-desc">Lies die Routing-Tabelle und w&auml;hle das richtige Interface f&uuml;r jedes Paket.</div>
+        <div class="s6-routing-table">
+          <div class="s6-rt-head"><span>Zielnetz</span><span>Interface</span></div>
+          <div class="s6-rt-entry"><span>192.168.1.0/24</span><span>eth0</span></div>
+          <div class="s6-rt-entry"><span>10.0.0.0/24</span><span>eth1</span></div>
+          <div class="s6-rt-entry"><span>172.16.0.0/16</span><span>eth2</span></div>
+        </div>
+        <div class="s6-routing-list"><!-- filled by JS --></div>
+        <div class="s6-actions">
+          <button class="s6-check-btn overlay-btn" disabled>Pr&uuml;fen</button>
+          <button class="s6-next-btn overlay-btn hidden">Ergebnis &rarr;</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Results -->
+      <div id="s6-step-4" class="s6-step hidden">
+        <div class="overlay-avatar">&#127942;</div>
+        <div class="overlay-title">Assessment abgeschlossen!</div>
+        <div class="s6-result-table">
+          <div class="s6-result-row"><span class="s6-result-label">Aufgabe 1 &mdash; Protokolle</span><span id="s6-result-t1">&mdash;</span></div>
+          <div class="s6-result-row"><span class="s6-result-label">Aufgabe 2 &mdash; TCP/UDP</span><span id="s6-result-t2">&mdash;</span></div>
+          <div class="s6-result-row"><span class="s6-result-label">Aufgabe 3 &mdash; Routing</span><span id="s6-result-t3">&mdash;</span></div>
+          <div class="s6-result-divider"></div>
+          <div class="s6-result-row s6-result-total"><span>Gesamt</span><span id="s6-result-total">&mdash;</span></div>
+          <div class="s6-result-row"><span class="s6-result-label">Erreicht</span><span id="s6-result-pct">&mdash;</span></div>
+          <div class="s6-result-row"><span class="s6-result-label">Zeit</span><span id="s6-result-time">&mdash;</span></div>
+        </div>
+        <div id="s6-result-msg" style="margin:14px 0;font-size:14px;font-weight:600;"></div>
+        <button class="s6-finish-btn overlay-btn">Abschlie&szlig;en &rarr;</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Gesamtauswertung -->
   <div id="final-overlay" class="hidden">
     <div class="overlay-box">
@@ -929,6 +1078,13 @@
               position="-2.1 0 0.02" width="11.5" wrap-count="48" material="shader:flat"></a-text>
     </a-entity>
 
+    <!-- P2S4 Feedback-Panel (erscheint kurz nach jeder Paketzuordnung) -->
+    <a-entity id="l4-feedback-panel" position="-6 2.6 -23.5" visible="false">
+      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="4.5" height="0.9"></a-plane>
+      <a-text id="l4-feedback-text" value="" color="#60ff90" scale="0.175 0.175 0.175"
+              position="-2.1 0 0.02" width="11.5" wrap-count="48" material="shader:flat"></a-text>
+    </a-entity>
+
     <!-- ─── SCHICHT 4: ANWENDUNGS-FLÜGEL (x=-12..0) ────────────────────────── -->
 
     <!-- Schreibtische -->
@@ -989,55 +1145,55 @@
     </a-entity>
 
     <!-- P2S4 Pakettisch -->
-    <a-box material="color:#3a3020;roughness:0.8" position="-6 0.45 -17.5" width="5" height="0.9" depth="1.5"></a-box>
+    <a-box material="color:#3a3020;roughness:0.8" position="-6 0.45 -21.5" width="5" height="0.9" depth="1.5"></a-box>
 
     <!-- P2S4 Pakete -->
     <a-entity class="interactable paket-l4" id="l4-paket-1" data-protocol="http"
-              position="-4.5 1.18 -17.3" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-4.5 1.18 -21.3" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#c8a060;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="Webseite laden&#10;HTTP?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="Webseite laden" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-l4" id="l4-paket-2" data-protocol="dns"
-              position="-5.5 1.18 -17.7" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-5.5 1.18 -21.7" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#b09050;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="Domain → IP&#10;DNS?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="Domain → IP" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-l4" id="l4-paket-3" data-protocol="ftp"
-              position="-6.5 1.18 -17.4" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-6.5 1.18 -21.4" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#d0a850;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="Datei hochladen&#10;FTP?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="Datei hochladen" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-l4" id="l4-paket-4" data-protocol="smtp"
-              position="-7.5 1.18 -17.6" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-7.5 1.18 -21.6" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#c8a060;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="E-Mail senden&#10;SMTP?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="E-Mail senden" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-l4" id="l4-paket-5" data-protocol="http"
-              position="-8.3 1.18 -17.3" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-8.3 1.18 -21.3" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#b09050;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="API-Request&#10;HTTP?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="API-Request" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-l4" id="l4-paket-6" data-protocol="dns"
-              position="-9.0 1.18 -17.7" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
+              position="-9.0 1.18 -21.7" geometry="primitive:box;width:0.55;height:0.48;depth:0.48"
               material="color:#d0a850;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.16"></a-plane>
-        <a-text value="Mail-Server finden&#10;DNS?" color="#a8d8ff" scale="0.42 0.42 0.42" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.55" height="0.12"></a-plane>
+        <a-text value="Mail-Server finden" color="#a8d8ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
 
@@ -1055,92 +1211,6 @@
       </a-entity>
     </a-entity>
 
-    <!-- P2S4 Quiz-Terminal -->
-    <a-entity id="l4-quiz-terminal" position="-6 0 -29" visible="false">
-      <a-box material="color:#1a2030;roughness:0.4;metalness:0.6" width="4.5" height="3.2" depth="0.45" position="0 1.6 0"></a-box>
-      <a-plane material="color:#001428;emissive:#001428;emissiveIntensity:0.7;shader:flat" width="4.2" height="3.0" position="0 1.6 0.23"></a-plane>
-      <a-text id="l4-quiz-question" value="..." color="#e8edf5" scale="0.2 0.2 0.2"
-              position="-1.9 2.9 0.24" width="9" wrap-count="38" material="shader:flat"></a-text>
-      <a-box class="interactable quiz-option-l4" id="l4-quiz-a" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="-1.1 1.8 0.24">
-        <a-text id="l4-quiz-a-text" value="A: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-l4" id="l4-quiz-b" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="1.1 1.8 0.24">
-        <a-text id="l4-quiz-b-text" value="B: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-l4" id="l4-quiz-c" data-correct="true"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="-1.1 1.0 0.24">
-        <a-text id="l4-quiz-c-text" value="C: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-l4" id="l4-quiz-d" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="1.1 1.0 0.24">
-        <a-text id="l4-quiz-d-text" value="D: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-entity id="l4-quiz-hint" position="0 3.35 0" visible="false">
-        <a-plane material="color:#1a2844;opacity:0.9;shader:flat" width="0.8" height="0.18"></a-plane>
-        <a-text value="E — Antwort wählen" color="#64a0ff" scale="0.17 0.17 0.17" position="0 0 0.01" align="center" material="shader:flat"></a-text>
-      </a-entity>
-    </a-entity>
-
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- BEWERTUNGS-FLÜGEL (x=-12..+12, z=-30..-40)                               -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-
-    <!-- Hülle -->
-    <a-box mixin="m-wand"  position=" 0 3 -40"   width="24"  height="6.1" depth="0.3"></a-box>
-    <a-box mixin="m-wand"  position="-12 3 -35"  width="0.3" height="6.1" depth="10"></a-box>
-    <a-box mixin="m-wand"  position=" 12 3 -35"  width="0.3" height="6.1" depth="10"></a-box>
-    <a-plane mixin="m-boden" rotation="-90 0 0"  position="0 0 -35" width="24" height="10" receive-shadow="true"></a-plane>
-    <a-box mixin="m-decke"   position="0 6.15 -35" width="24" height="0.3" depth="10"></a-box>
-
-    <!-- Beleuchtung -->
-    <a-light type="point" color="#d0a0ff" intensity="5" distance="12" decay="2" position="0 5.5 -35"></a-light>
-
-    <!-- Boden-Markierung (lila) -->
-    <a-box material="color:#5a2080;roughness:0.7" position="0 0.005 -35" width="22" height="0.01" depth="8"></a-box>
-
-    <!-- Beschriftung -->
-    <a-plane material="color:#2a1040;roughness:0.8" width="6" height="0.6" position="0 5.5 -30.2">
-      <a-text value="ABSCHLUSSBEWERTUNG — ALLE LERNZIELE" color="#e080ff" scale="0.3 0.3 0.3"
-              position="0 0 0.01" align="center" material="shader:flat;emissive:#e080ff;emissiveIntensity:0.3"></a-text>
-    </a-plane>
-
-    <!-- Zentrales Quiz-Terminal -->
-    <a-entity id="p6-quiz-terminal" position="0 0 -39" visible="false">
-      <a-box material="color:#1a1030;roughness:0.4;metalness:0.6" width="7" height="4.2" depth="0.5" position="0 2.1 0"></a-box>
-      <a-plane material="color:#080014;emissive:#080014;emissiveIntensity:0.8;shader:flat" width="6.7" height="4.0" position="0 2.1 0.26"></a-plane>
-      <a-text id="p6-quiz-question" value="..." color="#e8edf5" scale="0.22 0.22 0.22"
-              position="-3.2 4.0 0.27" width="14" wrap-count="50" material="shader:flat"></a-text>
-      <!-- Antwort A -->
-      <a-box class="interactable quiz-option-p6" id="p6-quiz-a" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="3.0" height="0.85" depth="0.07" position="-1.6 2.7 0.27">
-        <a-text id="p6-quiz-a-text" value="A: ..." color="#c8d8f0" scale="0.19 0.19 0.19"
-                position="-1.4 0 0.04" width="14" wrap-count="36" material="shader:flat"></a-text>
-      </a-box>
-      <!-- Antwort B -->
-      <a-box class="interactable quiz-option-p6" id="p6-quiz-b" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="3.0" height="0.85" depth="0.07" position="1.6 2.7 0.27">
-        <a-text id="p6-quiz-b-text" value="B: ..." color="#c8d8f0" scale="0.19 0.19 0.19"
-                position="-1.4 0 0.04" width="14" wrap-count="36" material="shader:flat"></a-text>
-      </a-box>
-      <!-- Antwort C -->
-      <a-box class="interactable quiz-option-p6" id="p6-quiz-c" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="3.0" height="0.85" depth="0.07" position="-1.6 1.7 0.27">
-        <a-text id="p6-quiz-c-text" value="C: ..." color="#c8d8f0" scale="0.19 0.19 0.19"
-                position="-1.4 0 0.04" width="14" wrap-count="36" material="shader:flat"></a-text>
-      </a-box>
-      <!-- Antwort D -->
-      <a-box class="interactable quiz-option-p6" id="p6-quiz-d" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="3.0" height="0.85" depth="0.07" position="1.6 1.7 0.27">
-        <a-text id="p6-quiz-d-text" value="D: ..." color="#c8d8f0" scale="0.19 0.19 0.19"
-                position="-1.4 0 0.04" width="14" wrap-count="36" material="shader:flat"></a-text>
-      </a-box>
-    </a-entity>
 
     <!-- NPC -->
     <a-entity position="3 0 8" rotation="0 46 0" proximity-dialog>
@@ -1249,26 +1319,42 @@
     <!-- Routing-Pakete -->
     <a-entity class="interactable paket-r5" id="r5-paket-1" data-dest="10.0.0.5"
               position="-13.0 1.18 -4.0" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
-              material="color:#c8a060;roughness:0.9">
+              material="color:#c8a060;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.16"></a-plane>
-        <a-text value="→ 10.0.0.5" color="#64a0ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.12"></a-plane>
+        <a-text value="10.0.0.5" color="#64a0ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-r5" id="r5-paket-2" data-dest="192.168.1.10"
-              position="-14.2 1.18 -3.8" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
-              material="color:#b09050;roughness:0.9">
+              position="-14.0 1.18 -3.8" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
+              material="color:#b09050;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.16"></a-plane>
-        <a-text value="→ 192.168.1.10" color="#50e0a0" scale="0.28 0.28 0.28" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.12"></a-plane>
+        <a-text value="192.168.1.10" color="#50e0a0" scale="0.28 0.28 0.28" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
     <a-entity class="interactable paket-r5" id="r5-paket-3" data-dest="172.16.5.3"
-              position="-15.2 1.18 -4.2" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
-              material="color:#d0a850;roughness:0.9">
+              position="-15.0 1.18 -4.2" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
+              material="color:#d0a850;roughness:0.9" visible="false">
       <a-entity look-at="[camera]" position="0 0.3 0">
-        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.16"></a-plane>
-        <a-text value="→ 172.16.5.3" color="#ff7850" scale="0.32 0.32 0.32" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.12"></a-plane>
+        <a-text value="172.16.5.3" color="#ff7850" scale="0.32 0.32 0.32" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
+    </a-entity>
+    <a-entity class="interactable paket-r5" id="r5-paket-4" data-dest="10.0.0.20"
+              position="-14.5 1.18 -4.4" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
+              material="color:#c8a060;roughness:0.9" visible="false">
+      <a-entity look-at="[camera]" position="0 0.3 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.12"></a-plane>
+        <a-text value="10.0.0.20" color="#64a0ff" scale="0.38 0.38 0.38" align="center" position="0 0 0.002" material="shader:flat"></a-text>
+      </a-entity>
+    </a-entity>
+    <a-entity class="interactable paket-r5" id="r5-paket-5" data-dest="192.168.1.42"
+              position="-15.5 1.18 -3.9" geometry="primitive:box;width:0.52;height:0.46;depth:0.46"
+              material="color:#b09050;roughness:0.9" visible="false">
+      <a-entity look-at="[camera]" position="0 0.3 0">
+        <a-plane material="color:#0a1828;opacity:0.9;shader:flat;side:double" width="0.52" height="0.12"></a-plane>
+        <a-text value="192.168.1.42" color="#50e0a0" scale="0.28 0.28 0.28" align="center" position="0 0 0.002" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
 
@@ -1304,32 +1390,11 @@
              material="color:#ff7850;opacity:0;transparent:true" width="1.8" height="2.2" depth="0.9" position="0 1.1 0.55"></a-box>
     </a-entity>
 
-    <!-- R5 Quiz-Terminal (östliche Seite, sichtbar nach korrektem Routing) -->
-    <a-entity id="r5-quiz-terminal" position="-13 0 -8" visible="false">
-      <a-box material="color:#1a2030;roughness:0.4;metalness:0.6" width="4.5" height="3.2" depth="0.45" position="0 1.6 0"></a-box>
-      <a-plane material="color:#001428;emissive:#001428;emissiveIntensity:0.7;shader:flat" width="4.2" height="3.0" position="0 1.6 0.23"></a-plane>
-      <a-text id="r5-quiz-question" value="..." color="#e8edf5" scale="0.2 0.2 0.2"
-              position="-1.9 2.9 0.24" width="9" wrap-count="38" material="shader:flat"></a-text>
-      <a-box class="interactable quiz-option-r5" id="r5-quiz-a" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="-1.1 1.8 0.24">
-        <a-text id="r5-quiz-a-text" value="A: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-r5" id="r5-quiz-b" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="1.1 1.8 0.24">
-        <a-text id="r5-quiz-b-text" value="B: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-r5" id="r5-quiz-c" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="-1.1 1.0 0.24">
-        <a-text id="r5-quiz-c-text" value="C: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
-      <a-box class="interactable quiz-option-r5" id="r5-quiz-d" data-correct="false"
-             material="color:#1a2040;roughness:0.5" width="1.8" height="0.65" depth="0.06" position="1.1 1.0 0.24">
-        <a-text id="r5-quiz-d-text" value="D: ..." color="#c8d8f0" scale="0.18 0.18 0.18"
-                position="-0.8 0 0.04" width="8" wrap-count="28" material="shader:flat"></a-text>
-      </a-box>
+    <!-- R5 Feedback-Panel -->
+    <a-entity id="r5-feedback-panel" position="-17 2.6 -6" visible="false">
+      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="4.5" height="0.9"></a-plane>
+      <a-text id="r5-feedback-text" value="" color="#60ff90" scale="0.175 0.175 0.175"
+              position="-2.1 0 0.02" width="11.5" wrap-count="48" material="shader:flat"></a-text>
     </a-entity>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════ -->
@@ -1429,14 +1494,6 @@
       </a-plane>
     </a-entity>
 
-    <!-- Gate 4: Assessment-Tür (z=-30, Lücke x=-2..+2) — öffnet nach S5 -->
-    <a-entity id="gate-assessment" position="0 1.5 -30">
-      <a-box material="color:#2a1a00;roughness:0.8;metalness:0.3" width="4" height="3" depth="0.28"></a-box>
-      <a-plane material="color:#1a0800;opacity:0.9;shader:flat" width="3.6" height="2.7" position="0 0 0.15">
-        <a-text value="🔒 GESPERRT&#10;&#10;Schließe S5&#10;(Routing) ab." color="#ff8844"
-                scale="0.3 0.3 0.3" align="center" position="0 0 0.01" wrap-count="16" material="shader:flat"></a-text>
-      </a-plane>
-    </a-entity>
 
     <!-- WANDSCHILDER -->
     <!-- VERSANDZONE-Schild jetzt im Versandraum selbst -->
@@ -1553,7 +1610,7 @@
   <script src="js/scenarios/p2-s2-protokolle.js?v=2"></script>
   <script src="js/scenarios/p2-s3-transport.js?v=1"></script>
   <script src="js/scenarios/p2-s4-anwendung.js?v=1"></script>
-  <script src="js/scenarios/p2-s5-routing.js?v=1"></script>
+  <script src="js/scenarios/p2-s5-routing.js?v=2"></script>
   <script src="js/scenarios/p2-s6-assessment.js?v=1"></script>
   <script src="js/game.js?v=9"></script>
 </body>

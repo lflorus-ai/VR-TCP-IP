@@ -76,7 +76,6 @@ const _gates = {
   s4door:   { box: { xmin:-7.5,   xmax:-4.5,   zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s4',       open: false },
   divider:  { box: { xmin:-0.2,   xmax: 0.2,   zmin:-30,   zmax:-16   }, entityId: null,             open: false },
   routing:  { box: { xmin:-12.2,  xmax:-11.85, zmin:-8,    zmax:-5    }, entityId: 'gate-routing',   open: false },
-  assessment:{ box: { xmin:-2,    xmax: 2,     zmin:-30.2, zmax:-29.8 }, entityId: 'gate-assessment',open: false },
 };
 
 function openGate(gateName) {
@@ -584,43 +583,20 @@ function enterZoneS5() {
   gameState = 'ZONE_S5';
   setArrowTarget(null, null); setInstruction('');
   const hudTag = document.getElementById('hud-tag');
-  if (hudTag) hudTag.textContent = '■ Lern-Szenario 5 — Routing';
-  P2S5.init((score) => {
-    _zoneDone.s5 = true;
-    gameState = 'S1_ACTIVE';
-    openGate('assessment');
-    const hudTag = document.getElementById('hud-tag');
-    if (hudTag) hudTag.textContent = '■ Lern-Szenario 6';
-    const t = document.getElementById('task-text');
-    if (t) t.textContent = 'S5 (Routing) abgeschlossen! Bewertungs-Flügel (Nordflügel, tief) freigeschaltet.';
-    setArrowTarget(0, -35);
-    setInstruction('Geh tief nach Norden (z < -30) zur Abschlussbewertung (S6)');
-  });
+  if (hudTag) hudTag.textContent = '■ Lern-Szenario 5 — IP-Routing';
+  document.exitPointerLock();
+  document.getElementById('s5-briefing-overlay').classList.remove('hidden');
 }
 
-function enterZoneS6() {
-  if (!_zoneDone.s5) {
-    const t = document.getElementById('task-text');
-    if (t) t.textContent = '🔒 Schließe zuerst S5 (Routing, Büro-Flügel) ab!';
-    return;
-  }
-  const allowed = ['S1_ACTIVE', 'INTRO', 'TUTORIAL', 'ZONE_S3', 'ZONE_S4'];
-  if (!allowed.includes(gameState)) return;
-  if (gameState === 'ZONE_S3') P2S3.teardown();
-  if (gameState === 'ZONE_S4') P2S4.teardown();
-  gameState = 'ZONE_S6';
-  setArrowTarget(null, null); setInstruction('');
-  const hudTag = document.getElementById('hud-tag');
-  if (hudTag) hudTag.textContent = '■ S6 — Abschlussbewertung';
-  P2S6.init((score) => {
-    gameState = 'S1_ACTIVE';
-    setInstruction('');
-    const hudTag = document.getElementById('hud-tag');
-    if (hudTag) hudTag.textContent = '■ Abgeschlossen';
-    const t = document.getElementById('task-text');
-    if (t) t.textContent = 'Bewertung abgeschlossen! Gesamtpunkte: ' + score + ' P';
-  });
+function showS5CompleteOverlay() {
+  playSoundComplete();
+  document.exitPointerLock();
+  gameState = 'S5_COMPLETE';
+  const scoreEl = document.getElementById('s5-score');
+  if (scoreEl) scoreEl.textContent = getTotalScore() + ' P';
+  document.getElementById('s5-complete-overlay').classList.remove('hidden');
 }
+
 
 function initS2() {
   const delivered = lieferschein.filter(p => p.done);
@@ -820,8 +796,8 @@ document.querySelectorAll('.palette-zone').forEach(pal => {
   pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
 });
 
-// Zone entities: S1, S2, P2S3, P2S4, P2S5, P2S6
-document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5, .quiz-option-p6').forEach(el => {
+// Zone entities: S1, S2, P2S3, P2S4, P2S5
+document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5').forEach(el => {
   el.addEventListener('mouseenter', () => { hoveredEl = el; });
   el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
 });
@@ -1032,6 +1008,13 @@ function interactWithPalette(pal) {
       if (s2LostPackets.every(x=>x.done)) {
         setTimeout(showS2CompleteOverlay, 1600);
       }
+    } else if (gameState === 'S5_ACTIVE') {
+      updateLieferschein(); updatePips();
+      checkPaletteComplete(palId, lieferschein);
+      if (lieferschein.every(x=>x.done)) {
+        stopTimer();
+        setTimeout(showS5CompleteOverlay, 1600);
+      }
     } else {
       updateLieferschein(); updatePips();
       checkPaletteComplete(palId, lieferschein);
@@ -1105,14 +1088,8 @@ document.addEventListener('keydown', (e) => {
   if (gameState === 'ZONE_S4' && hoveredEl) {
     if (P2S4.handlePickup(hoveredEl)) return;
   }
-  if (gameState === 'ZONE_S5' && hoveredEl) {
-    if (P2S5.handlePickup(hoveredEl)) return;
-  }
-  if (gameState === 'ZONE_S6' && hoveredEl) {
-    if (P2S6.handlePickup(hoveredEl)) return;
-  }
 
-  if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE') return;
+  if (gameState !== 'S1_ACTIVE' && gameState !== 'S2_ACTIVE' && gameState !== 'S3_ACTIVE' && gameState !== 'S5_ACTIVE') return;
   if (!hoveredEl) return;
 
   const cam = document.querySelector('[camera]');
@@ -1787,33 +1764,21 @@ function resetToS1() {
 }
 
 function showFinalSummary() {
-  const s3Max = 8 * 100 + 3 * 50;
-  const total = s3Score;
-  const totalMax = s3Max;
-  const totalPct = Math.round(total / totalMax * 100);
-
-  if (totalPct >= 90) playMaxAudio('max_final_100');
-  else if (totalPct >= 75) playMaxAudio('max_final_hi');
-  else if (totalPct >= 60) playMaxAudio('max_final_mid');
-  else playMaxAudio('max_final_lo');
-
-  const totalSecs = s1FinalSeconds + s3FinalSeconds;
-  const tm = String(Math.floor(totalSecs / 60)).padStart(2, '0') + ':' + String(totalSecs % 60).padStart(2, '0');
-
-  document.getElementById('final-s1').textContent = 'nicht bewertet';
-  document.getElementById('final-s2').textContent = 'nicht bewertet';
-  document.getElementById('final-s3').textContent = s3Score + ' / ' + s3Max + ' Punkte';
-  document.getElementById('final-total').textContent = total + ' / ' + totalMax + ' Punkte  (' + totalPct + '%)';
-  document.getElementById('final-time').textContent = tm;
-
-  let finalQuote;
-  if (totalPct >= 90) finalQuote = '"Ausgezeichnet! Du hast alle TCP/IP-Konzepte gemeistert." — Max';
-  else if (totalPct >= 75) finalQuote = '"Sehr stark! Du hast die wesentlichen Netzwerkprinzipien verstanden." — Max';
-  else if (totalPct >= 60) finalQuote = '"Gute Arbeit! Mit etwas mehr Übung wirst du zum Netzwerk-Profi." — Max';
-  else finalQuote = '"Weiter üben! Die Grundlagen stehen — jetzt die Details verinnerlichen." — Max';
-  document.getElementById('final-max-quote').textContent = finalQuote;
-
-  document.getElementById('final-overlay').classList.remove('hidden');
+  gameState = 'ASSESSMENT';
+  P2S6.init(function(s6Score) {
+    playMaxAudio('max_final_hi');
+    var pct = Math.round((s6Score / 170) * 100);
+    document.getElementById('final-s1').textContent = 'abgeschlossen';
+    document.getElementById('final-s2').textContent = 'abgeschlossen';
+    document.getElementById('final-s3').textContent = s6Score + ' Pkt (' + pct + ' %)';
+    document.getElementById('final-total').textContent = s6Score + ' Pkt';
+    document.getElementById('final-time').textContent = '—';
+    document.getElementById('final-max-quote').textContent = pct >= 70
+      ? '"Hervorragend! Du hast das Assessment bestanden (' + pct + ' %)." — Max'
+      : '"Weiter üben! Du hast ' + pct + ' % der Punkte erreicht." — Max';
+    document.getElementById('final-overlay').classList.remove('hidden');
+    gameState = 'FINAL';
+  });
 }
 
 function resetPaletteStatuses() {
@@ -1889,6 +1854,80 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     });
   });
 
+  // S5-Briefing: Spielmechanik starten
+  document.getElementById('s5-briefing-start-btn').addEventListener('click', () => {
+    document.getElementById('s5-briefing-overlay').classList.add('hidden');
+
+    // Pakete in Regale zurücksetzen
+    dropSelectedPaket();
+    shuffle(slotPool);
+    let _slotIdx = 0;
+    ['paket-A1','paket-A2','paket-A3','paket-A4','paket-A5'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const [x, y, z] = slotPool[_slotIdx++];
+      el.removeAttribute('animation__shrink');
+      el.removeAttribute('package-follow');
+      el.setAttribute('position', `${x} ${y} ${z}`);
+      el.object3D.position.set(x, y, z);
+      el.setAttribute('scale', '1 1 1');
+      el.object3D.scale.set(1, 1, 1);
+      el.setAttribute('visible', 'true');
+      el.classList.add('interactable', 'paket');
+      el.classList.remove('delivered-box');
+      el.setAttribute('material', 'emissive', '#000000');
+      el.setAttribute('material', 'emissiveIntensity', '0');
+      Array.from(el.querySelectorAll(':scope > a-text')).forEach(t => t.parentNode.removeChild(t));
+    });
+
+    // Paletten zurücksetzen
+    resetPaletteStatuses();
+    Object.keys(paletteDeliveries).forEach(k => paletteDeliveries[k] = 0);
+
+    // Lieferschein zurücksetzen
+    lieferschein.forEach(e => { e.done = false; });
+    shuffle(lieferschein);
+
+    // Score und Timer zurücksetzen
+    score = 0;
+    stopTimer();
+    timerSeconds = 0;
+    timerStarted = false;
+    document.getElementById('score-pill').textContent = '★ 0 Punkte';
+    document.getElementById('timer-pill').textContent = '⏱ 00:00';
+    document.getElementById('selected-badge').classList.remove('visible');
+    document.getElementById('binary-display').style.display = 'none';
+
+    // Pips neu aufbauen
+    const pipsEl = document.getElementById('progress-pips');
+    while (pipsEl.firstChild) pipsEl.removeChild(pipsEl.firstChild);
+    lieferschein.forEach((_, i) => {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (i === 0 ? ' active' : '');
+      pip.id = 'pip-' + i;
+      pipsEl.appendChild(pip);
+    });
+
+    updateLieferschein();
+
+    const taskText = document.getElementById('task-text');
+    if (taskText) taskText.textContent = 'S5: Nimm ein Paket (E), prüfe die IP-Adresse und lege es auf die richtige Palette (E).';
+
+    gameState = 'S5_ACTIVE';
+    const canvas = document.querySelector('a-scene canvas');
+    if (canvas) canvas.requestPointerLock();
+    setArrowTarget(0, -5);
+    setInstruction('Geh zurück zur Lagerhalle und sortiere die IP-Pakete');
+  });
+
+  // S5-Abschluss: Gesamtauswertung anzeigen
+  document.getElementById('s5-complete-btn').addEventListener('click', () => {
+    document.getElementById('s5-complete-overlay').classList.add('hidden');
+    _zoneDone.s5 = true;
+    gameState = 'S1_ACTIVE';
+    showFinalSummary();
+  });
+
   // Zone-Detektion (alle P2-Zonen)
   initGates();
   let _zoneCheckInterval = setInterval(() => {
@@ -1898,10 +1937,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     cam.object3D.getWorldPosition(pos);
 
     // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger)
-    if (pos.z < -30) {
-      const allowed = ['S1_ACTIVE', 'INTRO', 'TUTORIAL', 'ZONE_S3', 'ZONE_S4'];
-      if (allowed.includes(gameState)) enterZoneS6();
-    } else if (pos.z < -16.5) {
+    if (pos.z < -16.5) {
       if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
         if (pos.x >= 0) enterZoneS3();
         else enterZoneS4();
@@ -1921,19 +1957,13 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         if (t) t.textContent = 'Haupthalle — S4 abgebrochen. Geh erneut in den Anwendungs-Flügel (links).';
       }
     }
-    // Exit — Büro zurück in Haupthalle
+    // Exit — Büro zurück in Haupthalle (nur wenn Briefing noch läuft, nicht wenn S5_ACTIVE)
     if (pos.x >= -11.5 && gameState === 'ZONE_S5') {
-      P2S5.teardown(); gameState = 'S1_ACTIVE';
+      document.getElementById('s5-briefing-overlay').classList.add('hidden');
+      gameState = 'S1_ACTIVE';
       const t = document.getElementById('task-text');
       if (t) t.textContent = 'Haupthalle — S5 abgebrochen. Geh erneut ins Büro.';
     }
-    // Exit — Bewertungs-Flügel zurück in Nordflügel
-    if (pos.z >= -29.5 && gameState === 'ZONE_S6') {
-      P2S6.teardown(); gameState = 'S1_ACTIVE';
-      const t = document.getElementById('task-text');
-      if (t) t.textContent = 'Nordflügel — S6 abgebrochen.';
-    }
-
     // Richtungspfeil drehen: Zielrichtung in Kamera-Lokalraum projizieren
     if (_arrowTarget) {
       const THREE = AFRAME.THREE;

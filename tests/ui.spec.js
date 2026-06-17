@@ -241,21 +241,64 @@ test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
     expect(after).toBe(before - 20); // 80
   });
 
-  test('Alle 6 korrekt → Quiz entsperrt', async ({ page }) => {
-    await page.evaluate(() => L4.init(() => {}));
-    await page.evaluate(() => {
+  test('Alle 6 zugeordnet → onComplete wird aufgerufen', async ({ page }) => {
+    const completed = await page.evaluate(() => new Promise(resolve => {
+      L4.init(score => resolve(score));
       L4._dropForTest('l4-paket-1', 'http');
       L4._dropForTest('l4-paket-2', 'dns');
       L4._dropForTest('l4-paket-3', 'ftp');
       L4._dropForTest('l4-paket-4', 'smtp');
       L4._dropForTest('l4-paket-5', 'http');
       L4._dropForTest('l4-paket-6', 'dns');
-    });
-    await page.waitForTimeout(1000);
-    const quizVisible = await page.evaluate(() => {
-      const t = document.getElementById('l4-quiz-terminal');
-      return t && t.getAttribute('visible') !== 'false';
-    });
-    expect(quizVisible).toBe(true);
+    }));
+    expect(completed).toBe(600);
+  });
+});
+
+test.describe('Layer 5 — Büro-Flügel (Routing)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => { gameState = 'S1_ACTIVE'; });
+  });
+
+  test('R5-Pakete sind im DOM mit data-dest Attributen', async ({ page }) => {
+    const packets = [
+      { id: 'r5-paket-1', dest: '10.0.0.5'      },
+      { id: 'r5-paket-2', dest: '192.168.1.10'  },
+      { id: 'r5-paket-3', dest: '172.16.5.3'    },
+      { id: 'r5-paket-4', dest: '10.0.0.20'     },
+      { id: 'r5-paket-5', dest: '192.168.1.42'  },
+    ];
+    for (const p of packets) {
+      const el = page.locator(`#${p.id}`);
+      await expect(el).toBeAttached();
+      expect(await el.getAttribute('data-dest')).toBe(p.dest);
+    }
+  });
+
+  test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
+    await page.evaluate(() => P2S5.init(() => {}));
+    const before = await page.evaluate(() => P2S5.getScore());
+    await page.evaluate(() => P2S5._routeForTest('r5-paket-1', 'r5-exit-a'));
+    expect(await page.evaluate(() => P2S5.getScore())).toBe(before + 100);
+  });
+
+  test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
+    await page.evaluate(() => { P2S5.init(() => {}); P2S5._routeForTest('r5-paket-1', 'r5-exit-a'); });
+    const before = await page.evaluate(() => P2S5.getScore());
+    await page.evaluate(() => P2S5._routeForTest('r5-paket-2', 'r5-exit-a'));
+    expect(await page.evaluate(() => P2S5.getScore())).toBe(before - 20);
+  });
+
+  test('Alle 5 zugeordnet → onComplete mit 500 aufgerufen', async ({ page }) => {
+    const score = await page.evaluate(() => new Promise(resolve => {
+      P2S5.init(s => resolve(s));
+      P2S5._routeForTest('r5-paket-1', 'r5-exit-a');
+      P2S5._routeForTest('r5-paket-2', 'r5-exit-b');
+      P2S5._routeForTest('r5-paket-3', 'r5-exit-c');
+      P2S5._routeForTest('r5-paket-4', 'r5-exit-a');
+      P2S5._routeForTest('r5-paket-5', 'r5-exit-b');
+    }));
+    expect(score).toBe(500);
   });
 });

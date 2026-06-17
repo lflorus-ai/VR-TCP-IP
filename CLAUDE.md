@@ -8,7 +8,7 @@ Alle Skills, Berechtigungen und Anweisungen, die Claude in diesem Projekt erteil
 
 Ein browserbasiertes 3D-Lernspiel, das TCP/IP-Netzwerkkonzepte durch eine interaktive Lagerhallen-Metapher vermittelt. Entstanden als Seminararbeit (Integrationsseminar, Gruppe 08, DHBW Stuttgart WWI2023G).
 
-Die Anwendung befindet sich in einer **aktiven Weiterentwicklungsphase**: Der ursprüngliche Lernpfad (IP-Adresssortierung) wird durch ein vollständiges 7-Szenarien-Curriculum (P2, Konzept: Nadine) ersetzt bzw. erweitert, das das gesamte TCP/IP-Schichtenmodell abdeckt.
+Die Anwendung befindet sich in einer **aktiven Weiterentwicklungsphase**: Der ursprüngliche Lernpfad (IP-Adresssortierung) wird durch ein vollständiges 6-Szenarien-Curriculum (P2, Konzept: Nadine) ersetzt bzw. erweitert, das das gesamte TCP/IP-Schichtenmodell abdeckt.
 
 ## Quick Start / Kommandos
 
@@ -35,7 +35,7 @@ Tests liegen in `tests/ui.spec.js` (Playwright). Der `webServer` in `playwright.
 
 ## Lernpfad-Struktur (Zielzustand P2)
 
-Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab:
+Das neue Curriculum (6 Szenarien, Gesamtdauer ~22 Min) deckt alle 5 Lernziele ab:
 
 | ID | Typ | Titel | Dauer | Lernziele | Status |
 |---|---|---|---|---|---|
@@ -45,7 +45,6 @@ Das neue Curriculum (7 Szenarien, Gesamtdauer ~32 Min) deckt alle 5 Lernziele ab
 | **P2 S3** | Lern | Transport-Flügel: TCP/UDP in der Lagerhalle | 5 Min | LZ5: TCP vs. UDP unterscheiden | ✅ fertig — 3D-Raum, Pakete schweben vor Spieler, auf TCP/UDP-Band ablegen (`js/scenarios/p2-s3-transport.js`), State: `ZONE_S3` |
 | **P2 S4** | Lern | Anwendungs-Flügel: HTTP/DNS/FTP/SMTP-Briefkästen | 5 Min | LZ3+LZ4: IP-Adressen + OSI-Mapping | ✅ fertig — 3D-Raum, Pakete in Protokoll-Briefkasten tragen + Quiz-Terminal (`js/scenarios/p2-s4-anwendung.js`), State: `ZONE_S4` |
 | **P2 S5** | Lern | Paket auf Reise: Routing durch Router | 6 Min | LZ2+LZ3: Routing + Paketverlauf | **in Arbeit** — 3D-Raum im Büro-Flügel (x<-12.5), State: `ZONE_S5` (`js/scenarios/p2-s5-routing.js`) |
-| **P2 S6** | Bewertung | Vollständige TCP/IP-Kommunikation | 10 Min | LZ1–LZ5 (alle) | **in Arbeit** — 3D-Raum im tiefen Nordflügel (z<-30), State: `ZONE_S6` (`js/scenarios/p2-s6-assessment.js`) |
 
 **Lernziele (LZ):**
 - LZ1: Grundlegende Architektur des TCP/IP-Modells verstehen
@@ -75,7 +74,6 @@ Der aktuell implementierte Lernpfad deckt IP-Adresssortierung ab und bleibt im C
 | P2 S3 | Paket aufnehmen (E) → schwebt vor Spieler → auf TCP/UDP-Band ablegen (E) | `class="interactable paket-l3"` / `belt-zone`; RAF-Loop für Floating; 3D-Raum Transport-Flügel (x≥0, z<-16.5) |
 | P2 S4 | Paket in Protokoll-Briefkasten tragen (E) + Quiz-Terminal | `class="interactable paket-l4"` / `inbox-zone`; 3D-Raum Anwendungs-Flügel (x<0, z<-16.5) |
 | P2 S5 | Router-Routing-Entscheidung | 3D-Raum im Büro-Flügel (x<-12.5); State: `ZONE_S5` |
-| P2 S6 | Mehrstufig ohne Hinweise, Musterlösung | 3D-Raum im tiefen Nordflügel (z<-30); State: `ZONE_S6` |
 
 ## State Machine (aktueller Zustand)
 
@@ -93,9 +91,7 @@ INTRO
                        Trigger: pos.z < -16.5 && pos.x < 0, _zoneDone.s3 === true
   → ZONE_S5           (Büro-Flügel: Routing-Tabellen — p2-s5-routing.js)
                        Trigger: pos.x < -12.5 && pos.z > -12, _zoneDone.s4 === true
-  → ZONE_S6           (Tiefer Nordflügel: Volltest — p2-s6-assessment.js)
-                       Trigger: pos.z < -30, _zoneDone.s5 === true
-  → FINAL             (Gesamtauswertung)
+  → FINAL             (Gesamtauswertung — direkt nach S5-Abschluss via showFinalSummary())
 ```
 
 Jede Zone ist durch `_zoneDone.sN` gegen mehrfaches Betreten gesichert. Gates (`_gates`-Objekt in `game.js`) sperren die physischen Türen, bis die Vorgänger-Zone abgeschlossen ist.
@@ -104,10 +100,9 @@ Jede Zone ist durch `_zoneDone.sN` gegen mehrfaches Betreten gesichert. Gates (`
 
 ```js
 const _gates = {
-  s3door:    { box: { xmin: 4.5,  xmax: 7.5,  zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s3' },
-  s4door:    { box: { xmin:-7.5,  xmax:-4.5,  zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s4' },
-  routing:   { box: { xmin:-12.2, xmax:-11.85, zmin:-8,   zmax:-5    }, entityId: 'gate-routing' },
-  assessment:{ box: { xmin:-2,    xmax: 2,     zmin:-30.2, zmax:-29.8 }, entityId: 'gate-assessment' },
+  s3door:  { box: { xmin: 4.5,  xmax: 7.5,   zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s3' },
+  s4door:  { box: { xmin:-7.5,  xmax:-4.5,   zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s4' },
+  routing: { box: { xmin:-12.2, xmax:-11.85, zmin:-8,    zmax:-5    }, entityId: 'gate-routing' },
 };
 ```
 
@@ -127,7 +122,6 @@ js/scenarios/
   p2-s3-transport.js                    # Transport-Flügel: TCP/UDP-Förderband (ZONE_S3)
   p2-s4-anwendung.js                    # Anwendungs-Flügel: Protokoll-Briefkästen (ZONE_S4)
   p2-s5-routing.js                      # Routing-Tabellen + Forwarding (ZONE_S5, in Arbeit)
-  p2-s6-assessment.js                   # Kombinierter Bewertungsablauf (ZONE_S6, in Arbeit)
 tests/ui.spec.js                        # Playwright E2E-Tests
 playwright.config.js                    # Test-Konfiguration (baseURL: localhost:8080)
 audio/                                  # Audio-Assets (derzeit leer)
@@ -318,13 +312,19 @@ const zone = overlay ? overlay.querySelector(`[data-layer="${layerId}"]`) : null
 
 Overlay braucht `pointer-events: all`; `document.exitPointerLock()` im `init()` aufrufen.
 
+### Szenario entfernen — Checkliste (8 Touchpoints)
+
+Beim vollständigen Entfernen eines Szenarios müssen folgende Stellen bereinigt werden:
+1. `js/scenarios/p2-sN.js` — Datei löschen
+2. `index.html` — Overlay-`<div>`, 3D-Raum-Entities, Gate-Entity, Script-Tag
+3. `js/game.js` — `_zoneDone.sN`, Gate in `_gates`, `enterZoneSN()`, E-Handler-Block, Zone-Detection, Zone-Exit, Nachfolge-Logik (was nach Abschluss passiert)
+4. `css/style.css` — Overlay-ID aus Display- + Hidden-Selektoren (~Zeile 65/75), `.sN-*`-CSS-Block
+
 ## Raumgeometrie und Zone-Trigger
 
 ```
-         NORD (z=-40)
+         NORD (z=-30)
     ┌────────────────────┐
-    │    ZONE_S6         │  z: -30..-40  (tiefer Nordflügel)
-    ├────────────────────┤  z=-30 (Tür x=-2..+2, gate-assessment)
     │  ZONE_S4  │ZONE_S3 │  z: -16.5..-30  (Nordflügel)
     │   x<0     │  x≥0   │
     ├───────────┴────────┤  z=-16 (zwei Türen: x=4.5..7.5 + x=-7.5..-4.5)
@@ -339,9 +339,7 @@ Overlay braucht `pointer-events: all`; `document.exitPointerLock()` im `init()` 
 Zone-Detection im `setInterval` (`game.js`):
 
 ```js
-if (pos.z < -30) {
-  if (allowed.includes(gameState)) enterZoneS6();
-} else if (pos.z < -16.5) {
+if (pos.z < -16.5) {
   if (['S1_ACTIVE','INTRO','TUTORIAL'].includes(gameState)) {
     if (pos.x >= 0) enterZoneS3();
     else            enterZoneS4();
@@ -392,7 +390,7 @@ arrowEl.style.transform = `translateX(-50%) rotate(${rel}deg)`;
 4. ~~**P2 S3 (Transport-Flügel)**~~ — ✅ fertig (`p2-s3-transport.js`); Floating-Paket, 8s Feedback, _processed-Zähler
 5. ~~**P2 S4 (Anwendungs-Flügel)**~~ — ✅ fertig (`p2-s4-anwendung.js`); L4-Alias-Bug noch offen
 6. **P2 S5 (Routing)** — `js/scenarios/p2-s5-routing.js`; Büro-Flügel (x<-12.5), State: `ZONE_S5`
-7. **P2 S6 (Assessment)** — `js/scenarios/p2-s6-assessment.js`; Tiefer Nordflügel (z<-30), State: `ZONE_S6`
+7. ~~**P2 S6 (Assessment)**~~ — ❌ entfernt (2026-06-17)
 8. **L4-Alias-Bug fixen** — `const L4 = P2S4;` am Ende von `p2-s4-anwendung.js` ergänzen → 3 Tests werden grün
 
 ### Offene Architekturentscheidungen
