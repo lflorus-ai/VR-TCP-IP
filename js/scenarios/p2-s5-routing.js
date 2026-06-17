@@ -1,4 +1,4 @@
-const P5 = (() => {
+const P2S5 = (() => {
   let _score = 0;
   let _routed = 0;
   let _quizAnswered = false;

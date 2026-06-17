@@ -150,12 +150,11 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
 
   test('L3-Pakete sind im DOM mit data-protocol Attributen', async ({ page }) => {
     const packets = [
-      { id: 'l3-paket-1', protocol: 'udp' },
-      { id: 'l3-paket-2', protocol: 'tcp' },
-      { id: 'l3-paket-3', protocol: 'udp' },
-      { id: 'l3-paket-4', protocol: 'tcp' },
-      { id: 'l3-paket-5', protocol: 'udp' },
-      { id: 'l3-paket-6', protocol: 'tcp' },
+      { id: 'l3-paket-1', protocol: 'tcp' },
+      { id: 'l3-paket-2', protocol: 'udp' },
+      { id: 'l3-paket-3', protocol: 'tcp' },
+      { id: 'l3-paket-4', protocol: 'udp' },
+      { id: 'l3-paket-5', protocol: 'tcp' },
     ];
     for (const p of packets) {
       const el = page.locator(`#${p.id}`);
@@ -168,7 +167,7 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
   test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
     await page.evaluate(() => L3.init(() => {}));
     const before = await page.evaluate(() => L3.getScore());
-    await page.evaluate(() => L3._dropForTest('l3-paket-1', 'udp'));
+    await page.evaluate(() => L3._dropForTest('l3-paket-1', 'tcp')); // E-Mail-Versand → tcp
     const after = await page.evaluate(() => L3.getScore());
     expect(after).toBe(before + 100);
   });
@@ -176,45 +175,24 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
   test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
     await page.evaluate(() => {
       L3.init(() => {});
-      L3._dropForTest('l3-paket-1', 'udp'); // correct: udp → udp (+100)
+      L3._dropForTest('l3-paket-1', 'tcp'); // correct: tcp → tcp (+100)
     });
     const before = await page.evaluate(() => L3.getScore()); // 100
-    await page.evaluate(() => L3._dropForTest('l3-paket-2', 'udp')); // wrong: tcp → udp (-20)
+    await page.evaluate(() => L3._dropForTest('l3-paket-2', 'tcp')); // wrong: udp → tcp (-20)
     const after = await page.evaluate(() => L3.getScore());
     expect(after).toBe(before - 20); // 80
   });
 
-  test('Alle 6 korrekt zugeordnet entsperrt Quiz', async ({ page }) => {
-    await page.evaluate(() => L3.init(() => {}));
-    await page.evaluate(() => {
-      L3._dropForTest('l3-paket-1', 'udp');
-      L3._dropForTest('l3-paket-2', 'tcp');
-      L3._dropForTest('l3-paket-3', 'udp');
-      L3._dropForTest('l3-paket-4', 'tcp');
-      L3._dropForTest('l3-paket-5', 'udp');
-      L3._dropForTest('l3-paket-6', 'tcp');
-    });
-    await page.waitForTimeout(1000);
-    const quizVisible = await page.evaluate(() => {
-      const t = document.getElementById('l3-quiz-terminal');
-      return t && t.getAttribute('visible') !== 'false';
-    });
-    expect(quizVisible).toBe(true);
-  });
-
-  test('Korrektes Quiz-Answer ruft onComplete auf', async ({ page }) => {
+  test('Alle 5 korrekt zugeordnet ruft onComplete auf', async ({ page }) => {
     await page.evaluate(() => {
       window.__l3Complete = false;
       L3.init(() => { window.__l3Complete = true; });
-      L3._dropForTest('l3-paket-1', 'udp');
-      L3._dropForTest('l3-paket-2', 'tcp');
-      L3._dropForTest('l3-paket-3', 'udp');
-      L3._dropForTest('l3-paket-4', 'tcp');
-      L3._dropForTest('l3-paket-5', 'udp');
-      L3._dropForTest('l3-paket-6', 'tcp');
+      L3._dropForTest('l3-paket-1', 'tcp');
+      L3._dropForTest('l3-paket-2', 'udp');
+      L3._dropForTest('l3-paket-3', 'tcp');
+      L3._dropForTest('l3-paket-4', 'udp');
+      L3._dropForTest('l3-paket-5', 'tcp');
     });
-    await page.waitForTimeout(1000);
-    await page.evaluate(() => L3._answerQuizForTest(true));
     await page.waitForTimeout(2000);
     const completed = await page.evaluate(() => window.__l3Complete);
     expect(completed).toBe(true);

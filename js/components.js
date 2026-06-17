@@ -65,10 +65,12 @@ AFRAME.registerComponent('collision-walls', {
       { xmin:12,    xmax:22.15, zmin:-4.15, zmax:-3.85 },
       // Versandraum – hintere Wand
       { xmin:12,    xmax:22.15, zmin:-14.15,zmax:-13.85},
-      // Rückwand — links der Tür (x=-3..+3 ist Türlücke zum Nordflügel, visuell 4m Öffnung)
-      { xmin:-20,   xmax:-3,     zmin:-16.2, zmax:-15.7 },
-      // Rückwand — rechts der Tür
-      { xmin:3,     xmax:20,     zmin:-16.2, zmax:-15.7 },
+      // Rückwand — linke Außenwand (bis Transport-Tür bei x=-7.5)
+      { xmin:-20,   xmax:-7.5,   zmin:-16.2, zmax:-15.7 },
+      // Rückwand — Mittelteil (zwischen beiden Türen, x=-4.5..+4.5)
+      { xmin:-4.5,  xmax:4.5,    zmin:-16.2, zmax:-15.7 },
+      // Rückwand — rechte Außenwand (ab Anwendungs-Tür bei x=+7.5)
+      { xmin:7.5,   xmax:20,     zmin:-16.2, zmax:-15.7 },
       // Fassade z=0 — Lücke x=-2..x=2 (Eingang)
       { xmin:-12,   xmax:-2,     zmin:-0.3,  zmax:0.3   },
       { xmin:2,     xmax:12,     zmin:-0.3,  zmax:0.3   },

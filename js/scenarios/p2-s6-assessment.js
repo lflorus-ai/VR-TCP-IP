@@ -1,4 +1,4 @@
-const P6 = (() => {
+const P2S6 = (() => {
   let _score = 0;
   let _currentQ = 0;
   let _answeredCount = 0;
