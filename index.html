@@ -1537,12 +1537,14 @@
     <!-- freien Modus per setFreeTriggersVisible(true) eingeblendet.   -->
     <!-- HINWEIS: Positionen ggf. im laufenden Spiel visuell nachjustieren. -->
     <!-- ============================================================= -->
-    <a-entity class="interactable free-trigger" id="free-trigger-s1" data-scenario="s1" position="-7 1.15 0.55" visible="false"
+    <!-- S1/S2-Knöpfe SEITLICH neben den Tafeln (Board-Halbbreite 1.8 → außen),
+         damit die Tafeln lesbar bleiben. Position ggf. visuell nachjustieren. -->
+    <a-entity class="interactable free-trigger" id="free-trigger-s1" data-scenario="s1" position="-9.2 1.4 0.5" visible="false"
               geometry="primitive:sphere; radius:0.18"
               material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
       <a-text value="S1 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
     </a-entity>
-    <a-entity class="interactable free-trigger" id="free-trigger-s2" data-scenario="s2" position="7 1.15 0.55" visible="false"
+    <a-entity class="interactable free-trigger" id="free-trigger-s2" data-scenario="s2" position="9.2 1.4 0.5" visible="false"
               geometry="primitive:sphere; radius:0.18"
               material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
       <a-text value="S2 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
@@ -1562,16 +1564,24 @@
               material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
       <a-text value="S5 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
     </a-entity>
+    <!-- Assessment-Trigger (nur Frei-Modus): startet die Gesamt-Prüfung.
+         Beim Start werden alle grünen Knöpfe ausgeblendet, Reihenfolge = geführt.
+         Mittig im Eingangsbereich; Position ggf. visuell nachjustieren. -->
+    <a-entity class="interactable free-trigger" id="free-trigger-assessment" data-scenario="assessment" position="0 1.4 -2" visible="false"
+              geometry="primitive:sphere; radius:0.20"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="ASSESSMENT STARTEN  [E]" align="center" color="#eafff0" width="3.8" position="0 0.46 0"></a-text>
+    </a-entity>
 
   </a-scene>
 
-  <script src="js/scenario-manager.js?v=1"></script>
+  <script src="js/scenario-manager.js?v=2"></script>
   <script src="js/scenarios/p2-s1-schichten.js?v=3"></script>
   <script src="js/scenarios/p2-s2-protokolle.js?v=3"></script>
   <script src="js/scenarios/p2-s3-transport.js?v=1"></script>
   <script src="js/scenarios/p2-s4-anwendung.js?v=1"></script>
   <script src="js/scenarios/p2-s5-routing.js?v=3"></script>
   <script src="js/scenarios/p2-s6-assessment.js?v=1"></script>
-  <script src="js/game.js?v=11"></script>
+  <script src="js/game.js?v=12"></script>
 </body>
 </html>
