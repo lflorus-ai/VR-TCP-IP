@@ -52,8 +52,9 @@ let selectedPaket = null;
 let score = 0;
 let gameState = 'INTRO';
 
-// Sequential zone completion tracking
-const _zoneDone = { s1: false, s2: false, s3: false, s4: false, s5: false };
+// Fortschritt + Freischaltung liegen jetzt zentral im ScenarioManager
+// (siehe js/scenario-manager.js). ScenarioManager.canEnter('sN') / .isDone('sN')
+// / .markDone('sN') ersetzen das frühere lokale _zoneDone-Objekt.
 
 let _assessmentMode = false;
 let _s5aExtras = []; // dynamically created paket-A entities for S5 assessment
@@ -99,6 +100,18 @@ function initGates() {
   const cam = document.querySelector('[collision-walls]');
   if (!cam || !cam.components['collision-walls']) return;
   Object.values(_gates).forEach(g => cam.components['collision-walls'].boxes.push(g.box));
+}
+
+// Frei-Modus: alle Türen entsperren (keine Reihenfolge erzwungen)
+function openAllGates() {
+  Object.keys(_gates).forEach(openGate);
+}
+
+// Frei-Modus: grüne Start-Knöpfe ein-/ausblenden (im geführten Modus inaktiv)
+function setFreeTriggersVisible(vis) {
+  document.querySelectorAll('.free-trigger').forEach(el => {
+    el.setAttribute('visible', vis ? 'true' : 'false');
+  });
 }
 
 // S3 state
@@ -351,6 +364,16 @@ function completeTutorial() {
   document.addEventListener('keydown', onEnterDone);
 }
 
+// Startbildschirm: Modus-Auswahl → setzt den Modus zentral und zeigt danach
+// das (in beiden Modi gleiche) Steuer-Tutorial.
+function chooseMode(mode) {
+  ScenarioManager.setMode(mode);
+  document.getElementById('mode-selector-overlay').classList.add('hidden');
+  document.getElementById('tutorial-start-overlay').classList.remove('hidden');
+}
+document.getElementById('mode-guided-btn').addEventListener('click', () => chooseMode(Mode.GUIDED));
+document.getElementById('mode-free-btn').addEventListener('click', () => chooseMode(Mode.FREE));
+
 document.getElementById('tutorial-start-btn').addEventListener('click', () => {
   document.getElementById('tutorial-start-overlay').classList.add('hidden');
   const canvas = document.querySelector('a-scene canvas');
@@ -389,12 +412,27 @@ document.getElementById('tutorial-done-btn').addEventListener('click', () => {
   document.getElementById('progress-pips').style.display  = '';
   const canvas = document.querySelector('a-scene canvas');
   if (canvas) canvas.requestPointerLock();
-  // Waypoint sofort zeigen — S1-Tafel links in der Halle
-  const wpS1immediate = document.getElementById('waypoint-s1');
-  if (wpS1immediate) wpS1immediate.setAttribute('visible', 'true');
-  setArrowTarget(-7, 0.15);
-  setInstruction('Geh zur blauen S1-Tafel links — drücke [E]');
-  showNPCBriefing();
+
+  if (ScenarioManager.isFree()) {
+    // Freier Modus: alle Türen offen, grüne Knöpfe sichtbar, keine erzwungene
+    // Reihenfolge und keine richtungsweisende Führung.
+    openAllGates();
+    setFreeTriggersVisible(true);
+    document.getElementById('s2-station').setAttribute('visible', true);
+    const hudTag = document.getElementById('hud-tag');
+    if (hudTag) hudTag.textContent = '■ Freier Modus';
+    setArrowTarget(null, null);
+    setInstruction('Freier Modus: Gehe zu einem beliebigen Raum und drücke den grünen Knopf [E].');
+    const t = document.getElementById('task-text');
+    if (t) t.textContent = 'Freier Modus — starte ein Szenario (S1–S5) per grünem Knopf.';
+  } else {
+    // Geführter Modus (bisheriges Verhalten): Wegpunkt + Pfeil zur S1-Tafel
+    const wpS1immediate = document.getElementById('waypoint-s1');
+    if (wpS1immediate) wpS1immediate.setAttribute('visible', 'true');
+    setArrowTarget(-7, 0.15);
+    setInstruction('Geh zur blauen S1-Tafel links — drücke [E]');
+    showNPCBriefing();
+  }
   updateLieferschein();
 });
 
@@ -506,7 +544,7 @@ let s2LostPackets = [];
 let s2Score = 0;
 
 function enterZoneS1() {
-  if (_zoneDone.s1) return;
+  if (!ScenarioManager.canEnter('s1')) return;
   if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
   gameState = 'ZONE_S1';
   setArrowTarget(null, null); setInstruction('');
@@ -515,7 +553,7 @@ function enterZoneS1() {
 }
 
 function enterZoneS2() {
-  if (_zoneDone.s2 || !_zoneDone.s1) return;
+  if (!ScenarioManager.canEnter('s2')) return;
   if (!['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) return;
   gameState = 'ZONE_S2';
   setArrowTarget(null, null); setInstruction('');
@@ -524,8 +562,8 @@ function enterZoneS2() {
 }
 
 function enterZoneS3() {
-  if (_zoneDone.s3) return;
-  if (!_zoneDone.s2) {
+  if (!ScenarioManager.isFree() && ScenarioManager.isDone('s3')) return;
+  if (!ScenarioManager.canEnter('s3')) {
     const t = document.getElementById('task-text');
     if (t) t.textContent = '🔒 Schließe zuerst S1 (links vom Eingang) und S2 (rechts vom Eingang) ab!';
     return;
@@ -538,21 +576,27 @@ function enterZoneS3() {
   const wpS3 = document.getElementById('waypoint-s3');
   if (wpS3) wpS3.setAttribute('visible', 'false');
   P2S3.init((score) => {
-    _zoneDone.s3 = true;
+    ScenarioManager.markDone('s3');
     gameState = 'S1_ACTIVE';
     openGate('s4door');
     const hudTag = document.getElementById('hud-tag');
-    if (hudTag) hudTag.textContent = '■ Lern-Szenario 4';
     const t = document.getElementById('task-text');
-    if (t) t.textContent = 'S3 (Transport) abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
-    setArrowTarget(-5, -20);
-    setInstruction('Geh nach links in den Anwendungs-Flügel (S4)');
+    if (ScenarioManager.isFree()) {
+      if (hudTag) hudTag.textContent = '■ Freier Modus';
+      if (t) t.textContent = 'S3 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+      setArrowTarget(null, null); setInstruction('');
+    } else {
+      if (hudTag) hudTag.textContent = '■ Lern-Szenario 4';
+      if (t) t.textContent = 'S3 (Transport) abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
+      setArrowTarget(-5, -20);
+      setInstruction('Geh nach links in den Anwendungs-Flügel (S4)');
+    }
   });
 }
 
 function enterZoneS4() {
-  if (_zoneDone.s4) return;
-  if (!_zoneDone.s3) {
+  if (!ScenarioManager.isFree() && ScenarioManager.isDone('s4')) return;
+  if (!ScenarioManager.canEnter('s4')) {
     const t = document.getElementById('task-text');
     if (t) t.textContent = '🔒 Schließe zuerst S3 (Transport-Flügel, rechte Seite) ab!';
     return;
@@ -563,21 +607,27 @@ function enterZoneS4() {
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = '■ Lern-Szenario 4 — Anwendung';
   P2S4.init((score) => {
-    _zoneDone.s4 = true;
+    ScenarioManager.markDone('s4');
     gameState = 'S1_ACTIVE';
     openGate('routing');
     const hudTag = document.getElementById('hud-tag');
-    if (hudTag) hudTag.textContent = '■ Lern-Szenario 5';
     const t = document.getElementById('task-text');
-    if (t) t.textContent = 'S4 (Anwendung) abgeschlossen! Büro-Flügel (Routing, x<-12) freigeschaltet.';
-    setArrowTarget(-13, -6);
-    setInstruction('Geh ins Büro links (weit links, S5 — Routing)');
+    if (ScenarioManager.isFree()) {
+      if (hudTag) hudTag.textContent = '■ Freier Modus';
+      if (t) t.textContent = 'S4 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+      setArrowTarget(null, null); setInstruction('');
+    } else {
+      if (hudTag) hudTag.textContent = '■ Lern-Szenario 5';
+      if (t) t.textContent = 'S4 (Anwendung) abgeschlossen! Büro-Flügel (Routing, x<-12) freigeschaltet.';
+      setArrowTarget(-13, -6);
+      setInstruction('Geh ins Büro links (weit links, S5 — Routing)');
+    }
   });
 }
 
 function enterZoneS5() {
-  if (_zoneDone.s5) return;
-  if (!_zoneDone.s4) {
+  if (!ScenarioManager.isFree() && ScenarioManager.isDone('s5')) return;
+  if (!ScenarioManager.canEnter('s5')) {
     const t = document.getElementById('task-text');
     if (t) t.textContent = '🔒 Schließe zuerst S4 (Anwendungs-Flügel, linke Seite im Nordflügel) ab!';
     return;
@@ -859,8 +909,8 @@ document.querySelectorAll('.palette-zone').forEach(pal => {
   pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
 });
 
-// Zone entities: S1, S2, P2S3, P2S4, P2S5
-document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5').forEach(el => {
+// Zone entities: S1, S2, P2S3, P2S4, P2S5 + Frei-Modus-Start-Knöpfe (.free-trigger)
+document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5, .free-trigger').forEach(el => {
   el.addEventListener('mouseenter', () => { hoveredEl = el; });
   el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
 });
@@ -1132,14 +1182,32 @@ document.addEventListener('keydown', (e) => {
     if (kioskComp) { kioskComp.toggle(); return; }
   }
 
+  // Frei-Modus: grüner Start-Knopf → zugehöriges Szenario (oder Assessment) starten
+  if (hoveredEl && ScenarioManager.isFree() && ['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+    const trig = hoveredEl.closest ? hoveredEl.closest('.free-trigger') : null;
+    if (trig) {
+      const sid = trig.getAttribute('data-scenario');
+      if (sid === 'assessment') {
+        // Assessment im Frei-Modus: alle grünen Knöpfe ausblenden, dann läuft
+        // die geführte Reihenfolge (wie im geführten Modus) bis zur Endauswertung.
+        setFreeTriggersVisible(false);
+        showFinalSummary();
+        return;
+      }
+      const scn = ScenarioManager.get(sid);
+      if (scn && scn.enter) scn.enter();
+      return;
+    }
+  }
+
   // S1/S2 Info-Board trigger
   if (hoveredEl) {
     if (_assessmentMode && gameState === 'S1_ACTIVE') {
       if (hoveredEl.classList.contains('s1-info-board')) { enterZoneS1A(); return; }
       if (hoveredEl.classList.contains('s2-info-board')) { enterZoneS2A(); return; }
     } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
-      if (hoveredEl.classList.contains('s1-info-board') && !_zoneDone.s1) { enterZoneS1(); return; }
-      if (hoveredEl.classList.contains('s2-info-board') && !_zoneDone.s2 && _zoneDone.s1) { enterZoneS2(); return; }
+      if (hoveredEl.classList.contains('s1-info-board') && ScenarioManager.canEnter('s1')) { enterZoneS1(); return; }
+      if (hoveredEl.classList.contains('s2-info-board') && ScenarioManager.canEnter('s2')) { enterZoneS2(); return; }
     }
   }
 
@@ -1909,7 +1977,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       });
     } else {
       P1.init((s) => {
-        _zoneDone.s1 = true;
+        ScenarioManager.markDone('s1');
         gameState = 'S1_ACTIVE';
         document.getElementById('s2-station').setAttribute('visible', true);
         const hudTag = document.getElementById('hud-tag');
@@ -1940,7 +2008,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       });
     } else {
       P2.init((s) => {
-        _zoneDone.s2 = true;
+        ScenarioManager.markDone('s2');
         gameState = 'S1_ACTIVE';
         openGate('s3door');
         const hudTag = document.getElementById('hud-tag');
@@ -2103,12 +2171,32 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       _cleanupS5Extras();
       gameState = 'S1_ACTIVE';
       P2S6.markDone('s5');
+    } else if (ScenarioManager.isFree()) {
+      // Frei-Modus: KEIN automatischer Assessment-Start. Zurück in die freie
+      // Wahl — das Assessment hat einen eigenen grünen Trigger.
+      ScenarioManager.markDone('s5');
+      gameState = 'S1_ACTIVE';
+      const t = document.getElementById('task-text');
+      if (t) t.textContent = 'S5 abgeschlossen! Freier Modus — wähle das nächste Szenario oder das Assessment per grünem Knopf [E].';
+      const hudTag = document.getElementById('hud-tag');
+      if (hudTag) hudTag.textContent = '■ Freier Modus';
+      const canvas = document.querySelector('a-scene canvas');
+      if (canvas) canvas.requestPointerLock();
     } else {
-      _zoneDone.s5 = true;
+      // Geführter Modus: nach S5 folgt direkt das Assessment (unverändert).
+      ScenarioManager.markDone('s5');
       gameState = 'S1_ACTIVE';
       showFinalSummary();
     }
   });
+
+  // Szenarien beim ScenarioManager registrieren (einheitlicher Vertrag).
+  // `enter` startet das Szenario; `module` ist das jeweilige IIFE-Modul.
+  ScenarioManager.register('s1', { enter: enterZoneS1, module: P1 });
+  ScenarioManager.register('s2', { enter: enterZoneS2, module: P2 });
+  ScenarioManager.register('s3', { enter: enterZoneS3, module: P2S3 });
+  ScenarioManager.register('s4', { enter: enterZoneS4, module: P2S4 });
+  ScenarioManager.register('s5', { enter: enterZoneS5, module: P2S5 });
 
   // Zone-Detektion (alle P2-Zonen)
   initGates();
@@ -2118,19 +2206,21 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     const pos = new AFRAME.THREE.Vector3();
     cam.object3D.getWorldPosition(pos);
 
-    // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger)
+    // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger).
+    // Im freien Modus erfolgt der Start NUR per grünem Knopf → kein Auto-Entry
+    // (ScenarioManager.isFree() blockt die positionsbasierten Trigger).
     if (pos.z < -16.5) {
       if (_assessmentMode && gameState === 'S1_ACTIVE') {
         if (pos.x >= 0) enterZoneS3A();
         else            enterZoneS4A();
-      } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+      } else if (!ScenarioManager.isFree() && ['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
         if (pos.x >= 0) enterZoneS3();
         else            enterZoneS4();
       }
     } else if (pos.x < -12.5 && pos.z > -12 && pos.z < 0) {
       if (_assessmentMode && gameState === 'S1_ACTIVE') {
         enterZoneS5A();
-      } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+      } else if (!ScenarioManager.isFree() && ['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
         enterZoneS5();
       }
     }
@@ -2173,6 +2263,9 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       const arrowEl = document.getElementById('dir-arrow');
       if (arrowEl) arrowEl.style.transform = `translateX(-50%) rotate(${rel}deg)`;
     }
+    // Frei-Modus: grüne Start-Knöpfe bleiben sichtbar — Szenarien sind beliebig
+    // oft wiederholbar. Ausgeblendet werden sie nur während des Assessments
+    // (siehe setFreeTriggersVisible(false) beim Assessment-Start).
   }, 400);
 
 });

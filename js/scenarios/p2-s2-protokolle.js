@@ -153,3 +153,6 @@ const P2 = (() => {
     },
   };
 })();
+
+// Alias für game.js / Tests (L2 → P2)
+const L2 = P2;

@@ -6,10 +6,18 @@ test.describe('Intro & HUD', () => {
     await page.goto('/');
   });
 
-  test('Intro-Overlay ist beim Laden sichtbar', async ({ page }) => {
-    const overlay = page.locator('#tutorial-start-overlay');
-    await expect(overlay).toBeVisible();
-    await expect(overlay).not.toHaveClass(/hidden/);
+  test('Startbildschirm (Modus-Auswahl) ist beim Laden sichtbar', async ({ page }) => {
+    const selector = page.locator('#mode-selector-overlay');
+    await expect(selector).toBeVisible();
+    await expect(selector).not.toHaveClass(/hidden/);
+    // Tutorial-Overlay erscheint erst NACH der Modus-Wahl
+    await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
+  });
+
+  test('Modus-Wahl (geführt) blendet Startbildschirm aus und zeigt Tutorial', async ({ page }) => {
+    await page.locator('#mode-guided-btn').click();
+    await expect(page.locator('#mode-selector-overlay')).toHaveClass(/hidden/);
+    await expect(page.locator('#tutorial-start-overlay')).toBeVisible();
   });
 
   test('HUD-Elemente sind vorhanden', async ({ page }) => {
@@ -23,6 +31,7 @@ test.describe('Intro & HUD', () => {
   });
 
   test('Intro-Button schließt das Overlay', async ({ page }) => {
+    await page.locator('#mode-guided-btn').click();
     await page.locator('#tutorial-start-btn').click();
     await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
   });
@@ -135,6 +144,7 @@ test.describe('S0-Update: Hallenplan + Lernziele', () => {
   });
 
   test('Tutorial-Button funktioniert weiterhin nach S0-Update', async ({ page }) => {
+    await page.locator('#mode-guided-btn').click();
     await page.locator('#tutorial-start-btn').click();
     await expect(page.locator('#tutorial-start-overlay')).toHaveClass(/hidden/);
   });
@@ -300,5 +310,50 @@ test.describe('Layer 5 — Büro-Flügel (Routing)', () => {
       P2S5._routeForTest('r5-paket-5', 'r5-exit-b');
     }));
     expect(score).toBe(500);
+  });
+});
+
+test.describe('Durchlauf-Modi (ScenarioManager)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('Geführter Modus: Reihenfolge wird erzwungen (canEnter)', async ({ page }) => {
+    await page.locator('#mode-guided-btn').click();
+    const r = await page.evaluate(() => ({
+      free: ScenarioManager.isFree(),
+      s1: ScenarioManager.canEnter('s1'),
+      s3: ScenarioManager.canEnter('s3'),
+    }));
+    expect(r.free).toBe(false);
+    expect(r.s1).toBe(true);   // erstes Szenario immer offen
+    expect(r.s3).toBe(false);  // gesperrt, solange S2 nicht abgeschlossen
+  });
+
+  test('Freier Modus: jedes Szenario sofort betretbar', async ({ page }) => {
+    await page.locator('#mode-free-btn').click();
+    const r = await page.evaluate(() => ({
+      free: ScenarioManager.isFree(),
+      all: ['s1', 's2', 's3', 's4', 's5'].map(id => ScenarioManager.canEnter(id)),
+    }));
+    expect(r.free).toBe(true);
+    expect(r.all).toEqual([true, true, true, true, true]);
+  });
+
+  test('Grüne Start-Trigger (5 Szenarien + Assessment) existieren, initial versteckt', async ({ page }) => {
+    await expect(page.locator('.free-trigger')).toHaveCount(6);
+    for (const id of ['s1', 's2', 's3', 's4', 's5', 'assessment']) {
+      await expect(page.locator(`#free-trigger-${id}`)).toHaveAttribute('visible', 'false');
+    }
+  });
+
+  test('Frei-Modus: abgeschlossenes Szenario bleibt wiederholbar (canEnter)', async ({ page }) => {
+    await page.locator('#mode-free-btn').click();
+    const r = await page.evaluate(() => {
+      ScenarioManager.markDone('s3');
+      return { done: ScenarioManager.isDone('s3'), canEnter: ScenarioManager.canEnter('s3') };
+    });
+    expect(r.done).toBe(true);
+    expect(r.canEnter).toBe(true); // trotz abgeschlossen → frei wiederholbar
   });
 });

@@ -5,7 +5,7 @@
   <title>TCP/IP Lagerhalle</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <script src="js/components.js?v=8"></script>
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -54,8 +54,32 @@
   </div>
   <div id="flash"></div>
 
+  <!-- Startbildschirm: Modus-Auswahl (zuerst sichtbar) -->
+  <div id="mode-selector-overlay">
+    <div class="overlay-box">
+      <div class="overlay-tag">TCP/IP-Lagerhaus &middot; Spielmodus</div>
+      <div class="overlay-avatar">&#127918;</div>
+      <div class="overlay-title">Wie möchtest du spielen?</div>
+      <div class="overlay-body">
+        Wähle deinen Durchlauf. Du kannst den Modus für diese Sitzung nicht mehr ändern.
+      </div>
+      <div class="mode-choice">
+        <button id="mode-guided-btn" class="mode-card">
+          <div class="mode-card-icon">&#129517;</div>
+          <div class="mode-card-title">Geführter Durchlauf</div>
+          <div class="mode-card-desc">Die Szenarien werden in fester Reihenfolge (S1&rarr;S5) durchlaufen. Jeder Raum ist gesperrt, bis die vorherige Aufgabe abgeschlossen ist.</div>
+        </button>
+        <button id="mode-free-btn" class="mode-card">
+          <div class="mode-card-icon">&#129518;</div>
+          <div class="mode-card-title">Freier Durchlauf</div>
+          <div class="mode-card-desc">Du bestimmst die Reihenfolge selbst. Keine Sperren &mdash; starte jedes Szenario per grünem Knopf im jeweiligen Raum.</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Steuer-Tutorial: Einführung (auto-start, kein Klick nötig) -->
-  <div id="tutorial-start-overlay">
+  <div id="tutorial-start-overlay" class="hidden">
     <div class="overlay-box">
       <div class="overlay-tag">Steuer-Tutorial &middot; Einführung</div>
       <div class="overlay-avatar">&#128119;</div>
@@ -1507,14 +1531,57 @@
       </a-box>
     </a-entity>
 
+    <!-- ============================================================= -->
+    <!-- Frei-Modus: grüne Start-Knöpfe je Szenario.                   -->
+    <!-- Default visible="false" (geführter Modus inaktiv). Werden im  -->
+    <!-- freien Modus per setFreeTriggersVisible(true) eingeblendet.   -->
+    <!-- HINWEIS: Positionen ggf. im laufenden Spiel visuell nachjustieren. -->
+    <!-- ============================================================= -->
+    <!-- S1/S2-Knöpfe SEITLICH neben den Tafeln (Board-Halbbreite 1.8 → außen),
+         damit die Tafeln lesbar bleiben. Position ggf. visuell nachjustieren. -->
+    <a-entity class="interactable free-trigger" id="free-trigger-s1" data-scenario="s1" position="-9.2 1.4 0.5" visible="false"
+              geometry="primitive:sphere; radius:0.18"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="S1 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
+    </a-entity>
+    <a-entity class="interactable free-trigger" id="free-trigger-s2" data-scenario="s2" position="9.2 1.4 0.5" visible="false"
+              geometry="primitive:sphere; radius:0.18"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="S2 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
+    </a-entity>
+    <a-entity class="interactable free-trigger" id="free-trigger-s3" data-scenario="s3" position="3 1.15 -20" visible="false"
+              geometry="primitive:sphere; radius:0.18"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="S3 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
+    </a-entity>
+    <a-entity class="interactable free-trigger" id="free-trigger-s4" data-scenario="s4" position="-5 1.15 -20" visible="false"
+              geometry="primitive:sphere; radius:0.18"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="S4 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
+    </a-entity>
+    <a-entity class="interactable free-trigger" id="free-trigger-s5" data-scenario="s5" position="-14 1.15 -3" visible="false"
+              geometry="primitive:sphere; radius:0.18"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="S5 STARTEN  [E]" align="center" color="#eafff0" width="3.4" position="0 0.42 0"></a-text>
+    </a-entity>
+    <!-- Assessment-Trigger (nur Frei-Modus): startet die Gesamt-Prüfung.
+         Beim Start werden alle grünen Knöpfe ausgeblendet, Reihenfolge = geführt.
+         Mittig im Eingangsbereich; Position ggf. visuell nachjustieren. -->
+    <a-entity class="interactable free-trigger" id="free-trigger-assessment" data-scenario="assessment" position="0 1.4 -2" visible="false"
+              geometry="primitive:sphere; radius:0.20"
+              material="color:#19c84f; emissive:#19c84f; emissiveIntensity:0.9">
+      <a-text value="ASSESSMENT STARTEN  [E]" align="center" color="#eafff0" width="3.8" position="0 0.46 0"></a-text>
+    </a-entity>
+
   </a-scene>
 
-  <script src="js/scenarios/p2-s1-schichten.js?v=2"></script>
-  <script src="js/scenarios/p2-s2-protokolle.js?v=2"></script>
+  <script src="js/scenario-manager.js?v=2"></script>
+  <script src="js/scenarios/p2-s1-schichten.js?v=3"></script>
+  <script src="js/scenarios/p2-s2-protokolle.js?v=3"></script>
   <script src="js/scenarios/p2-s3-transport.js?v=1"></script>
   <script src="js/scenarios/p2-s4-anwendung.js?v=1"></script>
-  <script src="js/scenarios/p2-s5-routing.js?v=2"></script>
+  <script src="js/scenarios/p2-s5-routing.js?v=3"></script>
   <script src="js/scenarios/p2-s6-assessment.js?v=1"></script>
-  <script src="js/game.js?v=9"></script>
+  <script src="js/game.js?v=12"></script>
 </body>
 </html>
