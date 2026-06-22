@@ -897,8 +897,8 @@ document.querySelectorAll('.palette-zone').forEach(pal => {
   pal.addEventListener('mouseleave', () => { if (hoveredEl === pal) hoveredEl = null; });
 });
 
-// Zone entities: S1, S2, P2S3, P2S4, P2S5
-document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5').forEach(el => {
+// Zone entities: S1, S2, P2S3, P2S4, P2S5 + Frei-Modus-Start-Knöpfe (.free-trigger)
+document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .quiz-option-s2, .paket-l3, .paket-l4, .belt-zone, .inbox-zone, .quiz-option-l3, .quiz-option-l4, .paket-r5, .router-exit, .quiz-option-r5, .free-trigger').forEach(el => {
   el.addEventListener('mouseenter', () => { hoveredEl = el; });
   el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
 });
