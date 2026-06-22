@@ -340,10 +340,20 @@ test.describe('Durchlauf-Modi (ScenarioManager)', () => {
     expect(r.all).toEqual([true, true, true, true, true]);
   });
 
-  test('5 grüne Start-Trigger existieren und sind initial versteckt', async ({ page }) => {
-    await expect(page.locator('.free-trigger')).toHaveCount(5);
-    for (const id of ['s1', 's2', 's3', 's4', 's5']) {
+  test('Grüne Start-Trigger (5 Szenarien + Assessment) existieren, initial versteckt', async ({ page }) => {
+    await expect(page.locator('.free-trigger')).toHaveCount(6);
+    for (const id of ['s1', 's2', 's3', 's4', 's5', 'assessment']) {
       await expect(page.locator(`#free-trigger-${id}`)).toHaveAttribute('visible', 'false');
     }
+  });
+
+  test('Frei-Modus: abgeschlossenes Szenario bleibt wiederholbar (canEnter)', async ({ page }) => {
+    await page.locator('#mode-free-btn').click();
+    const r = await page.evaluate(() => {
+      ScenarioManager.markDone('s3');
+      return { done: ScenarioManager.isDone('s3'), canEnter: ScenarioManager.canEnter('s3') };
+    });
+    expect(r.done).toBe(true);
+    expect(r.canEnter).toBe(true); // trotz abgeschlossen → frei wiederholbar
   });
 });

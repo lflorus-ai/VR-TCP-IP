@@ -64,11 +64,13 @@ const ScenarioManager = (() => {
     ids()             { return _order.slice(); },
 
     // ── Fortschritt / Freischaltung (die EINE Stelle für Sperrlogik) ──────
-    // Im freien Modus ist jedes noch nicht erledigte Szenario sofort spielbar.
-    // Im geführten Modus muss der direkte Vorgänger abgeschlossen sein.
+    // Im freien Modus ist JEDES Szenario jederzeit spielbar — auch erneut, also
+    // beliebig oft wiederholbar (FREE-Check VOR dem _done-Check).
+    // Im geführten Modus muss der direkte Vorgänger abgeschlossen sein und ein
+    // bereits erledigtes Szenario bleibt gesperrt.
     canEnter(id) {
-      if (_done[id]) return false;                  // bereits abgeschlossen
-      if (_mode === Mode.FREE) return true;         // frei: keine Reihenfolge
+      if (_mode === Mode.FREE) return true;         // frei: keine Sperren, wiederholbar
+      if (_done[id]) return false;                  // geführt: bereits abgeschlossen
       const i = _order.indexOf(id);
       return i <= 0 || _done[_order[i - 1]];        // geführt: Vorgänger nötig
     },
