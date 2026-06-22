@@ -47,3 +47,6 @@ const P2S5 = (() => {
     },
   };
 })();
+
+// Alias für game.js / Tests (L5 → P2S5)
+const L5 = P2S5;
