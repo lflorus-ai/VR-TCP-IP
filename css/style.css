@@ -66,6 +66,7 @@
 #tutorial-start-overlay, #tutorial-complete-overlay,
 #complete-overlay, #s2-briefing-overlay, #s2-complete-overlay, #s3-briefing-overlay,
 #s3-complete-overlay, #final-overlay, #s1-info-overlay, #s2-info-overlay,
+#s3-info-overlay, #s4-info-overlay,
 #s5-briefing-overlay, #s5-complete-overlay {
   position: fixed; inset: 0; z-index: 10000;
   background: rgba(5,10,20,0.95); backdrop-filter: blur(16px);
@@ -79,6 +80,7 @@
 #complete-overlay.hidden, #s2-briefing-overlay.hidden, #s2-complete-overlay.hidden,
 #s3-briefing-overlay.hidden, #s3-complete-overlay.hidden,
 #final-overlay.hidden, #s1-info-overlay.hidden, #s2-info-overlay.hidden,
+#s3-info-overlay.hidden, #s4-info-overlay.hidden,
 #s5-briefing-overlay.hidden, #s5-complete-overlay.hidden { display: none; }
 .hidden { display: none; }
 

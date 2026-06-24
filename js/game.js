@@ -352,6 +352,35 @@ function completeTutorial() {
   if (window._tutorialCleanup) { window._tutorialCleanup(); window._tutorialCleanup = null; }
   hideStepBanner();
   playMaxAudio('max_tutorial_complete');
+
+  // Inhalt des Abschluss-Overlays an den Modus anpassen (geführt vs. frei).
+  const body = document.getElementById('tutc-body');
+  const btn  = document.getElementById('tutorial-done-btn');
+  if (ScenarioManager.isFree()) {
+    if (body) body.innerHTML =
+      'Du weißt jetzt, wie das Lager funktioniert. Im <strong>freien Modus</strong> wählst du selbst, welches Szenario du spielst.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">🟢 Freier Modus</div>'
+      + '<p style="font-size:13px;color:#c8d8f0;line-height:1.7;margin:0">'
+      + 'Geh zu einem der <strong>grünen Knöpfe (S1–S5)</strong> und drücke <strong>[E]</strong>. '
+      + 'Du kannst die Szenarien in beliebiger Reihenfolge und beliebig oft spielen. '
+      + 'Das <strong>Assessment</strong> startest du am grünen Knopf an der Nordwand.'
+      + '</p></div>';
+    if (btn) btn.innerHTML = "Los geht's &rarr;";
+  } else {
+    if (body) body.innerHTML =
+      'Du weißt jetzt, wie das Lager funktioniert. Jetzt lernst du das <strong>TCP/IP-Modell</strong> kennen — in fünf Szenarien arbeitest du dich durch alle vier Schichten.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">📚 5 Szenarien · 4 Schichten</div>'
+      + '<p style="font-size:13px;color:#c8d8f0;line-height:1.7;margin:0">'
+      + 'Szenario 1 startet mit dem <strong>Schichtenmodell</strong>: Welche Schicht macht was? '
+      + 'Danach folgen Protokolle, Transport (TCP/UDP), Anwendung und zum Schluss das IP-Sortieren.'
+      + '</p>'
+      + '<div class="olb-example">Tafel anschauen &nbsp;→&nbsp; [E] &nbsp;→&nbsp; Quiz lösen</div>'
+      + '</div>';
+    if (btn) btn.innerHTML = 'Weiter zu Szenario 1 &rarr;';
+  }
+
   document.getElementById('tutorial-complete-overlay').classList.remove('hidden');
   setTimeout(() => document.exitPointerLock(), 300);
 
@@ -408,8 +437,9 @@ document.getElementById('tutorial-done-btn').addEventListener('click', () => {
 
   // Direkt zu S1_ACTIVE
   gameState = 'S1_ACTIVE';
-  document.getElementById('lieferschein-list').style.display = '';
-  document.getElementById('progress-pips').style.display  = '';
+  // Lieferschein-Liste/Pips/Klemmbrett gehören zum IP-Sortieren (S5) und bleiben
+  // im Hub ausgeblendet — erst beim Start von S5 sichtbar.
+  setS5Hud(false);
   const canvas = document.querySelector('a-scene canvas');
   if (canvas) canvas.requestPointerLock();
 
@@ -435,6 +465,31 @@ document.getElementById('tutorial-done-btn').addEventListener('click', () => {
   }
   updateLieferschein();
 });
+
+// IP-Sortier-HUD (Lieferschein-Liste, Fortschritts-Pips, Hand-Klemmbrett) ein-/
+// ausblenden. Diese Elemente sind Überreste des alten Lernpfads und gehören jetzt
+// ausschließlich zu Szenario 5.
+function setS5Hud(on) {
+  const disp = on ? '' : 'none';
+  const ll = document.getElementById('lieferschein-list');
+  const pp = document.getElementById('progress-pips');
+  if (ll) ll.style.display = disp;
+  if (pp) pp.style.display = disp;
+  const clip = document.getElementById('hand-clipboard');
+  if (clip) clip.setAttribute('visible', on ? 'true' : 'false');
+}
+
+// Büro-Computer (Paketverlust-Meldung der S5-Phase 2) in den Ruhezustand
+// zurücksetzen, damit die Fehlermeldung nach Abschluss von S5 nicht stehen bleibt.
+function resetOfficeComputer() {
+  const screen = document.getElementById('computer-screen');
+  if (screen) {
+    screen.removeAttribute('animation__blink');
+    screen.setAttribute('material', 'color:#001428;emissive:#002244;emissiveIntensity:0.8;shader:flat');
+  }
+  ['computer-line1', 'computer-line2', 'office-glow', 'computer-waypoint', 'computer-hint']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('visible', 'false'); });
+}
 
 // Complete overlay
 function showCompleteOverlay() {
@@ -499,20 +554,27 @@ document.getElementById('s2-briefing-ok-btn').addEventListener('click', () => {
 });
 
 let s2BriefingTimeout = null;
+// Steuert, wohin die Paketverlust-Fehlerbehandlung (S2-Mechanik) nach Abschluss
+// zurückkehrt: 's2' = klassischer Lernpfad, 's5' = als Phase 2 von Szenario 5.
+let lostPacketReturn = 's2';
 
-function showS2Transition() {
+function showS2Transition(returnTo) {
+  lostPacketReturn = returnTo || 's2';
+  const isS5 = lostPacketReturn === 's5';
   gameState = 'S2_BRIEFING';
   playMaxAudio('max_s2_briefing');
 
   const hudTag = document.getElementById('hud-tag');
-  if (hudTag) hudTag.textContent = 'Lern-Szenario 2 — Paketverlust';
+  if (hudTag) hudTag.textContent = isS5
+    ? '■ Szenario 5 — Paketverlust (TCP-Fehlerbehandlung)'
+    : 'Lern-Szenario 2 — Paketverlust';
 
   const task = document.getElementById('task-text');
   task.style.color = '#ffcc40';
   task.textContent = '① Büro links durch die Tür — tritt an den Computer heran und drücke E';
 
   showStepBanner({
-    counter: 'Szenario 2 · Schritt 1 von 2',
+    counter: isS5 ? 'Szenario 5 · Fehlerbehandlung' : 'Szenario 2 · Schritt 1 von 2',
     icon: '🖥️',
     title: 'Geh zum Computer',
     keys: ['W','A','S','D'],
@@ -561,6 +623,23 @@ function enterZoneS2() {
   document.getElementById('s2-info-overlay').classList.remove('hidden');
 }
 
+// Frei-Modus: ein laufendes Tafel-Quiz (ZONE_S1/ZONE_S2) abbrechen, damit der
+// Spieler jederzeit zu einem anderen Szenario wechseln (oder dasselbe erneut
+// lesen) kann. Räumt das Modul auf, schließt das Info-Overlay und gibt den
+// Basis-State frei, sodass die enterZoneSN-Guards wieder greifen.
+function abortBoardZoneIfActive() {
+  if (gameState === 'ZONE_S1') {
+    P1.teardown?.();
+    document.getElementById('s1-info-overlay').classList.add('hidden');
+  } else if (gameState === 'ZONE_S2') {
+    P2.teardown?.();
+    document.getElementById('s2-info-overlay').classList.add('hidden');
+  } else {
+    return;
+  }
+  gameState = 'S1_ACTIVE';
+}
+
 function enterZoneS3() {
   if (!ScenarioManager.isFree() && ScenarioManager.isDone('s3')) return;
   if (!ScenarioManager.canEnter('s3')) {
@@ -576,6 +655,7 @@ function enterZoneS3() {
   const wpS3 = document.getElementById('waypoint-s3');
   if (wpS3) wpS3.setAttribute('visible', 'false');
   P2S3.init((score) => {
+    hideStepBanner();
     ScenarioManager.markDone('s3');
     gameState = 'S1_ACTIVE';
     openGate('s4door');
@@ -592,6 +672,17 @@ function enterZoneS3() {
       setInstruction('Geh nach links in den Anwendungs-Flügel (S4)');
     }
   });
+  // Erklärung beim Betreten: was ist zu tun + Hinweis auf die Infotafel
+  showStepBanner({
+    counter: 'Szenario 3 · Transportschicht',
+    icon: '🚚',
+    title: 'TCP oder UDP?',
+    keys: ['E'],
+    desc: 'Lies zuerst die Infotafel in der Ecke ([E], wenn du davor stehst). Dann: Paket aufnehmen [E] und auf das richtige Förderband (TCP oder UDP) legen [E].',
+  });
+  setTimeout(hideStepBanner, 11000);
+  setInstruction('📋 Infotafel in der Ecke lesen: [E]  ·  Paket: [E]');
+  setTimeout(() => { if (gameState === 'ZONE_S3') setInstruction(''); }, 5000);
 }
 
 function enterZoneS4() {
@@ -607,6 +698,7 @@ function enterZoneS4() {
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = '■ Lern-Szenario 4 — Anwendung';
   P2S4.init((score) => {
+    hideStepBanner();
     ScenarioManager.markDone('s4');
     gameState = 'S1_ACTIVE';
     openGate('routing');
@@ -623,6 +715,17 @@ function enterZoneS4() {
       setInstruction('Geh ins Büro links (weit links, S5 — Routing)');
     }
   });
+  // Erklärung beim Betreten: was ist zu tun + Hinweis auf die Infotafel
+  showStepBanner({
+    counter: 'Szenario 4 · Anwendungsschicht',
+    icon: '📮',
+    title: 'Welches Protokoll?',
+    keys: ['E'],
+    desc: 'Lies zuerst die Infotafel in der Ecke ([E], wenn du davor stehst). Dann: Paket aufnehmen [E] und in den richtigen Protokoll-Briefkasten (HTTP/DNS/FTP/SMTP) tragen [E].',
+  });
+  setTimeout(hideStepBanner, 11000);
+  setInstruction('📋 Infotafel in der Ecke lesen: [E]  ·  Paket: [E]');
+  setTimeout(() => { if (gameState === 'ZONE_S4') setInstruction(''); }, 5000);
 }
 
 function enterZoneS5() {
@@ -736,6 +839,7 @@ function renderComputerScreen(lostPackets, fullList) {
   if (line2El) line2El.setAttribute('visible', 'false');
 
   if (line1El) {
+    line1El.setAttribute('visible', 'true');
     const lostIds = activeLost.map(p => p.id);
     const palName = { 'palette-1':'LKW 1', 'palette-2':'LKW 2', 'palette-3':'LKW 3', 'palette-4':'LKW 4' };
     const okCount = activeList.filter(p => !lostIds.includes(p.id)).length;
@@ -781,6 +885,7 @@ function startS2() {
   if (glow) glow.setAttribute('visible', 'false');
 
   renderLieferscheinList(s2LostPackets, 'lieferschein-list', true);
+  setClipboardText(s2LostPackets, 'VERLOREN — Neuübertragung\nMusterFirma GmbH');
 
   spawnS2Packages();
 
@@ -801,6 +906,9 @@ const s2SlotPositions = [
 
 function spawnS2Packages() {
   const scene = document.querySelector('a-scene');
+  // Reste aus einem früheren Durchlauf entfernen (S5 ist im Frei-Modus
+  // wiederholbar; gleiche Paket-IDs würden sonst doppelt im DOM landen).
+  document.querySelectorAll('.s2-paket').forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
   s2LostPackets.forEach((entry, i) => {
     const [x, y, z] = s2SlotPositions[i] || [8.0, 3.62, -8.5];
 
@@ -914,6 +1022,15 @@ document.querySelectorAll('.s1-info-board, .s2-info-board, .quiz-option-s1, .qui
   el.addEventListener('mouseenter', () => { hoveredEl = el; });
   el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
 });
+
+// Hover-Registrierung für dynamisch erzeugte Interactables (z.B. Assessment-
+// Zusatzpakete in p2-s3-transport.js), die nach dem initialen querySelectorAll
+// entstehen und sonst nie hoveredEl setzen → nicht aufnehmbar.
+function registerHover(el) {
+  el.addEventListener('mouseenter', () => { hoveredEl = el; });
+  el.addEventListener('mouseleave', () => { if (hoveredEl === el) hoveredEl = null; });
+}
+window.registerHover = registerHover;
 
 // B: Netzklasse ermitteln
 function getNetClass(ip) {
@@ -1119,14 +1236,18 @@ function interactWithPalette(pal) {
     } else if (gameState === 'S2_ACTIVE') {
       updateS2Lieferschein();
       if (s2LostPackets.every(x=>x.done)) {
-        setTimeout(showS2CompleteOverlay, 1600);
+        // Phase 2 von S5 → zurück zum S5-Abschluss; sonst klassischer S2-Abschluss.
+        if (lostPacketReturn === 's5') setTimeout(showS5CompleteOverlay, 1600);
+        else setTimeout(showS2CompleteOverlay, 1600);
       }
     } else if (gameState === 'S5_ACTIVE') {
       updateLieferschein(); updatePips();
       checkPaletteComplete(palId, lieferschein);
       if (lieferschein.every(x=>x.done)) {
         stopTimer();
-        setTimeout(showS5CompleteOverlay, 1600);
+        // Nach dem Sortieren folgt die TCP-Fehlerbehandlung (Paketverlust) als
+        // Phase 2 von S5 — erst danach der Abschluss-Screen.
+        setTimeout(() => showS2Transition('s5'), 1600);
       }
     } else {
       updateLieferschein(); updatePips();
@@ -1175,17 +1296,30 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key !== 'e' && e.key !== 'E') return;
 
-  // Kiosk-Interaktion (works in any state)
-  if (hoveredEl) {
-    const kioskEl = hoveredEl.closest ? hoveredEl.closest('[kiosk-interaction]') : null;
-    const kioskComp = kioskEl && kioskEl.components && kioskEl.components['kiosk-interaction'];
-    if (kioskComp) { kioskComp.toggle(); return; }
+  // Kiosk-Interaktion (Info-Tafeln S3/S4) — proximitybasiert, in jedem State.
+  // Die Kioske haben kein interactable-Kind (Fadenkreuz trifft sie nicht), daher
+  // per Nähe: ist ein Kiosk in Reichweite (_hintVisible) und der Spieler zielt
+  // nicht gerade auf ein Paket/Band, öffnet E das Info-Overlay (wie bei S1/S2).
+  if (!hoveredEl) {
+    const kiosks = document.querySelectorAll('[kiosk-interaction]');
+    for (const kEl of kiosks) {
+      const comp = kEl.components && kEl.components['kiosk-interaction'];
+      if (comp && comp._hintVisible) {
+        const ov = document.getElementById(kEl.id === 'l4-kiosk' ? 's4-info-overlay' : 's3-info-overlay');
+        if (ov) ov.classList.remove('hidden');
+        document.exitPointerLock();
+        return;
+      }
+    }
   }
 
-  // Frei-Modus: grüner Start-Knopf → zugehöriges Szenario (oder Assessment) starten
-  if (hoveredEl && ScenarioManager.isFree() && ['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
+  // Frei-Modus: grüner Start-Knopf → zugehöriges Szenario (oder Assessment) starten.
+  // ZONE_S1/ZONE_S2 sind erlaubt, damit man aus einem laufenden Tafel-Quiz heraus
+  // direkt zu einem anderen Szenario wechseln (oder dasselbe erneut lesen) kann.
+  if (hoveredEl && ScenarioManager.isFree() && ['S1_ACTIVE', 'INTRO', 'TUTORIAL', 'ZONE_S1', 'ZONE_S2'].includes(gameState)) {
     const trig = hoveredEl.closest ? hoveredEl.closest('.free-trigger') : null;
     if (trig) {
+      abortBoardZoneIfActive();   // laufendes Tafel-Quiz abbrechen, falls aktiv
       const sid = trig.getAttribute('data-scenario');
       if (sid === 'assessment') {
         // Assessment im Frei-Modus: alle grünen Knöpfe ausblenden, dann läuft
@@ -1205,9 +1339,14 @@ document.addEventListener('keydown', (e) => {
     if (_assessmentMode && gameState === 'S1_ACTIVE') {
       if (hoveredEl.classList.contains('s1-info-board')) { enterZoneS1A(); return; }
       if (hoveredEl.classList.contains('s2-info-board')) { enterZoneS2A(); return; }
-    } else if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState)) {
-      if (hoveredEl.classList.contains('s1-info-board') && ScenarioManager.canEnter('s1')) { enterZoneS1(); return; }
-      if (hoveredEl.classList.contains('s2-info-board') && ScenarioManager.canEnter('s2')) { enterZoneS2(); return; }
+    } else {
+      // Frei-Modus: auch aus einem laufenden Tafel-Quiz (ZONE_S1/ZONE_S2) heraus
+      // darf die andere/eigene Tafel erneut angeschaut werden.
+      const freeSwitch = ScenarioManager.isFree() && ['ZONE_S1', 'ZONE_S2'].includes(gameState);
+      if (['S1_ACTIVE', 'INTRO', 'TUTORIAL'].includes(gameState) || freeSwitch) {
+        if (hoveredEl.classList.contains('s1-info-board') && ScenarioManager.canEnter('s1')) { abortBoardZoneIfActive(); enterZoneS1(); return; }
+        if (hoveredEl.classList.contains('s2-info-board') && ScenarioManager.canEnter('s2')) { abortBoardZoneIfActive(); enterZoneS2(); return; }
+      }
     }
   }
 
@@ -1254,14 +1393,19 @@ function updatePips() {
   });
 }
 
-function updateLieferschein() {
-  // 3D Clipboard (a-text, kein Strikethrough möglich)
-  const rows = lieferschein.map(e =>
+// Hand-Klemmbrett (3D a-text, kein Strikethrough möglich) mit einer Paketliste
+// befüllen. Wird sowohl für die normale Lieferung als auch für die
+// Paketverlust-Phase (S5 Phase 2) genutzt, damit das Klemmbrett zur HUD-Liste passt.
+function setClipboardText(entries, header) {
+  const rows = entries.map(e =>
     e.done ? 'v ' + e.id + ' erledigt' : '  ' + e.id + '  ' + e.ip
   ).join('\n');
   const th = document.getElementById('ls-text-hand');
-  if (th) th.setAttribute('value', 'MusterFirma GmbH\n14.01.2026\n\nID      IP\n' + rows);
+  if (th) th.setAttribute('value', (header || 'MusterFirma GmbH\n14.01.2026') + '\n\nID      IP\n' + rows);
+}
 
+function updateLieferschein() {
+  setClipboardText(lieferschein);
   // HTML-HUD mit Strikethrough
   renderLieferscheinList(lieferschein, 'lieferschein-list');
 }
@@ -1292,6 +1436,7 @@ function renderLieferscheinList(entries, containerId, showDest) {
 
 function updateS2Lieferschein() {
   renderLieferscheinList(s2LostPackets, 'lieferschein-list', true);
+  setClipboardText(s2LostPackets, 'VERLOREN — Neuübertragung\nMusterFirma GmbH');
 }
 
 function showFeedback(msg, ok) {
@@ -1901,6 +2046,10 @@ function resetToS1() {
 
 function showFinalSummary() {
   _assessmentMode = true;
+  // Lern-Tafeln S1/S2 neutralisieren, damit beim Assessment nicht die alte
+  // Lern-Frage inkl. markierter Lösung an der Tafel hängen bleibt.
+  P1.reset?.();
+  P2.reset?.();
   P2S6.start(function() { _showFinalOverlay(); });
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = '■ Assessment — alle Zonen';
@@ -1981,15 +2130,23 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         gameState = 'S1_ACTIVE';
         document.getElementById('s2-station').setAttribute('visible', true);
         const hudTag = document.getElementById('hud-tag');
-        if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
-        const wpS1 = document.getElementById('waypoint-s1');
-        if (wpS1) wpS1.setAttribute('visible', 'false');
-        const wpS2 = document.getElementById('waypoint-s2');
-        if (wpS2) wpS2.setAttribute('visible', 'true');
         const t = document.getElementById('task-text');
-        if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
-        setArrowTarget(7, 0.15);
-        setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
+        if (ScenarioManager.isFree()) {
+          if (hudTag) hudTag.textContent = '■ Freier Modus';
+          if (t) t.textContent = 'S1 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+          const wpS1 = document.getElementById('waypoint-s1');
+          if (wpS1) wpS1.setAttribute('visible', 'false');
+          setArrowTarget(null, null); setInstruction('');
+        } else {
+          if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
+          const wpS1 = document.getElementById('waypoint-s1');
+          if (wpS1) wpS1.setAttribute('visible', 'false');
+          const wpS2 = document.getElementById('waypoint-s2');
+          if (wpS2) wpS2.setAttribute('visible', 'true');
+          if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
+          setArrowTarget(7, 0.15);
+          setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
+        }
       });
     }
   });
@@ -2012,17 +2169,34 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         gameState = 'S1_ACTIVE';
         openGate('s3door');
         const hudTag = document.getElementById('hud-tag');
-        if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
+        const t = document.getElementById('task-text');
         const wpS2 = document.getElementById('waypoint-s2');
         if (wpS2) wpS2.setAttribute('visible', 'false');
-        const wpS3 = document.getElementById('waypoint-s3');
-        if (wpS3) wpS3.setAttribute('visible', 'true');
-        const t = document.getElementById('task-text');
-        if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
-        setArrowTarget(5, -20);
-        setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
+        if (ScenarioManager.isFree()) {
+          if (hudTag) hudTag.textContent = '■ Freier Modus';
+          if (t) t.textContent = 'S2 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+          setArrowTarget(null, null); setInstruction('');
+        } else {
+          if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
+          const wpS3 = document.getElementById('waypoint-s3');
+          if (wpS3) wpS3.setAttribute('visible', 'true');
+          if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
+          setArrowTarget(5, -20);
+          setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
+        }
       });
     }
+  });
+
+  // S3/S4 Info-Overlays (reine Infotafeln, kein Quiz) — schließen + Maus wieder sperren
+  ['s3-info-close', 's4-info-close'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      document.getElementById(id.replace('-close', '-overlay')).classList.add('hidden');
+      const canvas = document.querySelector('a-scene canvas');
+      if (canvas) canvas.requestPointerLock();
+    });
   });
 
   function _resetS5Packets(baseIds, slotOffset) {
@@ -2086,6 +2260,24 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       el.appendChild(labelWrapper);
 
       scene.appendChild(el);
+      // Hover-Listener nachrüsten: dynamisch erzeugte Pakete bekommen sonst nie
+      // die mouseenter/mouseleave-Handler (die nur beim Laden via querySelectorAll
+      // verteilt werden) → hoveredEl bleibt null → nicht aufnehmbar.
+      // Beim Verlassen den gelben Eigenglow (#ffaa00) wiederherstellen statt #000000.
+      el.addEventListener('mouseenter', () => {
+        hoveredEl = el;
+        if (el !== selectedPaket) {
+          el.setAttribute('material', 'emissive', '#ffcc40');
+          el.setAttribute('material', 'emissiveIntensity', '0.7');
+        }
+      });
+      el.addEventListener('mouseleave', () => {
+        if (hoveredEl === el) hoveredEl = null;
+        if (el !== selectedPaket) {
+          el.setAttribute('material', 'emissive', '#ffaa00');
+          el.setAttribute('material', 'emissiveIntensity', '0.4');
+        }
+      });
       _s5aExtras.push(el);
     });
   }
@@ -2105,6 +2297,9 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   // S5-Briefing: Spielmechanik starten
   document.getElementById('s5-briefing-start-btn').addEventListener('click', () => {
     document.getElementById('s5-briefing-overlay').classList.add('hidden');
+
+    // IP-Sortier-HUD + Hand-Klemmbrett einblenden (gehören zu S5)
+    setS5Hud(true);
 
     dropSelectedPaket();
     shuffle(slotPool);
@@ -2167,6 +2362,10 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   // S5-Abschluss: Gesamtauswertung anzeigen
   document.getElementById('s5-complete-btn').addEventListener('click', () => {
     document.getElementById('s5-complete-overlay').classList.add('hidden');
+    // IP-Sortier-HUD + Klemmbrett wieder ausblenden (gehören nur zu S5)
+    setS5Hud(false);
+    // Paketverlust-Meldung am Büro-Computer zurücksetzen (S5 ist abgeschlossen)
+    resetOfficeComputer();
     if (_assessmentMode) {
       _cleanupS5Extras();
       gameState = 'S1_ACTIVE';
@@ -2228,21 +2427,21 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     if (pos.z >= -15.5) {
       if (gameState === 'ZONE_S3') {
         P2S3.teardown(); gameState = 'S1_ACTIVE';
+        hideStepBanner(); setInstruction('');
         const t = document.getElementById('task-text');
         if (t) t.textContent = 'Haupthalle — S3 abgebrochen. Geh erneut in den Transport-Flügel (rechts).';
       } else if (gameState === 'ZONE_S4') {
         P2S4.teardown(); gameState = 'S1_ACTIVE';
+        hideStepBanner(); setInstruction('');
         const t = document.getElementById('task-text');
         if (t) t.textContent = 'Haupthalle — S4 abgebrochen. Geh erneut in den Anwendungs-Flügel (links).';
       }
     }
-    // Exit — Büro zurück in Haupthalle (nur wenn Briefing noch läuft, nicht wenn S5_ACTIVE)
-    if (pos.x >= -11.5 && gameState === 'ZONE_S5') {
-      document.getElementById('s5-briefing-overlay').classList.add('hidden');
-      gameState = 'S1_ACTIVE';
-      const t = document.getElementById('task-text');
-      if (t) t.textContent = 'Haupthalle — S5 abgebrochen. Geh erneut ins Büro.';
-    }
+    // (Früher: positionsbasierter Abbruch des S5-Briefings beim Verlassen des Büros.
+    //  Entfernt — das Briefing ist ein modales Overlay (Pointer entsperrt, keine
+    //  Bewegung möglich) und wird im Frei-Modus vom grünen Knopf in der Haupthalle
+    //  ausgelöst. Die Prüfung feuerte dort sofort und schloss das Overlay direkt
+    //  wieder. Beendet wird das Briefing jetzt ausschließlich über seine Buttons.)
     // Richtungspfeil drehen: Zielrichtung in Kamera-Lokalraum projizieren
     if (_arrowTarget) {
       const THREE = AFRAME.THREE;

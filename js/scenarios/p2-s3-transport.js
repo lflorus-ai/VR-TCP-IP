@@ -32,20 +32,22 @@ const P2S3 = (() => {
     },
   ];
 
+  // Zusatzpakete fürs Assessment: liegen in den freien Plätzen der Tisch-Reihe
+  // (Originale stehen bei x=4.2..8.0, z≈-19.5; Tisch ist im Assessment auf width:9 verbreitert)
   const ASSESSMENT_EXTRA = [
     {
       id: 'l3-paket-6', protocol: 'udp', label: 'DNS-Anfrage',
-      pos: [4.2, 1.18, -21.5],
+      pos: [2.0, 1.18, -19.5], color: '#c8a060',
       reason: '✓ UDP — DNS-Abfragen sind kurz; Geschwindigkeit zählt mehr als Garantie.',
     },
     {
       id: 'l3-paket-7', protocol: 'tcp', label: 'SSH-Verbindung',
-      pos: [5.2, 1.18, -21.3],
+      pos: [3.0, 1.18, -19.5], color: '#b09050',
       reason: '✓ TCP — SSH braucht eine zuverlässige, gesicherte Verbindung.',
     },
     {
       id: 'l3-paket-8', protocol: 'udp', label: 'VoIP-Telefonie',
-      pos: [6.2, 1.18, -21.7],
+      pos: [9.0, 1.18, -19.5], color: '#d0a850',
       reason: '✓ UDP — VoIP toleriert kurze Verluste, braucht keine Bestätigung.',
     },
   ];
@@ -109,18 +111,35 @@ const P2S3 = (() => {
       el.setAttribute('id', p.id);
       el.setAttribute('class', 'interactable paket-l3');
       el.setAttribute('data-protocol', p.protocol);
-      el.setAttribute('geometry', 'primitive:box;width:0.45;height:0.35;depth:0.35');
-      el.setAttribute('material', 'color:#c8a060;roughness:0.9');
+      // gleiche Geometrie wie die Original-Pakete (l3-paket-1..5)
+      el.setAttribute('geometry', 'primitive:box;width:0.55;height:0.48;depth:0.48');
+      el.setAttribute('material', 'color:' + (p.color || '#c8a060') + ';roughness:0.9');
       el.setAttribute('position', p.pos.join(' '));
       el.setAttribute('shadow', 'cast:true;receive:true');
+
+      // kamera-zugewandtes Label mit Hintergrundplatte (wie Originale) → keine
+      // überlappenden Welttexte mehr
+      const labelWrap = document.createElement('a-entity');
+      labelWrap.setAttribute('look-at', '[camera]');
+      labelWrap.setAttribute('position', '0 0.3 0');
+      const plane = document.createElement('a-plane');
+      plane.setAttribute('material', 'color:#0a1828;opacity:0.9;shader:flat;side:double');
+      plane.setAttribute('width', '0.6');
+      plane.setAttribute('height', '0.16');
       const txt = document.createElement('a-text');
       txt.setAttribute('value', p.label);
+      txt.setAttribute('color', '#a8d8ff');
+      txt.setAttribute('scale', '0.42 0.42 0.42');
       txt.setAttribute('align', 'center');
-      txt.setAttribute('color', '#ffffff');
-      txt.setAttribute('scale', '0.5 0.5 0.5');
-      txt.setAttribute('position', '0 0.28 0.18');
-      el.appendChild(txt);
+      txt.setAttribute('position', '0 0 0.002');
+      txt.setAttribute('material', 'shader:flat');
+      labelWrap.appendChild(plane);
+      labelWrap.appendChild(txt);
+      el.appendChild(labelWrap);
+
       scene.appendChild(el);
+      // Hover-Listener nachrüsten, damit hoveredEl gesetzt wird (sonst nicht aufnehmbar)
+      if (window.registerHover) window.registerHover(el);
       _dynamicEntities.push(el);
     });
   }
@@ -234,7 +253,8 @@ const P2S3 = (() => {
         const badge = document.getElementById('selected-badge');
         if (badge) {
           badge.classList.add('visible');
-          badge.textContent = '📦 ' + (target.getAttribute('data-protocol') || '').toUpperCase() + '?';
+          const picked = _activePackets ? _activePackets.find(p => p.id === target.id) : null;
+          badge.textContent = '📦 ' + (picked ? picked.label : '');
         }
         target.setAttribute('material', 'color:#ffffff');
         return true;

@@ -134,6 +134,27 @@ const P1 = (() => {
 
     teardown() { _onComplete = null; },
 
+    // Setzt die Tafel auf den neutralen Ausgangszustand zurück (kein hinterlegtes
+    // Quiz, keine markierte Antwort). Vor dem Assessment aufgerufen, damit nicht
+    // die alte Lern-Frage inkl. grün markierter Lösung sichtbar bleibt.
+    reset() {
+      _quizAnswered = false;
+      _assessMode = false;
+      _quizRound = 0;
+      const q = document.getElementById('s1-quiz-question');
+      if (q) q.setAttribute('value', 'Lies zuerst die Info-Tafel [ E ]');
+      ['a', 'b', 'c', 'd'].forEach((id, i) => {
+        const box = document.getElementById('s1-quiz-' + id);
+        if (box) {
+          box.setAttribute('data-correct', 'false');
+          box._opt = null;
+          box.setAttribute('material', 'color:#1a2040;roughness:0.5');
+        }
+        const txt = document.getElementById('s1-quiz-' + id + '-text');
+        if (txt) txt.setAttribute('value', ['A', 'B', 'C', 'D'][i] + ': ...');
+      });
+    },
+
     getScore() { return _score; },
 
     handlePickup(target) {

@@ -35,25 +35,27 @@ const P2S4 = (() => {
     },
   ];
 
+  // Zusatzpakete fürs Assessment: liegen in den freien Plätzen der Tisch-Reihe
+  // (Originale stehen bei x=-4.5..-9.0, z≈-21.5; Tisch ist im Assessment auf width:10 verbreitert)
   const ASSESSMENT_EXTRA = [
     {
       id: 'l4-paket-7', protocol: 'http', label: 'REST-API-Aufruf',
-      pos: [-4.5, 1.18, -23.3],
+      pos: [-3.5, 1.18, -21.5], color: '#c8a060',
       reason: '✓ HTTP — REST-Dienste nutzen HTTP als Übertragungsprotokoll.',
     },
     {
       id: 'l4-paket-8', protocol: 'smtp', label: 'Newsletter senden',
-      pos: [-5.5, 1.18, -23.1],
+      pos: [-2.5, 1.18, -21.5], color: '#b09050',
       reason: '✓ SMTP — Auch Massen-E-Mails werden per SMTP versendet.',
     },
     {
       id: 'l4-paket-9', protocol: 'ftp', label: 'Backup hochladen',
-      pos: [-6.5, 1.18, -23.5],
+      pos: [-10.0, 1.18, -21.5], color: '#d0a850',
       reason: '✓ FTP — FTP überträgt große Dateien wie Backups zuverlässig.',
     },
     {
       id: 'l4-paket-10', protocol: 'dns', label: 'MX-Record abfragen',
-      pos: [-7.5, 1.18, -23.3],
+      pos: [-11.0, 1.18, -21.5], color: '#c8a060',
       reason: '✓ DNS — MX-Records im DNS verweisen auf Mailserver.',
     },
   ];
@@ -133,18 +135,35 @@ const P2S4 = (() => {
       el.setAttribute('id', p.id);
       el.setAttribute('class', 'interactable paket-l4');
       el.setAttribute('data-protocol', p.protocol);
-      el.setAttribute('geometry', 'primitive:box;width:0.45;height:0.35;depth:0.35');
-      el.setAttribute('material', 'color:#c8a060;roughness:0.9');
+      // gleiche Geometrie wie die Original-Pakete (l4-paket-1..6)
+      el.setAttribute('geometry', 'primitive:box;width:0.55;height:0.48;depth:0.48');
+      el.setAttribute('material', 'color:' + (p.color || '#c8a060') + ';roughness:0.9');
       el.setAttribute('position', p.pos.join(' '));
       el.setAttribute('shadow', 'cast:true;receive:true');
+
+      // kamera-zugewandtes Label mit Hintergrundplatte (wie Originale) → keine
+      // überlappenden Welttexte mehr
+      const labelWrap = document.createElement('a-entity');
+      labelWrap.setAttribute('look-at', '[camera]');
+      labelWrap.setAttribute('position', '0 0.3 0');
+      const plane = document.createElement('a-plane');
+      plane.setAttribute('material', 'color:#0a1828;opacity:0.9;shader:flat;side:double');
+      plane.setAttribute('width', '0.55');
+      plane.setAttribute('height', '0.12');
       const txt = document.createElement('a-text');
       txt.setAttribute('value', p.label);
+      txt.setAttribute('color', '#a8d8ff');
+      txt.setAttribute('scale', '0.38 0.38 0.38');
       txt.setAttribute('align', 'center');
-      txt.setAttribute('color', '#ffffff');
-      txt.setAttribute('scale', '0.5 0.5 0.5');
-      txt.setAttribute('position', '0 0.28 0.18');
-      el.appendChild(txt);
+      txt.setAttribute('position', '0 0 0.002');
+      txt.setAttribute('material', 'shader:flat');
+      labelWrap.appendChild(plane);
+      labelWrap.appendChild(txt);
+      el.appendChild(labelWrap);
+
       scene.appendChild(el);
+      // Hover-Listener nachrüsten, damit hoveredEl gesetzt wird (sonst nicht aufnehmbar)
+      if (window.registerHover) window.registerHover(el);
       _dynamicEntities.push(el);
     });
   }
@@ -256,7 +275,8 @@ const P2S4 = (() => {
         const badge = document.getElementById('selected-badge');
         if (badge) {
           badge.classList.add('visible');
-          badge.textContent = '📦 ' + (target.getAttribute('data-protocol') || '').toUpperCase() + '?';
+          const picked = _activePackets ? _activePackets.find(p => p.id === target.id) : null;
+          badge.textContent = '📦 ' + (picked ? picked.label : '');
         }
         target.setAttribute('material', 'color:#ffffff');
         return true;
