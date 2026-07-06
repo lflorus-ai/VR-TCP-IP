@@ -2,9 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <!-- Kein Caching der Einstiegsdatei: die Script-Versionen (?v=) stehen hier
+       drin — eine gecachte index.html würde sonst alte JS-/CSS-Stände laden. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>TCP/IP Lagerhalle</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-  <script src="js/components.js?v=8"></script>
+  <script src="js/components.js?v=9"></script>
   <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
@@ -351,15 +356,19 @@
       <div class="overlay-title">Spiel abgeschlossen!</div>
       <div id="final-max-quote" style="font-size:14px;color:#64a0ff;font-style:italic;margin:8px 0 12px;line-height:1.5;"></div>
       <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px 20px;margin:12px 0;font-size:13px;line-height:2.1;">
-        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">Szenario 1</span><span id="final-s1">—</span></div>
-        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">Szenario 2</span><span id="final-s2">—</span></div>
-        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">Assessment</span><span id="final-s3">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">S1 &middot; TCP/IP-Schichten</span><span id="final-s1">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">S2 &middot; Protokolle</span><span id="final-s2">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">S3 &middot; Transport (TCP/UDP)</span><span id="final-s3">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">S4 &middot; Anwendung</span><span id="final-s4">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">S5 &middot; IP-Routing</span><span id="final-s5">—</span></div>
         <div style="border-top:1px solid rgba(255,255,255,0.12);margin:8px 0;"></div>
         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;"><span>Gesamt</span><span id="final-total">—</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:#aabbc8;">Genauigkeit</span><span id="final-percent">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;"><span>Bewertung</span><span id="final-grade">—</span></div>
         <div style="display:flex;justify-content:space-between;color:#aabbc8;"><span>Gesamtzeit</span><span id="final-time">—</span></div>
       </div>
       <div class="overlay-body" style="font-size:12px;color:#8899aa;">
-        Du hast alle drei Szenarien abgeschlossen und dabei die Grundlagen von TCP/IP &mdash; IP-Adressierung, Netzwerke und Retransmission &mdash; in der Praxis erlebt.
+        Die Bewertung ergibt sich aus deiner Genauigkeit &uuml;ber alle f&uuml;nf Szenarien &mdash; Schichtenmodell, Protokolle, TCP/UDP, Anwendungsschicht und IP-Routing. Die Zeit z&auml;hlt als Tempo-Signal, beeinflusst die Note aber nicht.
       </div>
     </div>
   </div>
@@ -1009,7 +1018,7 @@
       <a-box material="color:#1e3a5f;roughness:0.7" width="2.3" height="0.06" depth="7" position="0 0.66 0"></a-box>
       <a-box material="color:#3060a0;shader:flat;opacity:0.9" width="2.3" height="0.02" depth="0.35" position="0 0.68 0"
              animation="property:position.z;from:-3.5;to:3.5;dur:2500;loop:true;easing:linear"></a-box>
-      <a-plane material="color:#0d1a30;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
+      <a-plane look-at="[camera]" material="color:#0d1a30;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
         <a-text value="TCP" color="#64a0ff" scale="0.6 0.6 0.6" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="Zuverlässig · Bestätigt" color="#8899bb" scale="0.22 0.22 0.22" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1023,7 +1032,7 @@
       <a-box material="color:#3d1e00;roughness:0.7" width="2.3" height="0.06" depth="7" position="0 0.66 0"></a-box>
       <a-box material="color:#c05010;shader:flat;opacity:0.9" width="2.3" height="0.02" depth="0.35" position="0 0.68 0"
              animation="property:position.z;from:-3.5;to:3.5;dur:1200;loop:true;easing:linear"></a-box>
-      <a-plane material="color:#1a0800;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
+      <a-plane look-at="[camera]" material="color:#1a0800;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
         <a-text value="UDP" color="#ff7830" scale="0.6 0.6 0.6" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="Schnell · Verbindungslos" color="#bb7755" scale="0.22 0.22 0.22" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1094,15 +1103,31 @@
 
     <!-- P2S3 Info-Kiosk -->
     <a-entity id="l3-kiosk" kiosk-interaction position="1.2 0 -20.5">
-      <a-box material="color:#252830;roughness:0.4;metalness:0.6" width="0.9" height="1.4" depth="0.45" position="0 0.7 0"></a-box>
-      <a-plane id="l3-kiosk-screen" material="color:#001428;emissive:#001428;emissiveIntensity:0.8;shader:flat"
-               width="0.75" height="1.0" position="0 0.75 0.23"></a-plane>
+      <a-box material="color:#2e3442;roughness:0.4;metalness:0.6" width="0.9" height="1.4" depth="0.45" position="0 0.7 0"></a-box>
+      <!-- Leuchtender Akzentrahmen hinter dem Screen (flat = volle Helligkeit) -->
+      <a-plane material="color:#64a0ff;shader:flat;side:double" width="0.86" height="1.12" position="0 0.75 0.224"></a-plane>
+      <!-- Heller, leuchtender Screen (flat ignoriert emissive → helle color nötig) -->
+      <a-plane id="l3-kiosk-screen" material="color:#123a66;shader:flat"
+               width="0.75" height="1.0" position="0 0.75 0.232"></a-plane>
+      <!-- Dauerhaft sichtbarer Info-Inhalt auf dem Screen -->
+      <a-circle material="color:#bfe0ff;shader:flat" radius="0.16" position="0 1.04 0.236"></a-circle>
+      <a-text value="i" color="#123a66" scale="0.42 0.42 0.42" align="center" position="0 1.04 0.238" material="shader:flat"></a-text>
+      <a-text value="INFO" color="#ffffff" scale="0.3 0.3 0.3" align="center" position="0 0.72 0.236" material="shader:flat"></a-text>
+      <a-text value="TCP / UDP" color="#acd2ff" scale="0.17 0.17 0.17" align="center" position="0 0.48 0.236" material="shader:flat"></a-text>
       <a-text id="l3-kiosk-text" visible="false"
               value="TCP — Transmission Control Protocol&#10;&#10;• Verbindungsorientiert&#10;• Garantiert Zustellung&#10;• Bestätigt jedes Paket&#10;• Nutze für: Dateien, E-Mails, Web&#10;&#10;UDP — User Datagram Protocol&#10;&#10;• Verbindungslos&#10;• Keine Bestätigung&#10;• Sehr schnell&#10;• Nutze für: Video, Gaming, DNS"
               color="#a8d8ff" scale="0.12 0.12 0.12" position="-0.34 1.2 0.24" width="5.5" wrap-count="28" material="shader:flat"></a-text>
-      <a-entity id="l3-kiosk-hint" position="0 1.7 0" visible="false">
-        <a-plane material="color:#1a2844;opacity:0.9;shader:flat" width="0.65" height="0.18"></a-plane>
-        <a-text value="E — Info lesen" color="#64a0ff" scale="0.17 0.17 0.17" position="0 0 0.01" align="center" material="shader:flat"></a-text>
+      <!-- Schwebendes Beacon: immer sichtbar, pulsiert, dreht sich zum Spieler -->
+      <a-entity look-at="[camera]" position="0 2.15 0"
+                animation="property:position.y;from:2.08;to:2.28;dir:alternate;loop:true;dur:1500;easing:easeInOutSine">
+        <a-circle material="color:#64a0ff;shader:flat;side:double" radius="0.2"
+                  animation__pulse="property:scale;from:0.85 0.85 0.85;to:1.15 1.15 1.15;dir:alternate;loop:true;dur:850;easing:easeInOutSine"></a-circle>
+        <a-text value="i" color="#0a1830" scale="0.5 0.5 0.5" align="center" position="0 0 0.01" material="shader:flat"></a-text>
+      </a-entity>
+      <a-entity id="l3-kiosk-hint" position="0 1.62 0" look-at="[camera]" visible="false">
+        <a-plane material="color:#1b3e6e;opacity:0.97;shader:flat" width="0.8" height="0.2"></a-plane>
+        <a-plane material="color:#64a0ff;shader:flat" width="0.8" height="0.028" position="0 -0.1 0.005"></a-plane>
+        <a-text value="[E] Info lesen" color="#dcebff" scale="0.18 0.18 0.18" position="0 0.01 0.01" align="center" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
 
@@ -1141,7 +1166,7 @@
     <!-- Protokoll-Briefkästen -->
     <a-entity id="l4-inbox-http" position="-10 0 -29" visible="false">
       <a-box material="color:#1a2040;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane material="color:#0d1a30;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
+      <a-plane look-at="[camera]" material="color:#0d1a30;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
         <a-text value="HTTP" color="#64a0ff" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="Web-Seiten &amp; APIs" color="#8899aa" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1151,7 +1176,7 @@
 
     <a-entity id="l4-inbox-dns" position="-7 0 -29" visible="false">
       <a-box material="color:#201a00;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane material="color:#1a1400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
+      <a-plane look-at="[camera]" material="color:#1a1400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
         <a-text value="DNS" color="#f5c518" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="Domain-Auflösung" color="#aa9955" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1161,7 +1186,7 @@
 
     <a-entity id="l4-inbox-ftp" position="-4 0 -29" visible="false">
       <a-box material="color:#0a2010;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane material="color:#061408;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
+      <a-plane look-at="[camera]" material="color:#061408;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
         <a-text value="FTP" color="#50e0a0" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="Datei-Transfer" color="#559977" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1171,7 +1196,7 @@
 
     <a-entity id="l4-inbox-smtp" position="-1.2 0 -29" visible="false">
       <a-box material="color:#200800;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane material="color:#140400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
+      <a-plane look-at="[camera]" material="color:#140400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
         <a-text value="SMTP" color="#ff7850" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
         <a-text value="E-Mail-Versand" color="#aa6644" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
       </a-plane>
@@ -1234,15 +1259,31 @@
 
     <!-- P2S4 Info-Kiosk -->
     <a-entity id="l4-kiosk" kiosk-interaction position="-11 0 -18.5">
-      <a-box material="color:#252830;roughness:0.4;metalness:0.6" width="0.9" height="1.4" depth="0.45" position="0 0.7 0"></a-box>
-      <a-plane id="l4-kiosk-screen" material="color:#001428;emissive:#001428;emissiveIntensity:0.8;shader:flat"
-               width="0.75" height="1.0" position="0 0.75 0.23"></a-plane>
+      <a-box material="color:#2e3442;roughness:0.4;metalness:0.6" width="0.9" height="1.4" depth="0.45" position="0 0.7 0"></a-box>
+      <!-- Leuchtender Akzentrahmen hinter dem Screen (flat = volle Helligkeit) -->
+      <a-plane material="color:#50e0a0;shader:flat;side:double" width="0.86" height="1.12" position="0 0.75 0.224"></a-plane>
+      <!-- Heller, leuchtender Screen (flat ignoriert emissive → helle color nötig) -->
+      <a-plane id="l4-kiosk-screen" material="color:#0f4a36;shader:flat"
+               width="0.75" height="1.0" position="0 0.75 0.232"></a-plane>
+      <!-- Dauerhaft sichtbarer Info-Inhalt auf dem Screen -->
+      <a-circle material="color:#c4f5de;shader:flat" radius="0.16" position="0 1.04 0.236"></a-circle>
+      <a-text value="i" color="#0f4a36" scale="0.42 0.42 0.42" align="center" position="0 1.04 0.238" material="shader:flat"></a-text>
+      <a-text value="INFO" color="#ffffff" scale="0.3 0.3 0.3" align="center" position="0 0.72 0.236" material="shader:flat"></a-text>
+      <a-text value="HTTP·DNS·FTP·SMTP" color="#9af0c8" scale="0.13 0.13 0.13" align="center" position="0 0.48 0.236" material="shader:flat"></a-text>
       <a-text id="l4-kiosk-text" visible="false"
               value="ANWENDUNGSSCHICHT (Layer 4)&#10;&#10;HTTP: Webseiten, REST-APIs&#10;HTTPS: Verschlüsseltes HTTP&#10;DNS: Domain → IP-Adresse&#10;FTP: Datei-Transfer (Server)&#10;SMTP: E-Mails versenden&#10;&#10;Diese Schicht ist die&#10;Schnittstelle zwischen&#10;Anwendung und Netzwerk."
               color="#a8d8ff" scale="0.12 0.12 0.12" position="-0.34 1.2 0.24" width="5.5" wrap-count="28" material="shader:flat"></a-text>
-      <a-entity id="l4-kiosk-hint" position="0 1.7 0" visible="false">
-        <a-plane material="color:#1a2844;opacity:0.9;shader:flat" width="0.65" height="0.18"></a-plane>
-        <a-text value="E — Info lesen" color="#64a0ff" scale="0.17 0.17 0.17" position="0 0 0.01" align="center" material="shader:flat"></a-text>
+      <!-- Schwebendes Beacon: immer sichtbar, pulsiert, dreht sich zum Spieler -->
+      <a-entity look-at="[camera]" position="0 2.15 0"
+                animation="property:position.y;from:2.08;to:2.28;dir:alternate;loop:true;dur:1500;easing:easeInOutSine">
+        <a-circle material="color:#50e0a0;shader:flat;side:double" radius="0.2"
+                  animation__pulse="property:scale;from:0.85 0.85 0.85;to:1.15 1.15 1.15;dir:alternate;loop:true;dur:850;easing:easeInOutSine"></a-circle>
+        <a-text value="i" color="#08231a" scale="0.5 0.5 0.5" align="center" position="0 0 0.01" material="shader:flat"></a-text>
+      </a-entity>
+      <a-entity id="l4-kiosk-hint" position="0 1.62 0" look-at="[camera]" visible="false">
+        <a-plane material="color:#1b5e42;opacity:0.97;shader:flat" width="0.8" height="0.2"></a-plane>
+        <a-plane material="color:#50e0a0;shader:flat" width="0.8" height="0.028" position="0 -0.1 0.005"></a-plane>
+        <a-text value="[E] Info lesen" color="#dcffee" scale="0.18 0.18 0.18" position="0 0.01 0.01" align="center" material="shader:flat"></a-text>
       </a-entity>
     </a-entity>
 
@@ -1656,12 +1697,12 @@
   </a-scene>
 
   <script src="js/scenario-manager.js?v=2"></script>
-  <script src="js/scenarios/p2-s1-schichten.js?v=4"></script>
-  <script src="js/scenarios/p2-s2-protokolle.js?v=4"></script>
-  <script src="js/scenarios/p2-s3-transport.js?v=1"></script>
-  <script src="js/scenarios/p2-s4-anwendung.js?v=1"></script>
+  <script src="js/scenarios/p2-s1-schichten.js?v=6"></script>
+  <script src="js/scenarios/p2-s2-protokolle.js?v=6"></script>
+  <script src="js/scenarios/p2-s3-transport.js?v=3"></script>
+  <script src="js/scenarios/p2-s4-anwendung.js?v=3"></script>
   <script src="js/scenarios/p2-s5-routing.js?v=3"></script>
   <script src="js/scenarios/p2-s6-assessment.js?v=1"></script>
-  <script src="js/game.js?v=12"></script>
+  <script src="js/game.js?v=14"></script>
 </body>
 </html>

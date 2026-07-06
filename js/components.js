@@ -1,3 +1,31 @@
+// Yaw-Billboard: richtet die Entity (nur um die Y-Achse) immer zum Ziel aus,
+// damit Text/Panels frontal und aufrecht zum Spieler stehen. A-Frame 1.7.1
+// liefert kein eingebautes look-at mehr — diese Komponente ersetzt es.
+AFRAME.registerComponent('look-at', {
+  schema: { type: 'selector' },
+  init() {
+    this._tp = new AFRAME.THREE.Vector3();
+    this._mp = new AFRAME.THREE.Vector3();
+  },
+  tick() {
+    // Unsichtbare Elemente nicht rotieren (Performance + kein Flackern beim Öffnen).
+    if (this.el.getAttribute('visible') === false) return;
+    // Bevorzugt das per Selektor angegebene Ziel; fällt auf die aktive Szenen-
+    // Kamera zurück (der [camera]-Selektor löst nicht immer zuverlässig auf).
+    const targetObj = (this.data && this.data.object3D)
+      ? this.data.object3D
+      : (this.el.sceneEl && this.el.sceneEl.camera);
+    if (!targetObj) return;
+    targetObj.getWorldPosition(this._tp);
+    this.el.object3D.getWorldPosition(this._mp);
+    const dx = this._tp.x - this._mp.x;
+    const dz = this._tp.z - this._mp.z;
+    if (dx * dx + dz * dz < 1e-6) return;
+    // +Z-Fläche der Entity zum Ziel ausrichten (nur Yaw, Text bleibt aufrecht).
+    this.el.object3D.rotation.set(0, Math.atan2(dx, dz), 0);
+  }
+});
+
 AFRAME.registerComponent('proximity-dialog', {
   init() {
     this._cp = new AFRAME.THREE.Vector3();

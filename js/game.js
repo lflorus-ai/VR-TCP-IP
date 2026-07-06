@@ -59,6 +59,17 @@ let gameState = 'INTRO';
 let _assessmentMode = false;
 let _s5aExtras = []; // dynamically created paket-A entities for S5 assessment
 
+// ── Assessment-Bewertung ─────────────────────────────────────────────────────
+// Beim Assessment werden alle 5 Zonen erneut durchlaufen. Jede Zone liefert
+// erreichte Punkte + Maximalpunkte; daraus errechnet _showFinalOverlay() eine
+// Gesamtbewertung (Prozent, Schulnote) sowie die benötigte Gesamtzeit.
+// S1/S2: 200 P je richtiger Quiz-Antwort. S3/S4: 100 P/Paket. S5 (IP-Sortierung):
+// +100 pro richtiger Zustellung, −20 pro Fehlversuch (analog zu S3/S4).
+const _assessScore = { s1: 0, s2: 0, s3: 0, s4: 0, s5: 0 };
+const _assessMax   = { s1: 200, s2: 200, s3: 0, s4: 0, s5: 0 };
+let _assessStartMs = 0;
+let _s5aScore = 0;
+
 let _arrowTarget = null;
 
 function setInstruction(text) {
@@ -143,6 +154,37 @@ function getActiveList() {
 }
 
 function getTotalScore() { return score + s2Score + s3Score; }
+
+// Laufende Assessment-Gesamtpunktzahl: bereits abgeschlossene Zonen (_assessScore)
+// plus die Punkte der gerade aktiven Zone. So sieht der Spieler während des
+// gesamten Assessments einen kohärenten, mitwachsenden Punktestand im HUD.
+function getAssessLiveScore() {
+  let live = _assessScore.s1 + _assessScore.s2 + _assessScore.s3
+           + _assessScore.s4 + _assessScore.s5;
+  switch (gameState) {
+    case 'ZONE_S1': live += P1.getScore(); break;
+    case 'ZONE_S2': live += P2.getScore(); break;
+    case 'ZONE_S3': live += P2S3.getScore(); break;
+    case 'ZONE_S4': live += P2S4.getScore(); break;
+    // S5 (IP-Sortierung) inkl. Retransmit-Unterphase (S2_BRIEFING/S2_ACTIVE)
+    case 'S5_ACTIVE':
+    case 'S2_BRIEFING':
+    case 'S2_ACTIVE':
+    case 'S5_COMPLETE': live += _s5aScore; break;
+  }
+  return live;
+}
+
+// Einheitliche HUD-Punkteanzeige: im Assessment die laufende Gesamtpunktzahl,
+// sonst der klassische Score. Von game.js UND den Szenario-Modulen genutzt
+// (window.refreshScoreHud), damit die Anzeige nie auseinanderläuft.
+function refreshScoreHud() {
+  const pill = document.getElementById('score-pill');
+  if (!pill) return;
+  if (_assessmentMode) pill.textContent = '★ ' + getAssessLiveScore() + ' Punkte';
+  else                 pill.textContent = '★ ' + getTotalScore() + ' Punkte';
+}
+window.refreshScoreHud = refreshScoreHud;
 
 // Audio
 let audioCtx;
@@ -778,6 +820,7 @@ function enterZoneS3A() {
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = '■ Assessment — Transport';
   P2S3.initAssessment((s) => {
+    _assessScore.s3 = s; _assessMax.s3 = P2S3.getMaxScore();
     P2S6.markDone('s3');
     gameState = 'S1_ACTIVE';
     const t = document.getElementById('task-text');
@@ -794,6 +837,7 @@ function enterZoneS4A() {
   const hudTag = document.getElementById('hud-tag');
   if (hudTag) hudTag.textContent = '■ Assessment — Anwendung';
   P2S4.initAssessment((s) => {
+    _assessScore.s4 = s; _assessMax.s4 = P2S4.getMaxScore();
     P2S6.markDone('s4');
     gameState = 'S1_ACTIVE';
     const t = document.getElementById('task-text');
@@ -1173,6 +1217,7 @@ function interactWithPalette(pal) {
     } else {
       const e = lieferschein.find(x => x.id===paketId && !x.done);
       if (e) e.done = true;
+      if (_assessmentMode && gameState === 'S5_ACTIVE') _s5aScore += 100;
     }
 
     const count = paletteDeliveries[palId];
@@ -1190,7 +1235,7 @@ function interactWithPalette(pal) {
     selectedPaket = null;
     document.getElementById('selected-badge').classList.remove('visible');
     document.getElementById('binary-display').style.display = 'none';
-    document.getElementById('score-pill').textContent = '★ ' + getTotalScore() + ' Punkte';
+    refreshScoreHud();
 
     const stateAtDelivery = gameState;
     setTimeout(() => {
@@ -1267,8 +1312,10 @@ function interactWithPalette(pal) {
       s3TotalAttempts++;
       s3Errors++;
       s3Score = Math.max(0, s3Score - (s3Phase === 'retransmit' ? 10 : 20));
+    } else if (_assessmentMode && gameState === 'S5_ACTIVE') {
+      _s5aScore = Math.max(0, _s5aScore - 20);
     }
-    document.getElementById('score-pill').textContent = '★ ' + getTotalScore() + ' Punkte';
+    refreshScoreHud();
     selectedPaket.setAttribute('material','emissive','#ff2020');
     selectedPaket.setAttribute('material','emissiveIntensity','0.7');
     const pEl = selectedPaket;
@@ -2046,6 +2093,13 @@ function resetToS1() {
 
 function showFinalSummary() {
   _assessmentMode = true;
+  // Bewertung zurücksetzen und Zeitmessung starten (ab Betreten des Assessments).
+  Object.keys(_assessScore).forEach(k => { _assessScore[k] = 0; });
+  _assessMax.s1 = 200; _assessMax.s2 = 200;
+  _assessMax.s3 = 0; _assessMax.s4 = 0; _assessMax.s5 = 0;
+  _assessStartMs = performance.now();
+  _s5aScore = 0;
+  refreshScoreHud(); // HUD sofort auf "★ 0 Punkte" (Assessment) setzen
   // Lern-Tafeln S1/S2 neutralisieren, damit beim Assessment nicht die alte
   // Lern-Frage inkl. markierter Lösung an der Tafel hängen bleibt.
   P1.reset?.();
@@ -2062,16 +2116,73 @@ function showFinalSummary() {
   setInstruction('Assessment: Geh zur S1-Tafel (links vom Eingang)');
 }
 
+// Zeit (ms) → "MM:SS"
+function _formatDuration(ms) {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// Prozent-Genauigkeit → Schulnote (deutsche Skala, DHBW-Kontext).
+// Die Note bewertet die inhaltliche Leistung (Genauigkeit). Die Zeit fließt
+// bewusst NICHT in die Note ein — sie wird als separates Tempo-Signal gezeigt,
+// damit korrekte, aber bedächtige Bearbeitung nicht abgestraft wird.
+function _assessGrade(pct) {
+  if (pct >= 92) return { note: '1', label: 'Sehr gut',     color: '#38d67a' };
+  if (pct >= 81) return { note: '2', label: 'Gut',          color: '#7ed957' };
+  if (pct >= 67) return { note: '3', label: 'Befriedigend', color: '#e8c14a' };
+  if (pct >= 50) return { note: '4', label: 'Ausreichend',  color: '#e89a3c' };
+  if (pct >= 30) return { note: '5', label: 'Mangelhaft',   color: '#e2673c' };
+  return            { note: '6', label: 'Ungenügend',   color: '#d64545' };
+}
+
+// Gesamtzeit → qualitatives Tempo-Signal (rein informativ, ohne Notenwirkung).
+function _tempoLabel(ms) {
+  const min = ms / 60000;
+  if (min < 4) return 'zügig';
+  if (min < 8) return 'solide';
+  return 'gründlich';
+}
+
+// Max' Abschlusskommentar, abhängig von der erreichten Genauigkeit.
+function _assessQuote(pct) {
+  if (pct >= 92) return 'Herausragend! Du beherrschst das TCP/IP-Modell in Theorie und Praxis.';
+  if (pct >= 67) return 'Stark! Die Grundlagen sitzen — ein paar Feinheiten kannst du noch vertiefen.';
+  if (pct >= 50) return 'Solide Basis. Wiederhole die Szenarien, in denen es gehakt hat.';
+  return 'Kein Grund zur Sorge — spiel die Szenarien nochmal durch, dann klappt es.';
+}
+
 function _showFinalOverlay() {
   playMaxAudio('max_final_hi');
   document.exitPointerLock?.();
-  document.getElementById('final-s1').textContent = 'abgeschlossen';
-  document.getElementById('final-s2').textContent = 'abgeschlossen';
-  document.getElementById('final-s3').textContent = 'Assessment — abgeschlossen';
-  document.getElementById('final-total').textContent = 'Alle Szenarien & Assessment';
-  document.getElementById('final-time').textContent = '—';
+
+  const achieved = _assessScore.s1 + _assessScore.s2 + _assessScore.s3
+                 + _assessScore.s4 + _assessScore.s5;
+  const max = _assessMax.s1 + _assessMax.s2 + _assessMax.s3
+            + _assessMax.s4 + _assessMax.s5;
+  const pct = max > 0 ? Math.round(achieved / max * 100) : 0;
+  const grade = _assessGrade(pct);
+  const elapsed = _assessStartMs ? performance.now() - _assessStartMs : 0;
+
+  [['final-s1', 's1'], ['final-s2', 's2'], ['final-s3', 's3'],
+   ['final-s4', 's4'], ['final-s5', 's5']].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = _assessScore[key] + ' / ' + _assessMax[key] + ' P';
+  });
+
+  document.getElementById('final-total').textContent = achieved + ' / ' + max + ' P';
+  const pctEl = document.getElementById('final-percent');
+  if (pctEl) pctEl.textContent = pct + ' %';
+  const gradeEl = document.getElementById('final-grade');
+  if (gradeEl) {
+    gradeEl.textContent = 'Note ' + grade.note + ' · ' + grade.label;
+    gradeEl.style.color = grade.color;
+  }
+  document.getElementById('final-time').textContent =
+    _formatDuration(elapsed) + ' (' + _tempoLabel(elapsed) + ')';
   document.getElementById('final-max-quote').textContent =
-    '"Hervorragend! Du hast alle Lernszenarien und das Assessment abgeschlossen." — Max';
+    '"' + _assessQuote(pct) + '" — Max';
   document.getElementById('final-overlay').classList.remove('hidden');
 }
 
@@ -2117,6 +2228,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     if (canvas) canvas.requestPointerLock();
     if (_assessmentMode) {
       P1.initAssessment((s) => {
+        _assessScore.s1 = s; _assessMax.s1 = P1.getMaxScore();
         P2S6.markDone('s1');
         gameState = 'S1_ACTIVE';
         const t = document.getElementById('task-text');
@@ -2156,6 +2268,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     if (canvas) canvas.requestPointerLock();
     if (_assessmentMode) {
       P2.initAssessment((s) => {
+        _assessScore.s2 = s; _assessMax.s2 = P2.getMaxScore();
         P2S6.markDone('s2');
         gameState = 'S1_ACTIVE';
         const t = document.getElementById('task-text');
@@ -2321,6 +2434,9 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
       const p4 = document.getElementById('palette-4');
       if (p4) p4.setAttribute('visible', true);
       _spawnS5ExtraPackets();
+      // Bewertung: pro Paket max. 100 P (lieferschein enthält jetzt 5 + 3 Extras)
+      _s5aScore = 0;
+      _assessMax.s5 = lieferschein.length * 100;
     }
 
     // Score und Timer zurücksetzen
@@ -2367,6 +2483,7 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     // Paketverlust-Meldung am Büro-Computer zurücksetzen (S5 ist abgeschlossen)
     resetOfficeComputer();
     if (_assessmentMode) {
+      _assessScore.s5 = _s5aScore;
       _cleanupS5Extras();
       gameState = 'S1_ACTIVE';
       P2S6.markDone('s5');
@@ -2404,6 +2521,10 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     if (!cam) return;
     const pos = new AFRAME.THREE.Vector3();
     cam.object3D.getWorldPosition(pos);
+
+    // Assessment: laufenden Gesamtpunktestand im HUD halten (Quiz-Antworten,
+    // Paket-Zuordnungen und IP-Sortierung wachsen so sichtbar mit).
+    if (_assessmentMode) refreshScoreHud();
 
     // Entry — tiefste Zone zuerst (else-if verhindert Mehrfachtrigger).
     // Im freien Modus erfolgt der Start NUR per grünem Knopf → kein Auto-Entry

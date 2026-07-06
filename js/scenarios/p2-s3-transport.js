@@ -8,6 +8,7 @@ const P2S3 = (() => {
   let _carryRaf = null;
   let _activePackets = null;
   let _dynamicEntities = [];
+  let _assessMode = false;
 
   const PACKETS = [
     {
@@ -168,8 +169,14 @@ const P2S3 = (() => {
       );
     }
 
-    const scorePill = document.getElementById('score-pill');
-    if (scorePill) scorePill.textContent = _score + ' P';
+    // Im Assessment die laufende Gesamtpunktzahl anzeigen (game.js), sonst den
+    // lokalen Szenario-Score.
+    if (_assessMode && window.refreshScoreHud) {
+      window.refreshScoreHud();
+    } else {
+      const scorePill = document.getElementById('score-pill');
+      if (scorePill) scorePill.textContent = _score + ' P';
+    }
 
     if (_processed >= _activePackets.length) {
       clearTimeout(_feedbackTimeout);
@@ -207,6 +214,7 @@ const P2S3 = (() => {
 
   return {
     init(onComplete) {
+      _assessMode = false;
       _commonInit(
         onComplete,
         PACKETS,
@@ -215,6 +223,7 @@ const P2S3 = (() => {
     },
 
     initAssessment(onComplete) {
+      _assessMode = true;
       _spawnExtraPackets();
       _commonInit(
         onComplete,
@@ -244,6 +253,7 @@ const P2S3 = (() => {
     },
 
     getScore() { return _score; },
+    getMaxScore() { return (_activePackets || PACKETS).length * 100; },
 
     handlePickup(target) {
       if (target.classList.contains('paket-l3') && !_selectedPaket) {

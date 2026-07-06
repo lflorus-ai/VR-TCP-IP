@@ -81,6 +81,7 @@ const P2 = (() => {
       else if (b === boxEl && !correct) b.setAttribute('material', 'color:#401010;roughness:0.5');
     });
     if (correct) _score += 200;
+    if (_assessMode && window.refreshScoreHud) window.refreshScoreHud();
 
     if (_assessMode) {
       _quizRound++;
@@ -156,6 +157,7 @@ const P2 = (() => {
     },
 
     getScore() { return _score; },
+    getMaxScore() { return (_assessMode ? QUIZ_POOL.length : 1) * 200; },
 
     handlePickup(target) {
       if (target.classList.contains('quiz-option-s2')) {
