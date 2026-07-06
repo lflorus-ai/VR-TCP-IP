@@ -10,7 +10,7 @@
   <title>TCP/IP Lagerhalle</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <script src="js/components.js?v=9"></script>
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 
@@ -324,6 +324,30 @@
     </div>
   </div>
 
+  <!-- Lern-Szenario 5: Fehlerbehandlung (Paketverlust) — kurzer Erklär-Screen -->
+  <div id="s5-loss-briefing-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Szenario 5 &middot; Fehlerbehandlung</div>
+      <div class="overlay-avatar">&#128225;</div>
+      <div class="overlay-title">Ein Paket ist verloren gegangen!</div>
+      <div class="overlay-body">
+        Du hast alle Pakete korrekt geroutet &mdash; trotzdem kann im Netz ein Paket <strong>verloren gehen</strong> (z.B. durch &Uuml;berlastung oder St&ouml;rungen auf dem Weg).
+        <div class="overlay-learn-box">
+          <div class="olb-header">&#128225; Was jetzt passiert &mdash; TCP-Neu&uuml;bertragung</div>
+          <ul class="olb-list">
+            <li>Der <strong>Empf&auml;nger</strong> bemerkt das fehlende Paket (keine Best&auml;tigung / ACK)</li>
+            <li>Das Paket wird deshalb <strong>erneut angefordert</strong></li>
+            <li><strong>Deine Aufgabe:</strong> Hol das verlorene Paket und liefere es noch einmal aus</li>
+          </ul>
+          <p style="font-size:12px;color:#9ab0cc;margin:8px 0 0">
+            Genau das macht <strong>TCP</strong> automatisch &mdash; verlorene Pakete werden so lange neu gesendet, bis sie ankommen.
+          </p>
+        </div>
+      </div>
+      <button class="overlay-btn" id="s5-loss-briefing-ok-btn">Verstanden &mdash; Paket erneut senden &rarr;</button>
+    </div>
+  </div>
+
   <!-- Lern-Szenario 5: Abschluss -->
   <div id="s5-complete-overlay" class="hidden">
     <div class="overlay-box">
@@ -348,6 +372,20 @@
     </div>
   </div>
 
+  <!-- Wiederverwendbarer Szenario-Abschluss (S1–S4, Lern- + Assessment-Modus) -->
+  <div id="scenario-done-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag" id="sd-tag">Lern-Szenario &middot; Abgeschlossen</div>
+      <div class="overlay-avatar" id="sd-avatar">&#127881;</div>
+      <div class="overlay-title" id="sd-title">Abgeschlossen!</div>
+      <div class="overlay-stats" id="sd-stats">
+        <span><span class="stat-label">Punkte</span><span id="sd-score">&mdash;</span></span>
+      </div>
+      <div class="overlay-body" id="sd-body"></div>
+      <button id="sd-btn" class="overlay-btn">Weiter &rarr;</button>
+    </div>
+  </div>
+
   <!-- Gesamtauswertung -->
   <div id="final-overlay" class="hidden">
     <div class="overlay-box">
@@ -369,6 +407,11 @@
       </div>
       <div class="overlay-body" style="font-size:12px;color:#8899aa;">
         Die Bewertung ergibt sich aus deiner Genauigkeit &uuml;ber alle f&uuml;nf Szenarien &mdash; Schichtenmodell, Protokolle, TCP/UDP, Anwendungsschicht und IP-Routing. Die Zeit z&auml;hlt als Tempo-Signal, beeinflusst die Note aber nicht.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+        <button id="final-restart-assessment-btn" class="overlay-btn">Assessment neu starten</button>
+        <button id="final-free-btn" class="overlay-btn overlay-btn-secondary">Freier Modus</button>
+        <button id="final-guided-btn" class="overlay-btn overlay-btn-secondary">Gef&uuml;hrten Modus von vorne</button>
       </div>
     </div>
   </div>
@@ -1703,6 +1746,6 @@
   <script src="js/scenarios/p2-s4-anwendung.js?v=3"></script>
   <script src="js/scenarios/p2-s5-routing.js?v=3"></script>
   <script src="js/scenarios/p2-s6-assessment.js?v=1"></script>
-  <script src="js/game.js?v=14"></script>
+  <script src="js/game.js?v=15"></script>
 </body>
 </html>

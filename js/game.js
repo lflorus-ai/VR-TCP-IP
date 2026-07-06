@@ -445,6 +445,32 @@ function chooseMode(mode) {
 document.getElementById('mode-guided-btn').addEventListener('click', () => chooseMode(Mode.GUIDED));
 document.getElementById('mode-free-btn').addEventListener('click', () => chooseMode(Mode.FREE));
 
+// Auto-Neustart nach Reload aus der Gesamtauswertung: gewählten Modus direkt
+// setzen (überspringt die Modus-Auswahl; das Steuer-Tutorial läuft normal).
+(() => {
+  const restart = sessionStorage.getItem('vrtcp_restart');
+  if (restart === 'guided' || restart === 'free') {
+    sessionStorage.removeItem('vrtcp_restart');
+    chooseMode(restart === 'free' ? Mode.FREE : Mode.GUIDED);
+  }
+})();
+
+// Gesamtauswertung — Navigations-Buttons (immer verfügbar):
+//  • Assessment neu starten  → in-place, ohne Reload
+//  • Freier Modus / Geführt  → sauberer Komplett-Neustart per Reload
+document.getElementById('final-restart-assessment-btn').addEventListener('click', () => {
+  document.getElementById('final-overlay').classList.add('hidden');
+  showFinalSummary();
+});
+document.getElementById('final-free-btn').addEventListener('click', () => {
+  sessionStorage.setItem('vrtcp_restart', 'free');
+  location.reload();
+});
+document.getElementById('final-guided-btn').addEventListener('click', () => {
+  sessionStorage.setItem('vrtcp_restart', 'guided');
+  location.reload();
+});
+
 document.getElementById('tutorial-start-btn').addEventListener('click', () => {
   document.getElementById('tutorial-start-overlay').classList.add('hidden');
   const canvas = document.querySelector('a-scene canvas');
@@ -600,6 +626,23 @@ let s2BriefingTimeout = null;
 // zurückkehrt: 's2' = klassischer Lernpfad, 's5' = als Phase 2 von Szenario 5.
 let lostPacketReturn = 's2';
 
+// Kurzer Erklär-Screen zu Beginn der S5-Fehlerbehandlung (Paketverlust).
+// Der Lernende hat gerade alle Pakete korrekt geroutet — jetzt versteht er,
+// warum trotzdem ein Paket verloren gehen kann und was nun seine Aufgabe ist.
+function showS5LossBriefing() {
+  playSoundComplete();
+  document.exitPointerLock();
+  const ov = document.getElementById('s5-loss-briefing-overlay');
+  if (ov) ov.classList.remove('hidden');
+}
+
+document.getElementById('s5-loss-briefing-ok-btn').addEventListener('click', () => {
+  document.getElementById('s5-loss-briefing-overlay').classList.add('hidden');
+  showS2Transition('s5');
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+});
+
 function showS2Transition(returnTo) {
   lostPacketReturn = returnTo || 's2';
   const isS5 = lostPacketReturn === 's5';
@@ -701,18 +744,26 @@ function enterZoneS3() {
     ScenarioManager.markDone('s3');
     gameState = 'S1_ACTIVE';
     openGate('s4door');
-    const hudTag = document.getElementById('hud-tag');
-    const t = document.getElementById('task-text');
-    if (ScenarioManager.isFree()) {
-      if (hudTag) hudTag.textContent = '■ Freier Modus';
-      if (t) t.textContent = 'S3 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
-      setArrowTarget(null, null); setInstruction('');
-    } else {
-      if (hudTag) hudTag.textContent = '■ Lern-Szenario 4';
-      if (t) t.textContent = 'S3 (Transport) abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
-      setArrowTarget(-5, -20);
-      setInstruction('Geh nach links in den Anwendungs-Flügel (S4)');
-    }
+    const free = ScenarioManager.isFree();
+    const proceed = () => {
+      const hudTag = document.getElementById('hud-tag');
+      const t = document.getElementById('task-text');
+      if (free) {
+        if (hudTag) hudTag.textContent = '■ Freier Modus';
+        if (t) t.textContent = 'S3 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+        setArrowTarget(null, null); setInstruction('');
+      } else {
+        if (hudTag) hudTag.textContent = '■ Lern-Szenario 4';
+        if (t) t.textContent = 'S3 (Transport) abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
+        setArrowTarget(-5, -20);
+        setInstruction('Geh nach links in den Anwendungs-Flügel (S4)');
+      }
+    };
+    showScenarioDone({
+      id: 's3', mode: free ? 'free' : 'guided',
+      btnLabel: free ? 'Zur&uuml;ck zur freien Wahl &rarr;' : 'Weiter zu Szenario 4 &rarr;',
+      onNext: proceed,
+    });
   });
   // Erklärung beim Betreten: was ist zu tun + Hinweis auf die Infotafel
   showStepBanner({
@@ -744,18 +795,26 @@ function enterZoneS4() {
     ScenarioManager.markDone('s4');
     gameState = 'S1_ACTIVE';
     openGate('routing');
-    const hudTag = document.getElementById('hud-tag');
-    const t = document.getElementById('task-text');
-    if (ScenarioManager.isFree()) {
-      if (hudTag) hudTag.textContent = '■ Freier Modus';
-      if (t) t.textContent = 'S4 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
-      setArrowTarget(null, null); setInstruction('');
-    } else {
-      if (hudTag) hudTag.textContent = '■ Lern-Szenario 5';
-      if (t) t.textContent = 'S4 (Anwendung) abgeschlossen! Büro-Flügel (Routing, x<-12) freigeschaltet.';
-      setArrowTarget(-13, -6);
-      setInstruction('Geh ins Büro links (weit links, S5 — Routing)');
-    }
+    const free = ScenarioManager.isFree();
+    const proceed = () => {
+      const hudTag = document.getElementById('hud-tag');
+      const t = document.getElementById('task-text');
+      if (free) {
+        if (hudTag) hudTag.textContent = '■ Freier Modus';
+        if (t) t.textContent = 'S4 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+        setArrowTarget(null, null); setInstruction('');
+      } else {
+        if (hudTag) hudTag.textContent = '■ Lern-Szenario 5';
+        if (t) t.textContent = 'S4 (Anwendung) abgeschlossen! Büro-Flügel (Routing, x<-12) freigeschaltet.';
+        setArrowTarget(-13, -6);
+        setInstruction('Geh ins Büro links (weit links, S5 — Routing)');
+      }
+    };
+    showScenarioDone({
+      id: 's4', mode: free ? 'free' : 'guided',
+      btnLabel: free ? 'Zur&uuml;ck zur freien Wahl &rarr;' : 'Weiter zu Szenario 5 &rarr;',
+      onNext: proceed,
+    });
   });
   // Erklärung beim Betreten: was ist zu tun + Hinweis auf die Infotafel
   showStepBanner({
@@ -790,9 +849,147 @@ function showS5CompleteOverlay() {
   playSoundComplete();
   document.exitPointerLock();
   gameState = 'S5_COMPLETE';
-  const scoreEl = document.getElementById('s5-score');
-  if (scoreEl) scoreEl.textContent = getTotalScore() + ' P';
-  document.getElementById('s5-complete-overlay').classList.remove('hidden');
+
+  const overlay = document.getElementById('s5-complete-overlay');
+  const stats = overlay.querySelector('.overlay-stats');
+  const title = overlay.querySelector('.overlay-title');
+  const btn = document.getElementById('s5-complete-btn');
+
+  // Punkte-Anzeige gehört zur Endauswertung — im Lern-Durchlauf (geführt/frei)
+  // wird an dieser Stelle KEINE Punktzahl gezeigt.
+  if (stats) stats.style.display = 'none';
+
+  if (ScenarioManager.isFree()) {
+    // Frei-Modus: neutraler Abschluss-Titel (nicht jede Reihenfolge ist perfekt)
+    // und kein Übergang zur Abschlussbewertung — zurück zur freien Wahl.
+    if (title) title.textContent = 'Szenario 5 abgeschlossen!';
+    if (btn) btn.innerHTML = 'Zur&uuml;ck zur freien Wahl &rarr;';
+  } else {
+    // Geführter Modus: als nächstes folgt die Abschlussbewertung.
+    if (title) title.textContent = 'Alle Pakete korrekt zugestellt!';
+    if (btn) btn.innerHTML = 'Weiter zur Abschlussbewertung &rarr;';
+  }
+
+  overlay.classList.remove('hidden');
+}
+
+// ── Wiederverwendbarer Szenario-Abschluss-Screen (S1–S4) ─────────────────────
+// Zeigt für jedes Szenario einen einheitlichen Abschluss-Screen im Stil von S5.
+// Lern-Inhalt je Szenario; Titel/Tag/Button passen sich dem Modus an.
+const _scenarioDoneContent = {
+  s1: {
+    avatar: '\u{1F5C2}\u{FE0F}', // 🗂️
+    topic: 'Schichtenmodell verstanden!',
+    body:
+      'Du kennst jetzt die <strong>vier Schichten</strong> des TCP/IP-Modells und wei&szlig;t, welche Aufgabe jede Schicht &uuml;bernimmt.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">\u{1F5C2}\u{FE0F} Was du gelernt hast &mdash; Das TCP/IP-Modell</div>'
+      + '<ul class="olb-list">'
+      + '<li><strong>Anwendungsschicht:</strong> Programme &amp; Protokolle (HTTP, DNS &hellip;)</li>'
+      + '<li><strong>Transportschicht:</strong> TCP/UDP &mdash; Zustellung &amp; Zuverl&auml;ssigkeit</li>'
+      + '<li><strong>Internet-Schicht:</strong> IP-Adressen &amp; Routing</li>'
+      + '<li><strong>Netzzugangsschicht:</strong> physische &Uuml;bertragung</li>'
+      + '</ul></div>',
+  },
+  s2: {
+    avatar: '\u{1F50C}', // 🔌
+    topic: 'Protokolle richtig zugeordnet!',
+    body:
+      'Du kannst jetzt <strong>Protokolle den richtigen Schichten</strong> zuordnen.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">\u{1F50C} Was du gelernt hast &mdash; Protokolle &amp; Schichten</div>'
+      + '<ul class="olb-list">'
+      + '<li><strong>HTTP, DNS, FTP, SMTP</strong> &rarr; Anwendungsschicht</li>'
+      + '<li><strong>TCP, UDP</strong> &rarr; Transportschicht</li>'
+      + '<li><strong>IP</strong> &rarr; Internet-Schicht</li>'
+      + '<li>Jedes Protokoll hat seinen festen Platz im Modell</li>'
+      + '</ul></div>',
+  },
+  s3: {
+    avatar: '\u{1F69A}', // 🚚
+    topic: 'Transportschicht gemeistert!',
+    body:
+      'Du hast jedes Paket dem richtigen Transportprotokoll zugeordnet &mdash; <strong>TCP</strong> oder <strong>UDP</strong>.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">\u{1F69A} Was du getan hast &mdash; Transportschicht</div>'
+      + '<ul class="olb-list">'
+      + '<li><strong>TCP:</strong> zuverl&auml;ssig, Reihenfolge garantiert &mdash; z.B. E-Mail, Webseiten</li>'
+      + '<li><strong>UDP:</strong> schnell, ohne Garantie &mdash; z.B. Video, Sprache, DNS</li>'
+      + '<li>Die Anwendung w&auml;hlt das Protokoll je nach Bedarf</li>'
+      + '</ul></div>',
+  },
+  s4: {
+    avatar: '\u{1F4EE}', // 📮
+    topic: 'Anwendungsschicht gemeistert!',
+    body:
+      'Du hast jedes Paket in den richtigen <strong>Protokoll-Briefkasten</strong> der Anwendungsschicht einsortiert.'
+      + '<div class="overlay-learn-box">'
+      + '<div class="olb-header">\u{1F4EE} Was du getan hast &mdash; Anwendungsschicht</div>'
+      + '<ul class="olb-list">'
+      + '<li><strong>HTTP</strong> &mdash; Webseiten abrufen</li>'
+      + '<li><strong>DNS</strong> &mdash; Namen in IP-Adressen aufl&ouml;sen</li>'
+      + '<li><strong>FTP</strong> &mdash; Dateien &uuml;bertragen</li>'
+      + '<li><strong>SMTP</strong> &mdash; E-Mails versenden</li>'
+      + '</ul></div>',
+  },
+};
+
+// mode: 'free' | 'guided' | 'assessment'
+function showScenarioDone({ id, mode, score, maxScore, btnLabel, onNext }) {
+  const cfg = _scenarioDoneContent[id];
+  if (!cfg) { if (onNext) onNext(); return; }
+  const num = id.slice(1);
+  playSoundComplete();
+  document.exitPointerLock();
+
+  const overlay = document.getElementById('scenario-done-overlay');
+  overlay.querySelector('#sd-avatar').innerHTML = cfg.avatar;
+  const tag = overlay.querySelector('#sd-tag');
+  const title = overlay.querySelector('#sd-title');
+  const stats = overlay.querySelector('#sd-stats');
+  const scoreEl = overlay.querySelector('#sd-score');
+  const body = overlay.querySelector('#sd-body');
+  const btn = overlay.querySelector('#sd-btn');
+
+  if (mode === 'assessment') {
+    // Im Assessment ist die erreichte Punktzahl das Ergebnis → anzeigen.
+    tag.textContent = 'Assessment ' + num + ' · Abgeschlossen';
+    title.textContent = 'Assessment ' + num + ' abgeschlossen!';
+    stats.style.display = '';
+    scoreEl.textContent = (score != null ? score : 0)
+      + (maxScore != null ? ' / ' + maxScore : '') + ' P';
+  } else {
+    // Lern-Modus: Punkte gehören zur Endauswertung → hier keine Punktzahl.
+    tag.textContent = 'Lern-Szenario ' + num + ' · Abgeschlossen';
+    title.textContent = (mode === 'free') ? ('Szenario ' + num + ' abgeschlossen!') : cfg.topic;
+    stats.style.display = 'none';
+  }
+  body.innerHTML = cfg.body;
+  btn.innerHTML = btnLabel || 'Weiter &rarr;';
+
+  // Listener sauber ersetzen (Akkumulation bei wiederholtem Abschluss vermeiden).
+  if (btn._handler) btn.removeEventListener('click', btn._handler);
+  btn._handler = () => {
+    overlay.classList.add('hidden');
+    const canvas = document.querySelector('a-scene canvas');
+    if (canvas) canvas.requestPointerLock();
+    if (onNext) onNext();
+  };
+  btn.addEventListener('click', btn._handler);
+
+  overlay.classList.remove('hidden');
+}
+
+// S5-Assessment abschließen OHNE Zwischen-Screen: Score sichern, aufräumen und
+// direkt zur Gesamtauswertung (markDone('s5') triggert _showFinalOverlay via P2S6).
+function finishS5Assessment() {
+  playSoundComplete();
+  _assessScore.s5 = _s5aScore;
+  setS5Hud(false);
+  resetOfficeComputer();
+  window._cleanupS5Extras?.();
+  gameState = 'S1_ACTIVE';
+  P2S6.markDone('s5');
 }
 
 // ── Assessment Zone Entry Functions ──────────────────────────────────────────
@@ -823,10 +1020,16 @@ function enterZoneS3A() {
     _assessScore.s3 = s; _assessMax.s3 = P2S3.getMaxScore();
     P2S6.markDone('s3');
     gameState = 'S1_ACTIVE';
-    const t = document.getElementById('task-text');
-    if (t) t.textContent = 'Assessment S3 abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
-    setArrowTarget(-5, -20);
-    setInstruction('Assessment: Geh nach links in den Anwendungs-Flügel (S4)');
+    showScenarioDone({
+      id: 's3', mode: 'assessment', score: s, maxScore: _assessMax.s3,
+      btnLabel: 'Weiter &rarr;',
+      onNext: () => {
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Assessment S3 abgeschlossen! Geh nach links für S4 (Anwendungs-Flügel).';
+        setArrowTarget(-5, -20);
+        setInstruction('Assessment: Geh nach links in den Anwendungs-Flügel (S4)');
+      },
+    });
   });
 }
 
@@ -840,10 +1043,16 @@ function enterZoneS4A() {
     _assessScore.s4 = s; _assessMax.s4 = P2S4.getMaxScore();
     P2S6.markDone('s4');
     gameState = 'S1_ACTIVE';
-    const t = document.getElementById('task-text');
-    if (t) t.textContent = 'Assessment S4 abgeschlossen! Büro-Flügel für S5 (Routing).';
-    setArrowTarget(-13, -6);
-    setInstruction('Assessment: Geh ins Büro links (S5 — Routing)');
+    showScenarioDone({
+      id: 's4', mode: 'assessment', score: s, maxScore: _assessMax.s4,
+      btnLabel: 'Weiter &rarr;',
+      onNext: () => {
+        const t = document.getElementById('task-text');
+        if (t) t.textContent = 'Assessment S4 abgeschlossen! Büro-Flügel für S5 (Routing).';
+        setArrowTarget(-13, -6);
+        setInstruction('Assessment: Geh ins Büro links (S5 — Routing)');
+      },
+    });
   });
 }
 
@@ -919,6 +1128,11 @@ function startS2() {
   const hint = document.getElementById('computer-hint');
   if (hint) hint.setAttribute('visible', 'false');
   initS2();
+  // Assessment-S5: die Fehlerbehebung (Retransmit) zählt mit — pro verlorenem
+  // Paket max. 100 P zusätzlich zum Sortier-Maximum.
+  if (_assessmentMode && lostPacketReturn === 's5') {
+    _assessMax.s5 += s2LostPackets.length * 100;
+  }
   renderComputerScreen();
   gameState = 'S2_ACTIVE';
 
@@ -1214,6 +1428,8 @@ function interactWithPalette(pal) {
     } else if (selectedPaket.getAttribute('data-s2') === 'true') {
       const s2e = s2LostPackets.find(x => x.id===paketId && !x.done);
       if (s2e) s2e.done = true;
+      // Assessment-S5: korrekte Neuübertragung in der Fehlerbehebung zählt.
+      if (_assessmentMode && lostPacketReturn === 's5') _s5aScore += 100;
     } else {
       const e = lieferschein.find(x => x.id===paketId && !x.done);
       if (e) e.done = true;
@@ -1282,7 +1498,12 @@ function interactWithPalette(pal) {
       updateS2Lieferschein();
       if (s2LostPackets.every(x=>x.done)) {
         // Phase 2 von S5 → zurück zum S5-Abschluss; sonst klassischer S2-Abschluss.
-        if (lostPacketReturn === 's5') setTimeout(showS5CompleteOverlay, 1600);
+        if (lostPacketReturn === 's5') {
+          // Im Assessment ist der S5-Abschluss-Screen überflüssig — direkt zur
+          // Gesamtauswertung. Im Lern-Modus bleibt der Abschluss-Screen erhalten.
+          if (_assessmentMode) setTimeout(finishS5Assessment, 1600);
+          else                 setTimeout(showS5CompleteOverlay, 1600);
+        }
         else setTimeout(showS2CompleteOverlay, 1600);
       }
     } else if (gameState === 'S5_ACTIVE') {
@@ -1291,8 +1512,11 @@ function interactWithPalette(pal) {
       if (lieferschein.every(x=>x.done)) {
         stopTimer();
         // Nach dem Sortieren folgt die TCP-Fehlerbehandlung (Paketverlust) als
-        // Phase 2 von S5 — erst danach der Abschluss-Screen.
-        setTimeout(() => showS2Transition('s5'), 1600);
+        // Phase 2 von S5. Vorher ein kurzer Erklär-Screen, damit der Lernende
+        // versteht, warum jetzt Pakete erneut gesendet werden müssen.
+        // (Im Assessment kein Erklär-Screen — direkt in die Fehlerbehandlung.)
+        if (_assessmentMode) setTimeout(() => showS2Transition('s5'), 1600);
+        else                 setTimeout(showS5LossBriefing, 1600);
       }
     } else {
       updateLieferschein(); updatePips();
@@ -1313,7 +1537,9 @@ function interactWithPalette(pal) {
       s3Errors++;
       s3Score = Math.max(0, s3Score - (s3Phase === 'retransmit' ? 10 : 20));
     } else if (_assessmentMode && gameState === 'S5_ACTIVE') {
-      _s5aScore = Math.max(0, _s5aScore - 20);
+      _s5aScore = Math.max(0, _s5aScore - 20);   // S5-Sortierphase
+    } else if (_assessmentMode && gameState === 'S2_ACTIVE' && lostPacketReturn === 's5') {
+      _s5aScore = Math.max(0, _s5aScore - 20);   // S5-Fehlerbehebung
     }
     refreshScoreHud();
     selectedPaket.setAttribute('material','emissive','#ff2020');
@@ -2231,34 +2457,46 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         _assessScore.s1 = s; _assessMax.s1 = P1.getMaxScore();
         P2S6.markDone('s1');
         gameState = 'S1_ACTIVE';
-        const t = document.getElementById('task-text');
-        if (t) t.textContent = 'Assessment S1 abgeschlossen! Geh zur grünen Tafel rechts für S2.';
-        setArrowTarget(7, 0.15);
-        setInstruction('Assessment: Geh zur grünen S2-Tafel (E)');
+        showScenarioDone({
+          id: 's1', mode: 'assessment', score: s, maxScore: _assessMax.s1,
+          btnLabel: 'Weiter &rarr;',
+          onNext: () => {
+            const t = document.getElementById('task-text');
+            if (t) t.textContent = 'Assessment S1 abgeschlossen! Geh zur grünen Tafel rechts für S2.';
+            setArrowTarget(7, 0.15);
+            setInstruction('Assessment: Geh zur grünen S2-Tafel (E)');
+          },
+        });
       });
     } else {
       P1.init((s) => {
         ScenarioManager.markDone('s1');
         gameState = 'S1_ACTIVE';
         document.getElementById('s2-station').setAttribute('visible', true);
-        const hudTag = document.getElementById('hud-tag');
-        const t = document.getElementById('task-text');
-        if (ScenarioManager.isFree()) {
-          if (hudTag) hudTag.textContent = '■ Freier Modus';
-          if (t) t.textContent = 'S1 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
-          const wpS1 = document.getElementById('waypoint-s1');
-          if (wpS1) wpS1.setAttribute('visible', 'false');
-          setArrowTarget(null, null); setInstruction('');
-        } else {
-          if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
-          const wpS1 = document.getElementById('waypoint-s1');
-          if (wpS1) wpS1.setAttribute('visible', 'false');
-          const wpS2 = document.getElementById('waypoint-s2');
-          if (wpS2) wpS2.setAttribute('visible', 'true');
-          if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
-          setArrowTarget(7, 0.15);
-          setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
-        }
+        const free = ScenarioManager.isFree();
+        const wpS1 = document.getElementById('waypoint-s1');
+        if (wpS1) wpS1.setAttribute('visible', 'false');
+        const proceed = () => {
+          const hudTag = document.getElementById('hud-tag');
+          const t = document.getElementById('task-text');
+          if (free) {
+            if (hudTag) hudTag.textContent = '■ Freier Modus';
+            if (t) t.textContent = 'S1 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+            setArrowTarget(null, null); setInstruction('');
+          } else {
+            if (hudTag) hudTag.textContent = '■ Lern-Szenario 2';
+            const wpS2 = document.getElementById('waypoint-s2');
+            if (wpS2) wpS2.setAttribute('visible', 'true');
+            if (t) t.textContent = 'S1 abgeschlossen! Geh zur grünen Tafel rechts vom Eingang für S2.';
+            setArrowTarget(7, 0.15);
+            setInstruction('Geh zur grünen S2-Tafel rechts — drücke [E]');
+          }
+        };
+        showScenarioDone({
+          id: 's1', mode: free ? 'free' : 'guided',
+          btnLabel: free ? 'Zur&uuml;ck zur freien Wahl &rarr;' : 'Weiter zu Szenario 2 &rarr;',
+          onNext: proceed,
+        });
       });
     }
   });
@@ -2271,32 +2509,46 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         _assessScore.s2 = s; _assessMax.s2 = P2.getMaxScore();
         P2S6.markDone('s2');
         gameState = 'S1_ACTIVE';
-        const t = document.getElementById('task-text');
-        if (t) t.textContent = 'Assessment S2 abgeschlossen! Geh durch die Tür rechts für S3 (Transport).';
-        setArrowTarget(5, -20);
-        setInstruction('Assessment: Geh nach Norden — Transport-Flügel rechts (S3)');
+        showScenarioDone({
+          id: 's2', mode: 'assessment', score: s, maxScore: _assessMax.s2,
+          btnLabel: 'Weiter &rarr;',
+          onNext: () => {
+            const t = document.getElementById('task-text');
+            if (t) t.textContent = 'Assessment S2 abgeschlossen! Geh durch die Tür rechts für S3 (Transport).';
+            setArrowTarget(5, -20);
+            setInstruction('Assessment: Geh nach Norden — Transport-Flügel rechts (S3)');
+          },
+        });
       });
     } else {
       P2.init((s) => {
         ScenarioManager.markDone('s2');
         gameState = 'S1_ACTIVE';
         openGate('s3door');
-        const hudTag = document.getElementById('hud-tag');
-        const t = document.getElementById('task-text');
+        const free = ScenarioManager.isFree();
         const wpS2 = document.getElementById('waypoint-s2');
         if (wpS2) wpS2.setAttribute('visible', 'false');
-        if (ScenarioManager.isFree()) {
-          if (hudTag) hudTag.textContent = '■ Freier Modus';
-          if (t) t.textContent = 'S2 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
-          setArrowTarget(null, null); setInstruction('');
-        } else {
-          if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
-          const wpS3 = document.getElementById('waypoint-s3');
-          if (wpS3) wpS3.setAttribute('visible', 'true');
-          if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
-          setArrowTarget(5, -20);
-          setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
-        }
+        const proceed = () => {
+          const hudTag = document.getElementById('hud-tag');
+          const t = document.getElementById('task-text');
+          if (free) {
+            if (hudTag) hudTag.textContent = '■ Freier Modus';
+            if (t) t.textContent = 'S2 abgeschlossen! Wähle das nächste Szenario per grünem Knopf [E].';
+            setArrowTarget(null, null); setInstruction('');
+          } else {
+            if (hudTag) hudTag.textContent = '■ Lern-Szenario 3';
+            const wpS3 = document.getElementById('waypoint-s3');
+            if (wpS3) wpS3.setAttribute('visible', 'true');
+            if (t) t.textContent = 'S2 abgeschlossen! Nordflügel freigeschaltet — geh durch die Tür! S3 (Transport) ist rechts.';
+            setArrowTarget(5, -20);
+            setInstruction('Geh nach Norden durch die Halle — Transport-Flügel rechts (S3)');
+          }
+        };
+        showScenarioDone({
+          id: 's2', mode: free ? 'free' : 'guided',
+          btnLabel: free ? 'Zur&uuml;ck zur freien Wahl &rarr;' : 'Weiter zu Szenario 3 &rarr;',
+          onNext: proceed,
+        });
       });
     }
   });
@@ -2406,6 +2658,9 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     const p4 = document.getElementById('palette-4');
     if (p4) p4.setAttribute('visible', false);
   }
+  // Für die top-level finishS5Assessment() erreichbar machen (Zugriff aus dem
+  // direkten Assessment-Abschluss ohne Zwischen-Screen).
+  window._cleanupS5Extras = _cleanupS5Extras;
 
   // S5-Briefing: Spielmechanik starten
   document.getElementById('s5-briefing-start-btn').addEventListener('click', () => {
@@ -2478,6 +2733,9 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
   // S5-Abschluss: Gesamtauswertung anzeigen
   document.getElementById('s5-complete-btn').addEventListener('click', () => {
     document.getElementById('s5-complete-overlay').classList.add('hidden');
+    // S5 ist abgeschlossen → Wegpfeil + Instruktionsbox ausblenden (sonst bleibt
+    // der Hinweis "Geh zurück zur Lagerhalle …" im Frei-Modus dauerhaft stehen).
+    setArrowTarget(null, null); setInstruction('');
     // IP-Sortier-HUD + Klemmbrett wieder ausblenden (gehören nur zu S5)
     setS5Hud(false);
     // Paketverlust-Meldung am Büro-Computer zurücksetzen (S5 ist abgeschlossen)
