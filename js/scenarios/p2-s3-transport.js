@@ -9,6 +9,7 @@ const P2S3 = (() => {
   let _activePackets = null;
   let _dynamicEntities = [];
   let _assessMode = false;
+  const _homePos = {}; // id -> {x,y,z} Ausgangsposition (fuer Reset beim Neustart)
 
   const PACKETS = [
     {
@@ -53,17 +54,33 @@ const P2S3 = (() => {
     },
   ];
 
-  function _showFeedback(text, correct) {
+  // persist=true: Panel bleibt sichtbar bis zur nächsten Aktion (Fehler-Hinweise,
+  // damit man sie in Ruhe lesen kann). Sonst blendet es nach 8 s aus.
+  function _showFeedback(text, correct, persist) {
     const panel = document.getElementById('l3-feedback-panel');
     const txt   = document.getElementById('l3-feedback-text');
     if (!panel || !txt) return;
-    txt.setAttribute('value', text);
+    txt.setAttribute('value', window.deumlaut ? window.deumlaut(text) : text);
     txt.setAttribute('color', correct ? '#60ff90' : '#ff7050');
     panel.setAttribute('visible', true);
     clearTimeout(_feedbackTimeout);
-    _feedbackTimeout = setTimeout(() => {
-      panel.setAttribute('visible', false);
-    }, 8000);
+    if (!persist) {
+      _feedbackTimeout = setTimeout(() => {
+        panel.setAttribute('visible', false);
+      }, 8000);
+    }
+  }
+
+  function _hideFeedback() {
+    clearTimeout(_feedbackTimeout);
+    const panel = document.getElementById('l3-feedback-panel');
+    if (panel) panel.setAttribute('visible', false);
+  }
+
+  // Im Lern-Modus gibt es keine Punkte (nur Feedback), daher auch keine
+  // Score-Anzeige. Punkte zählen ausschließlich im Assessment.
+  function _updateScoreHud() {
+    if (_assessMode && window.refreshScoreHud) window.refreshScoreHud();
   }
 
   function _startCarrying(paketEl) {
@@ -74,6 +91,8 @@ const P2S3 = (() => {
     const _camPos = new THREE.Vector3();
     const _camQ   = new THREE.Quaternion();
     const _fwd    = new THREE.Vector3();
+    const _right  = new THREE.Vector3();
+    const _up     = new THREE.Vector3(0, 1, 0);
 
     function _tick() {
       if (!_selectedPaket) return;
@@ -81,14 +100,17 @@ const P2S3 = (() => {
       cam.object3D.getWorldPosition(_camPos);
       cam.object3D.getWorldQuaternion(_camQ);
 
-      // Camera looks along local -Z; project to XZ plane so packet stays level
+      // Camera looks along local -Z; project to XZ plane so packet stays level.
+      // Offset nach vorn/rechts/unten wie in S4 → Paket schwebt nicht mittig im
+      // Sichtfeld, sondern seitlich (verdeckt das Fadenkreuz nicht).
       _fwd.set(0, 0, -1).applyQuaternion(_camQ);
       _fwd.y = 0;
       if (_fwd.lengthSq() > 0.001) _fwd.normalize();
+      _right.crossVectors(_fwd, _up).normalize();
 
-      const x = _camPos.x + _fwd.x * 0.85;
-      const y = _camPos.y - 0.25 + Math.sin(Date.now() * 0.003) * 0.04; // gentle bob
-      const z = _camPos.z + _fwd.z * 0.85;
+      const x = _camPos.x + _fwd.x * 0.75 + _right.x * 0.35;
+      const y = _camPos.y - 0.40 + Math.sin(Date.now() * 0.003) * 0.04; // gentle bob
+      const z = _camPos.z + _fwd.z * 0.75 + _right.z * 0.35;
 
       paketEl.object3D.position.set(x, y, z);
       _carryRaf = requestAnimationFrame(_tick);
@@ -145,45 +167,47 @@ const P2S3 = (() => {
     });
   }
 
+  // Gibt zurück, ob das Paket abgelegt (verbraucht) wurde. Eine falsche Ablage
+  // wird abgelehnt: das Paket bleibt in der Hand und muss zum richtigen Band
+  // getragen werden — die Aufgabe lässt sich so nicht falsch beenden. Der
+  // Punktabzug (-20) bleibt aber als Anreiz erhalten.
   function _onDrop(paketId, beltId) {
     const packet = _activePackets.find(p => p.id === paketId);
-    if (!packet) return;
+    if (!packet) return false;
+
+    const correct = packet.protocol === beltId;
+    if (!correct) {
+      if (_assessMode) _score = Math.max(0, _score - 20);
+      _showFeedback(
+        '✗ Falsch! „' + packet.label + '“ gehört auf das '
+        + packet.protocol.toUpperCase() + '-Band.\n→ '
+        + (packet.protocol === 'tcp'
+          ? 'TCP garantiert Zustellung — wichtig für vollständige Daten.'
+          : 'UDP ist schneller — gut wenn einzelne Verluste tolerierbar sind.')
+        + '\nTrag das Paket zum richtigen Band.',
+        false, true,
+      );
+      _updateScoreHud();
+      return false;
+    }
 
     const el = document.getElementById(paketId);
-    if (el) el.setAttribute('visible', false);
+    // Verbrauchtes Paket vollständig aus der Interaktion nehmen: unsichtbar UND
+    // nicht mehr interactable, sonst kann der Ray es weiter anvisieren und man
+    // "nimmt" ein längst zugeordnetes (unsichtbares) Paket erneut auf.
+    if (el) { el.classList.remove('interactable'); el.setAttribute('visible', false); }
 
     _processed++;
-    const correct = packet.protocol === beltId;
-    if (correct) {
-      _score += 100;
-      _assigned++;
-      _showFeedback(packet.reason, true);
-    } else {
-      _score = Math.max(0, _score - 20);
-      _showFeedback(
-        '✗ Falsch! ' + packet.label + ' gehört zu ' + packet.protocol.toUpperCase()
-        + '\n→ ' + (packet.protocol === 'tcp'
-          ? 'TCP garantiert Zustellung — wichtig für vollständige Daten.'
-          : 'UDP ist schneller — gut wenn einzelne Verluste tolerierbar sind.'),
-        false,
-      );
-    }
-
-    // Im Assessment die laufende Gesamtpunktzahl anzeigen (game.js), sonst den
-    // lokalen Szenario-Score.
-    if (_assessMode && window.refreshScoreHud) {
-      window.refreshScoreHud();
-    } else {
-      const scorePill = document.getElementById('score-pill');
-      if (scorePill) scorePill.textContent = _score + ' P';
-    }
+    if (_assessMode) { _score += 100; _assigned++; }
+    _showFeedback(packet.reason, true);
+    _updateScoreHud();
 
     if (_processed >= _activePackets.length) {
-      clearTimeout(_feedbackTimeout);
-      const panel = document.getElementById('l3-feedback-panel');
-      if (panel) panel.setAttribute('visible', false);
-      setTimeout(() => { if (_onComplete) _onComplete(_score); }, 1200);
+      // Feedback zum letzten Paket sichtbar lassen und erst danach abschliessen,
+      // damit man die Rueckmeldung noch lesen kann (Abschluss-Screen verdeckt sie).
+      setTimeout(() => { if (_onComplete) _onComplete(_score); }, 2800);
     }
+    return true;
   }
 
   function _commonInit(onComplete, packets, taskText) {
@@ -201,15 +225,40 @@ const P2S3 = (() => {
     });
     _activePackets.forEach(p => {
       const el = document.getElementById(p.id);
-      if (el) el.setAttribute('visible', true);
+      if (!el) return;
+      // Ausgangsposition + Farbe einmalig merken, dann bei jedem Start
+      // zuruecksetzen — sonst tauchen die Pakete beim Neustart dort auf, wo sie
+      // zuletzt lagen (getragen/abgelegt) und ueberlappen sich; ein beim Abbruch
+      // getragenes Paket bliebe zudem weiss.
+      if (!_homePos[p.id]) {
+        const pos = el.getAttribute('position');
+        const mat = el.getAttribute('material');
+        if (pos) _homePos[p.id] = {
+          x: pos.x, y: pos.y, z: pos.z,
+          color: (mat && mat.color) ? mat.color : '#c8a060',
+        };
+      }
+      const h = _homePos[p.id];
+      if (h) {
+        el.object3D.position.set(h.x, h.y, h.z);
+        el.setAttribute('material', 'color:' + h.color + ';roughness:0.9');
+      }
+      // 'interactable' defensiv wieder setzen: wird beim Tragen entfernt, damit
+      // der Cursor-Ray nicht am getragenen Paket hängen bleibt (Peilung).
+      el.classList.add('interactable');
+      el.setAttribute('visible', true);
     });
     const panel = document.getElementById('l3-feedback-panel');
     if (panel) panel.setAttribute('visible', false);
 
     const taskTextEl = document.getElementById('task-text');
     if (taskTextEl) taskTextEl.textContent = taskText;
+    // Score-Anzeige nur im Assessment; im Lern-Modus ausblenden (keine Punkte).
     const scorePill = document.getElementById('score-pill');
-    if (scorePill) scorePill.textContent = '0 P';
+    if (scorePill) {
+      if (_assessMode) { scorePill.style.display = ''; scorePill.textContent = '0 P'; }
+      else scorePill.style.display = 'none';
+    }
   }
 
   return {
@@ -248,6 +297,9 @@ const P2S3 = (() => {
       _activePackets = null;
       const panel = document.getElementById('l3-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
+      // Score-Anzeige wieder freigeben (im Lern-Modus ausgeblendet).
+      const scorePill = document.getElementById('score-pill');
+      if (scorePill) scorePill.style.display = '';
       _selectedPaket = null;
       _onComplete = null;
     },
@@ -258,6 +310,10 @@ const P2S3 = (() => {
     handlePickup(target) {
       if (target.classList.contains('paket-l3') && !_selectedPaket) {
         _selectedPaket = target;
+        // Getragenes Paket aus dem Cursor-Ray nehmen, sonst zielt man am Paket
+        // in der Hand vorbei aufs Band ("neben das Band zielen").
+        target.classList.remove('interactable');
+        _hideFeedback();
         _startCarrying(target);
 
         const badge = document.getElementById('selected-badge');
@@ -270,14 +326,17 @@ const P2S3 = (() => {
         return true;
       }
       if (target.classList.contains('belt-zone') && _selectedPaket) {
-        _stopCarrying();
         const beltId  = target.getAttribute('data-belt');
         const paketId = _selectedPaket.id;
-        _selectedPaket.setAttribute('material', 'color:#c8a060;roughness:0.9');
-        _selectedPaket = null;
-        const badge = document.getElementById('selected-badge');
-        if (badge) badge.classList.remove('visible');
-        _onDrop(paketId, beltId);
+        const consumed = _onDrop(paketId, beltId);
+        if (consumed) {
+          _stopCarrying();
+          _selectedPaket.setAttribute('material', 'color:#c8a060;roughness:0.9');
+          _selectedPaket = null;
+          const badge = document.getElementById('selected-badge');
+          if (badge) badge.classList.remove('visible');
+        }
+        // Falsche Ablage: Paket bleibt in der Hand — einfach zum richtigen Band tragen.
         return true;
       }
       return false;

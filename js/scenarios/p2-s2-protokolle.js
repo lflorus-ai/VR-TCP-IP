@@ -35,20 +35,21 @@ const P2 = (() => {
       ],
     },
     {
-      question: 'Welches Protokoll überträgt Daten schnell, ohne Zustellgarantie?',
+      question: 'Welches Transportprotokoll überträgt Daten schnell, aber ohne Zustellgarantie?',
       options: [
         { text: 'TCP',  correct: false },
-        { text: 'HTTP', correct: false },
+        { text: 'IP',   correct: false },
         { text: 'UDP',  correct: true  },
-        { text: 'FTP',  correct: false },
+        { text: 'ICMP', correct: false },
       ],
     },
   ];
 
   function _setupQuiz(q) {
     const quiz = q || QUIZ;
+    const _t = window.deumlaut || (x => x);
     const el = document.getElementById('s2-quiz-question');
-    if (el) el.setAttribute('value', quiz.question);
+    if (el) el.setAttribute('value', _t(quiz.question));
     const ids = ['a', 'b', 'c', 'd'];
     quiz.options.forEach((opt, i) => {
       const box = document.getElementById('s2-quiz-' + ids[i]);
@@ -58,7 +59,7 @@ const P2 = (() => {
         box.setAttribute('material', 'color:#1a2a3a;roughness:0.5');
       }
       const txt = document.getElementById('s2-quiz-' + ids[i] + '-text');
-      if (txt) txt.setAttribute('value', ['A','B','C','D'][i] + ': ' + opt.text);
+      if (txt) txt.setAttribute('value', _t(['A','B','C','D'][i] + ': ' + opt.text));
     });
   }
 

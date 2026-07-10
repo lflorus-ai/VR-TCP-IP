@@ -105,6 +105,17 @@ AFRAME.registerComponent('collision-walls', {
       // Regale
       { xmin:-6.8,  xmax:-3.2,   zmin:-13.3, zmax:-6.7  },
       { xmin:3.2,   xmax:6.8,    zmin:-13.3, zmax:-6.7  },
+      // S3-Pakettisch (Transport-Flügel) — vorher durchlaufbar (Dozenten-Feedback)
+      { xmin:1.5,   xmax:10.5,   zmin:-20.1, zmax:-18.9 },
+      // S4-Pakettisch (Anwendungs-Flügel)
+      { xmin:-11.5, xmax:-1.5,   zmin:-22.25,zmax:-20.75},
+      // S4-Schreibtische
+      { xmin:-8.8,  xmax:-7.2,   zmin:-20.45,zmax:-19.55},
+      { xmin:-3.8,  xmax:-2.2,   zmin:-20.45,zmax:-19.55},
+      // Draußen geparkte LKWs — vorher konnte man hineinlaufen (Dozenten-Feedback)
+      { cx:10,  cz:11, hw:1.6, hd:4.2, rot:-15 },
+      { cx:-10, cz:16, hw:1.6, hd:4.2, rot:25  },
+      { cx:2,   cz:18, hw:1.6, hd:4.2, rot:-5  },
       // Büro-Wände
       { xmin:-22.2, xmax:-22,    zmin:-10,   zmax:-2    },
       { xmin:-22,   xmax:-12,    zmin:-10.2, zmax:-10   },
@@ -303,6 +314,39 @@ AFRAME.registerComponent('package-follow', {
     pos.y += (ty - pos.y) * speed;
     pos.z += (tz - pos.z) * speed;
   }
+});
+
+// ── Umlaut-/Symbol-Transliteration für 3D-Text ───────────────────────────────
+// A-Frames MSDF-Standardfonts (roboto/dejavu/exo2/…) enthalten KEINE deutschen
+// Umlaute und viele Sonderzeichen — im 3D-Text erscheinen sie als Lücken/Kästchen
+// (Dozenten-Feedback "Umlaute"). Deshalb werden alle <a-text>-Werte auf ASCII
+// abgebildet. HTML-Overlays sind NICHT betroffen (das DOM rendert Umlaute korrekt).
+function deumlaut(s) {
+  if (typeof s !== 'string') return s;
+  return s
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
+    .replace(/[„“”]/g, '"').replace(/[‚‘’]/g, "'")
+    .replace(/→/g, '->').replace(/←/g, '<-')
+    .replace(/[–—]/g, '-').replace(/•/g, '*').replace(/·/g, '-').replace(/…/g, '...')
+    .replace(/✓/g, '+').replace(/✗/g, 'x');
+}
+window.deumlaut = deumlaut;
+
+function sweepAframeText() {
+  document.querySelectorAll('a-text').forEach(el => {
+    const v = el.getAttribute('value');
+    if (typeof v === 'string') {
+      const d = deumlaut(v);
+      if (d !== v) el.setAttribute('value', d);
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const scene = document.querySelector('a-scene');
+  if (!scene) return;
+  if (scene.hasLoaded) sweepAframeText();
+  else scene.addEventListener('loaded', sweepAframeText);
 });
 
 AFRAME.registerComponent('kiosk-interaction', {

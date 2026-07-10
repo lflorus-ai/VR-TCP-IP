@@ -174,17 +174,18 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
     }
   });
 
-  test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
-    await page.evaluate(() => L3.init(() => {}));
+  // Punkte gibt es nur im Assessment (Lern-Modus zeigt nur Feedback).
+  test('Korrekte Zuordnung gibt +100 Punkte (Assessment)', async ({ page }) => {
+    await page.evaluate(() => L3.initAssessment(() => {}));
     const before = await page.evaluate(() => L3.getScore());
     await page.evaluate(() => L3._dropForTest('l3-paket-1', 'tcp')); // E-Mail-Versand → tcp
     const after = await page.evaluate(() => L3.getScore());
     expect(after).toBe(before + 100);
   });
 
-  test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
+  test('Falsche Zuordnung gibt -20 Punkte (Assessment)', async ({ page }) => {
     await page.evaluate(() => {
-      L3.init(() => {});
+      L3.initAssessment(() => {});
       L3._dropForTest('l3-paket-1', 'tcp'); // correct: tcp → tcp (+100)
     });
     const before = await page.evaluate(() => L3.getScore()); // 100
@@ -203,7 +204,7 @@ test.describe('Layer 3 — Transport-Flügel (TCP/UDP)', () => {
       L3._dropForTest('l3-paket-4', 'udp');
       L3._dropForTest('l3-paket-5', 'tcp');
     });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3500); // onComplete feuert erst nach Feedback-Anzeige (2800 ms)
     const completed = await page.evaluate(() => window.__l3Complete);
     expect(completed).toBe(true);
   });
@@ -232,17 +233,18 @@ test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
     }
   });
 
-  test('Korrekte Zuordnung gibt +100 Punkte', async ({ page }) => {
-    await page.evaluate(() => L4.init(() => {}));
+  // Punkte gibt es nur im Assessment (Lern-Modus zeigt nur Feedback).
+  test('Korrekte Zuordnung gibt +100 Punkte (Assessment)', async ({ page }) => {
+    await page.evaluate(() => L4.initAssessment(() => {}));
     const before = await page.evaluate(() => L4.getScore());
     await page.evaluate(() => L4._dropForTest('l4-paket-1', 'http'));
     const after = await page.evaluate(() => L4.getScore());
     expect(after).toBe(before + 100);
   });
 
-  test('Falsche Zuordnung gibt -20 Punkte', async ({ page }) => {
+  test('Falsche Zuordnung gibt -20 Punkte (Assessment)', async ({ page }) => {
     await page.evaluate(() => {
-      L4.init(() => {});
+      L4.initAssessment(() => {});
       L4._dropForTest('l4-paket-1', 'http'); // correct: http → http (+100)
     });
     const before = await page.evaluate(() => L4.getScore()); // 100
@@ -251,7 +253,7 @@ test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
     expect(after).toBe(before - 20); // 80
   });
 
-  test('Alle 6 zugeordnet → onComplete wird aufgerufen', async ({ page }) => {
+  test('Alle 6 zugeordnet → onComplete wird aufgerufen (Lern-Modus, 0 Punkte)', async ({ page }) => {
     const completed = await page.evaluate(() => new Promise(resolve => {
       L4.init(score => resolve(score));
       L4._dropForTest('l4-paket-1', 'http');
@@ -261,7 +263,7 @@ test.describe('Layer 4 — Anwendungs-Flügel (Protokolle)', () => {
       L4._dropForTest('l4-paket-5', 'http');
       L4._dropForTest('l4-paket-6', 'dns');
     }));
-    expect(completed).toBe(600);
+    expect(completed).toBe(0);
   });
 });
 

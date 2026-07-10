@@ -8,6 +8,7 @@ const P2S4 = (() => {
   let _activePackets = null;
   let _assessMode = false;
   let _dynamicEntities = [];
+  const _homePos = {}; // id -> {x,y,z,color} Ausgangszustand (fuer Reset beim Neustart)
 
   const PACKETS = [
     {
@@ -32,7 +33,7 @@ const P2S4 = (() => {
     },
     {
       id: 'l4-paket-6', protocol: 'dns', label: 'Mail-Server finden',
-      reason: '✓ DNS — MX-Einträge im DNS liefern den zuständigen Mailserver.',
+      reason: '✓ DNS — DNS findet über den MX-Eintrag (Mail-Exchange, der Wegweiser zum Mailserver einer Domain) den zuständigen Mailserver.',
     },
   ];
 
@@ -55,23 +56,39 @@ const P2S4 = (() => {
       reason: '✓ FTP — FTP überträgt große Dateien wie Backups zuverlässig.',
     },
     {
-      id: 'l4-paket-10', protocol: 'dns', label: 'MX-Record abfragen',
+      id: 'l4-paket-10', protocol: 'dns', label: 'Mailserver nachschlagen',
       pos: [-11.0, 1.18, -21.5], color: '#c8a060',
-      reason: '✓ DNS — MX-Records im DNS verweisen auf Mailserver.',
+      reason: '✓ DNS — Der MX-Eintrag (Mail-Exchange) im DNS ist der Wegweiser zum Mailserver einer Domain.',
     },
   ];
 
-  function _showFeedback(text, correct) {
+  // persist=true: Panel bleibt sichtbar bis zur nächsten Aktion (Fehler-Hinweise),
+  // sonst blendet es nach 8 s aus.
+  function _showFeedback(text, correct, persist) {
     const panel = document.getElementById('l4-feedback-panel');
     const txt   = document.getElementById('l4-feedback-text');
     if (!panel || !txt) return;
-    txt.setAttribute('value', text);
+    txt.setAttribute('value', window.deumlaut ? window.deumlaut(text) : text);
     txt.setAttribute('color', correct ? '#60ff90' : '#ff7050');
     panel.setAttribute('visible', true);
     clearTimeout(_feedbackTimeout);
-    _feedbackTimeout = setTimeout(() => {
-      panel.setAttribute('visible', false);
-    }, 8000);
+    if (!persist) {
+      _feedbackTimeout = setTimeout(() => {
+        panel.setAttribute('visible', false);
+      }, 8000);
+    }
+  }
+
+  function _hideFeedback() {
+    clearTimeout(_feedbackTimeout);
+    const panel = document.getElementById('l4-feedback-panel');
+    if (panel) panel.setAttribute('visible', false);
+  }
+
+  // Im Lern-Modus gibt es keine Punkte (nur Feedback), daher auch keine
+  // Score-Anzeige. Punkte zählen ausschließlich im Assessment.
+  function _updateScoreHud() {
+    if (_assessMode && window.refreshScoreHud) window.refreshScoreHud();
   }
 
   const _INBOX_COLORS = {
@@ -169,42 +186,43 @@ const P2S4 = (() => {
     });
   }
 
+  // Gibt zurück, ob das Paket abgelegt (verbraucht) wurde. Falsche Ablage wird
+  // abgelehnt: das Paket bleibt in der Hand und muss in den richtigen Briefkasten
+  // getragen werden. Der Punktabzug (-20) bleibt erhalten.
   function _onDrop(paketId, inboxProtocol) {
     const packet = _activePackets.find(p => p.id === paketId);
-    if (!packet) return;
+    if (!packet) return false;
+
+    const correct = packet.protocol === inboxProtocol;
+    if (!correct) {
+      if (_assessMode) _score = Math.max(0, _score - 20);
+      _showFeedback(
+        '✗ Falsch! „' + packet.label + '“ gehört zu '
+        + packet.protocol.toUpperCase() + '.\n→ ' + packet.reason.replace('✓ ', '')
+        + '\nTrag das Paket in den richtigen Briefkasten.',
+        false, true,
+      );
+      _updateScoreHud();
+      return false;
+    }
 
     const el = document.getElementById(paketId);
-    if (el) el.setAttribute('visible', false);
+    // Verbrauchtes Paket vollständig aus der Interaktion nehmen: unsichtbar UND
+    // nicht mehr interactable, sonst kann der Ray es weiter anvisieren und man
+    // "nimmt" ein längst zugeordnetes (unsichtbares) Paket erneut auf.
+    if (el) { el.classList.remove('interactable'); el.setAttribute('visible', false); }
 
     _processed++;
-    const correct = packet.protocol === inboxProtocol;
-    if (correct) {
-      _score += 100;
-      _showFeedback(packet.reason, true);
-    } else {
-      _score = Math.max(0, _score - 20);
-      _showFeedback(
-        '✗ Falsch! ' + packet.label + ' gehört zu ' + packet.protocol.toUpperCase()
-        + '\n→ ' + packet.reason.replace('✓ ', ''),
-        false,
-      );
-    }
-
-    // Im Assessment die laufende Gesamtpunktzahl anzeigen (game.js), sonst den
-    // lokalen Szenario-Score.
-    if (_assessMode && window.refreshScoreHud) {
-      window.refreshScoreHud();
-    } else {
-      const scorePill = document.getElementById('score-pill');
-      if (scorePill) scorePill.textContent = _score + ' P';
-    }
+    if (_assessMode) _score += 100;
+    _showFeedback(packet.reason, true);
+    _updateScoreHud();
 
     if (_processed >= _activePackets.length) {
-      clearTimeout(_feedbackTimeout);
-      const panel = document.getElementById('l4-feedback-panel');
-      if (panel) panel.setAttribute('visible', false);
-      setTimeout(() => { if (_onComplete) _onComplete(_score); }, 1200);
+      // Feedback zum letzten Paket sichtbar lassen und erst danach abschliessen,
+      // damit man die Rueckmeldung noch lesen kann (Abschluss-Screen verdeckt sie).
+      setTimeout(() => { if (_onComplete) _onComplete(_score); }, 2800);
     }
+    return true;
   }
 
   function _commonInit(onComplete, packets, taskText) {
@@ -221,15 +239,38 @@ const P2S4 = (() => {
     });
     _activePackets.forEach(p => {
       const el = document.getElementById(p.id);
-      if (el) el.setAttribute('visible', true);
+      if (!el) return;
+      // Ausgangsposition + Farbe einmalig merken, dann bei jedem Start
+      // zuruecksetzen — sonst tauchen die Pakete beim Neustart dort auf, wo sie
+      // zuletzt lagen und ueberlappen sich (ein getragenes bliebe zudem weiss).
+      if (!_homePos[p.id]) {
+        const pos = el.getAttribute('position');
+        const mat = el.getAttribute('material');
+        if (pos) _homePos[p.id] = {
+          x: pos.x, y: pos.y, z: pos.z,
+          color: (mat && mat.color) ? mat.color : '#c8a060',
+        };
+      }
+      const h = _homePos[p.id];
+      if (h) {
+        el.object3D.position.set(h.x, h.y, h.z);
+        el.setAttribute('material', 'color:' + h.color + ';roughness:0.9');
+      }
+      // 'interactable' defensiv wieder setzen (wird beim Tragen entfernt).
+      el.classList.add('interactable');
+      el.setAttribute('visible', true);
     });
     const panel = document.getElementById('l4-feedback-panel');
     if (panel) panel.setAttribute('visible', false);
 
     const taskTextEl = document.getElementById('task-text');
     if (taskTextEl) taskTextEl.textContent = taskText;
+    // Score-Anzeige nur im Assessment; im Lern-Modus ausblenden (keine Punkte).
     const scorePill = document.getElementById('score-pill');
-    if (scorePill) scorePill.textContent = '0 P';
+    if (scorePill) {
+      if (_assessMode) { scorePill.style.display = ''; scorePill.textContent = '0 P'; }
+      else scorePill.style.display = 'none';
+    }
   }
 
   return {
@@ -269,6 +310,9 @@ const P2S4 = (() => {
       _activePackets = null;
       const panel = document.getElementById('l4-feedback-panel');
       if (panel) panel.setAttribute('visible', false);
+      // Score-Anzeige wieder freigeben (im Lern-Modus ausgeblendet).
+      const scorePill = document.getElementById('score-pill');
+      if (scorePill) scorePill.style.display = '';
       _selectedPaket = null;
       _onComplete = null;
     },
@@ -279,6 +323,9 @@ const P2S4 = (() => {
     handlePickup(target) {
       if (target.classList.contains('paket-l4') && !_selectedPaket) {
         _selectedPaket = target;
+        // Getragenes Paket aus dem Cursor-Ray nehmen (Peilung).
+        target.classList.remove('interactable');
+        _hideFeedback();
         _startCarrying(target);
         _highlightInboxes(true);
 
@@ -292,15 +339,18 @@ const P2S4 = (() => {
         return true;
       }
       if (target.classList.contains('inbox-zone') && _selectedPaket) {
-        _stopCarrying();
-        _highlightInboxes(false);
         const inboxProto = target.getAttribute('data-protocol');
         const paketId = _selectedPaket.id;
-        _selectedPaket.setAttribute('material', 'color:#c8a060;roughness:0.9');
-        _selectedPaket = null;
-        const badge = document.getElementById('selected-badge');
-        if (badge) badge.classList.remove('visible');
-        _onDrop(paketId, inboxProto);
+        const consumed = _onDrop(paketId, inboxProto);
+        if (consumed) {
+          _stopCarrying();
+          _highlightInboxes(false);
+          _selectedPaket.setAttribute('material', 'color:#c8a060;roughness:0.9');
+          _selectedPaket = null;
+          const badge = document.getElementById('selected-badge');
+          if (badge) badge.classList.remove('visible');
+        }
+        // Falsche Ablage: Paket bleibt in der Hand — zum richtigen Briefkasten tragen.
         return true;
       }
       return false;

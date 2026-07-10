@@ -40,8 +40,14 @@
   <div id="controls-hint">W A S D &middot; Leertaste = Springen &middot; E = Interagieren &middot; Klick zum Maus sperren</div>
   <div id="selected-badge"></div>
 
+  <!-- Aufgaben-Leine: Warnung beim Weglaufen von einer laufenden Aufgabe -->
+  <div id="task-leash"></div>
+
+  <!-- Avatar-Hilfe: "Hey Kollege, ich weiß nicht weiter" -->
+  <button id="help-button" title="Hey Kollege, ich weiß nicht weiter">🧑‍🔧 Hilfe</button>
+
   <!-- Richtungspfeil: zeigt immer zum nächsten Ziel, rotiert per JS -->
-  <div id="dir-arrow" style="display:none; position:fixed; bottom:88px; left:50%; transform:translateX(-50%) rotate(0deg); pointer-events:none; z-index:999; filter:drop-shadow(0 0 10px #64a0ff);">
+  <div id="dir-arrow" style="display:none; position:fixed; bottom:148px; left:50%; transform:translateX(-50%) rotate(0deg); pointer-events:none; z-index:999; filter:drop-shadow(0 0 10px #64a0ff);">
     <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
       <polygon points="18,2 34,24 24,20 24,42 12,42 12,20 2,24" fill="#64a0ff" opacity="0.95"/>
     </svg>
@@ -383,6 +389,17 @@
       </div>
       <div class="overlay-body" id="sd-body"></div>
       <button id="sd-btn" class="overlay-btn">Weiter &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Avatar-Hilfe-Overlay -->
+  <div id="help-overlay" class="hidden">
+    <div class="overlay-box">
+      <div class="overlay-tag">Kollege Max hilft</div>
+      <div class="overlay-avatar">&#129497;</div>
+      <div class="overlay-title">Hey Kollege, ich helf dir!</div>
+      <div id="help-body" class="overlay-body">&nbsp;</div>
+      <button id="help-close-btn" class="overlay-btn">Alles klar, weiter!</button>
     </div>
   </div>
 
@@ -1061,9 +1078,9 @@
       <a-box material="color:#1e3a5f;roughness:0.7" width="2.3" height="0.06" depth="7" position="0 0.66 0"></a-box>
       <a-box material="color:#3060a0;shader:flat;opacity:0.9" width="2.3" height="0.02" depth="0.35" position="0 0.68 0"
              animation="property:position.z;from:-3.5;to:3.5;dur:2500;loop:true;easing:linear"></a-box>
-      <a-plane look-at="[camera]" material="color:#0d1a30;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
-        <a-text value="TCP" color="#64a0ff" scale="0.6 0.6 0.6" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="Zuverlässig · Bestätigt" color="#8899bb" scale="0.22 0.22 0.22" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane look-at="[camera]" material="color:#0d1a30;roughness:0.8" width="2.7" height="0.85" position="0 1.7 -1.5">
+        <a-text value="TCP" color="#64a0ff" scale="0.95 0.95 0.95" position="0 0.12 0.01" align="center"></a-text>
+        <a-text value="Zuverlässig · Bestätigt" color="#8899bb" scale="0.3 0.3 0.3" position="0 -0.16 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable belt-zone" id="l3-dropzone-tcp" data-belt="tcp"
              material="color:#3060a0;opacity:0.0;transparent:true" width="2.4" height="0.8" depth="7" position="0 0.9 0"></a-box>
@@ -1075,9 +1092,9 @@
       <a-box material="color:#3d1e00;roughness:0.7" width="2.3" height="0.06" depth="7" position="0 0.66 0"></a-box>
       <a-box material="color:#c05010;shader:flat;opacity:0.9" width="2.3" height="0.02" depth="0.35" position="0 0.68 0"
              animation="property:position.z;from:-3.5;to:3.5;dur:1200;loop:true;easing:linear"></a-box>
-      <a-plane look-at="[camera]" material="color:#1a0800;roughness:0.8" width="2.2" height="0.55" position="0 1.65 -1.5">
-        <a-text value="UDP" color="#ff7830" scale="0.6 0.6 0.6" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="Schnell · Verbindungslos" color="#bb7755" scale="0.22 0.22 0.22" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane look-at="[camera]" material="color:#1a0800;roughness:0.8" width="2.7" height="0.85" position="0 1.7 -1.5">
+        <a-text value="UDP" color="#ff7830" scale="0.95 0.95 0.95" position="0 0.12 0.01" align="center"></a-text>
+        <a-text value="Schnell · Verbindungslos" color="#bb7755" scale="0.3 0.3 0.3" position="0 -0.16 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable belt-zone" id="l3-dropzone-udp" data-belt="udp"
              material="color:#c05010;opacity:0.0;transparent:true" width="2.4" height="0.8" depth="7" position="0 0.9 0"></a-box>
@@ -1174,18 +1191,18 @@
       </a-entity>
     </a-entity>
 
-    <!-- P2S3 Feedback-Panel (erscheint kurz nach jeder Paketzuordnung) -->
-    <a-entity id="l3-feedback-panel" position="6 2.6 -23.5" visible="false">
-      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="4.5" height="0.9"></a-plane>
-      <a-text id="l3-feedback-text" value="" color="#60ff90" scale="0.175 0.175 0.175"
-              position="-2.1 0 0.02" width="11.5" wrap-count="48" material="shader:flat"></a-text>
+    <!-- P2S3 Feedback-Panel (erscheint nach jeder Paketzuordnung; Fehler bleiben stehen) -->
+    <a-entity id="l3-feedback-panel" position="6 2.7 -23.5" visible="false">
+      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="5.6" height="1.7"></a-plane>
+      <a-text id="l3-feedback-text" value="" color="#60ff90" scale="0.22 0.22 0.22"
+              position="-2.55 0 0.02" width="11.5" wrap-count="46" material="shader:flat"></a-text>
     </a-entity>
 
-    <!-- P2S4 Feedback-Panel (erscheint kurz nach jeder Paketzuordnung) -->
-    <a-entity id="l4-feedback-panel" position="-6 2.6 -23.5" visible="false">
-      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="4.5" height="0.9"></a-plane>
-      <a-text id="l4-feedback-text" value="" color="#60ff90" scale="0.175 0.175 0.175"
-              position="-2.1 0 0.02" width="11.5" wrap-count="48" material="shader:flat"></a-text>
+    <!-- P2S4 Feedback-Panel (erscheint nach jeder Paketzuordnung; Fehler bleiben stehen) -->
+    <a-entity id="l4-feedback-panel" position="-6 2.7 -23.5" visible="false">
+      <a-plane material="color:#0a1020;opacity:0.97;shader:flat" width="5.6" height="1.7"></a-plane>
+      <a-text id="l4-feedback-text" value="" color="#60ff90" scale="0.22 0.22 0.22"
+              position="-2.55 0 0.02" width="11.5" wrap-count="46" material="shader:flat"></a-text>
     </a-entity>
 
     <!-- ─── SCHICHT 4: ANWENDUNGS-FLÜGEL (x=-12..0) ────────────────────────── -->
@@ -1209,9 +1226,9 @@
     <!-- Protokoll-Briefkästen -->
     <a-entity id="l4-inbox-http" position="-10 0 -29" visible="false">
       <a-box material="color:#1a2040;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane look-at="[camera]" material="color:#0d1a30;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
-        <a-text value="HTTP" color="#64a0ff" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="Web-Seiten &amp; APIs" color="#8899aa" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane material="color:#0d1a30;roughness:0.8" width="2.2" height="0.85" position="0 2.05 0.26">
+        <a-text value="HTTP" color="#64a0ff" scale="0.78 0.78 0.78" position="0 0.14 0.01" align="center"></a-text>
+        <a-text value="Web-Seiten &amp; APIs" color="#8899aa" scale="0.26 0.26 0.26" position="0 -0.18 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable inbox-zone" id="l4-drop-http" data-protocol="http"
              material="color:#3060a0;opacity:0.0;transparent:true" width="2.0" height="0.9" depth="0.9" position="0 0.6 0.45"></a-box>
@@ -1219,9 +1236,9 @@
 
     <a-entity id="l4-inbox-dns" position="-7 0 -29" visible="false">
       <a-box material="color:#201a00;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane look-at="[camera]" material="color:#1a1400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
-        <a-text value="DNS" color="#f5c518" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="Domain-Auflösung" color="#aa9955" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane material="color:#1a1400;roughness:0.8" width="2.2" height="0.85" position="0 2.05 0.26">
+        <a-text value="DNS" color="#f5c518" scale="0.78 0.78 0.78" position="0 0.14 0.01" align="center"></a-text>
+        <a-text value="Domain-Auflösung" color="#aa9955" scale="0.26 0.26 0.26" position="0 -0.18 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable inbox-zone" id="l4-drop-dns" data-protocol="dns"
              material="color:#f5c518;opacity:0.0;transparent:true" width="2.0" height="0.9" depth="0.9" position="0 0.6 0.45"></a-box>
@@ -1229,9 +1246,9 @@
 
     <a-entity id="l4-inbox-ftp" position="-4 0 -29" visible="false">
       <a-box material="color:#0a2010;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane look-at="[camera]" material="color:#061408;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
-        <a-text value="FTP" color="#50e0a0" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="Datei-Transfer" color="#559977" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane material="color:#061408;roughness:0.8" width="2.2" height="0.85" position="0 2.05 0.26">
+        <a-text value="FTP" color="#50e0a0" scale="0.78 0.78 0.78" position="0 0.14 0.01" align="center"></a-text>
+        <a-text value="Datei-Transfer" color="#559977" scale="0.26 0.26 0.26" position="0 -0.18 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable inbox-zone" id="l4-drop-ftp" data-protocol="ftp"
              material="color:#50e0a0;opacity:0.0;transparent:true" width="2.0" height="0.9" depth="0.9" position="0 0.6 0.45"></a-box>
@@ -1239,9 +1256,9 @@
 
     <a-entity id="l4-inbox-smtp" position="-1.2 0 -29" visible="false">
       <a-box material="color:#200800;roughness:0.6;metalness:0.3" width="2.2" height="2.2" depth="0.5" position="0 1.1 0"></a-box>
-      <a-plane look-at="[camera]" material="color:#140400;roughness:0.8" width="2.0" height="0.6" position="0 2.0 0.26">
-        <a-text value="SMTP" color="#ff7850" scale="0.5 0.5 0.5" position="0 0.1 0.01" align="center"></a-text>
-        <a-text value="E-Mail-Versand" color="#aa6644" scale="0.2 0.2 0.2" position="0 -0.12 0.01" align="center"></a-text>
+      <a-plane material="color:#140400;roughness:0.8" width="2.2" height="0.85" position="0 2.05 0.26">
+        <a-text value="SMTP" color="#ff7850" scale="0.7 0.7 0.7" position="0 0.14 0.01" align="center"></a-text>
+        <a-text value="E-Mail-Versand" color="#aa6644" scale="0.26 0.26 0.26" position="0 -0.18 0.01" align="center"></a-text>
       </a-plane>
       <a-box class="interactable inbox-zone" id="l4-drop-smtp" data-protocol="smtp"
              material="color:#ff7850;opacity:0.0;transparent:true" width="2.0" height="0.9" depth="0.9" position="0 0.6 0.45"></a-box>
@@ -1340,12 +1357,13 @@
       </a-sphere>
     </a-entity>
 
-    <!-- LKWs – dekorativ draußen geparkt -->
-    <a-gltf-model src="#model-lkw" position="10 0 11"  rotation="0 -15 0" scale="1 1 1" auto-collider></a-gltf-model>
+    <!-- LKWs – dekorativ draußen geparkt (feste Kollisionsboxen in components.js,
+         damit man nicht mehr hineinlaufen kann — statt ungenauem auto-collider) -->
+    <a-gltf-model src="#model-lkw" position="10 0 11"  rotation="0 -15 0" scale="1 1 1"></a-gltf-model>
     <a-light type="point" color="#fff5e0" intensity="25" distance="18" decay="2" position="10 4 11"></a-light>
-    <a-gltf-model src="#model-lkw" position="-10 0 16" rotation="0 25 0"  scale="1 1 1" auto-collider></a-gltf-model>
+    <a-gltf-model src="#model-lkw" position="-10 0 16" rotation="0 25 0"  scale="1 1 1"></a-gltf-model>
     <a-light type="point" color="#fff5e0" intensity="25" distance="18" decay="2" position="-10 4 16"></a-light>
-    <a-gltf-model src="#model-lkw" position="2 0 18"   rotation="0 -5 0"  scale="1 1 1" auto-collider></a-gltf-model>
+    <a-gltf-model src="#model-lkw" position="2 0 18"   rotation="0 -5 0"  scale="1 1 1"></a-gltf-model>
     <a-light type="point" color="#fff5e0" intensity="25" distance="18" decay="2" position="2 4 18"></a-light>
 
     <!-- VERSANDRAUM (x=12..22, z=-4..-14, Eingang bei x=12, z=-9) -->
@@ -1500,7 +1518,7 @@
              material="color:#1e3060;roughness:0.7;opacity:0.9;transparent:true"></a-box>
       <a-text value="Schichten lesen  [ E ]" color="#88ccff" scale="0.20 0.20 0.20" position="0 2.35 0.12" align="center" material="shader:flat"></a-text>
       <!-- Quiz question -->
-      <a-text id="s1-quiz-question" value="Lies zuerst die Info-Tafel [ E ]" color="#aabbcc" scale="0.14 0.14 0.14" position="0 1.72 0.09" align="center" wrap-count="28"></a-text>
+      <a-text id="s1-quiz-question" value="Lies zuerst die Info-Tafel [ E ]" color="#ffffff" scale="0.2 0.2 0.2" position="0 1.75 0.09" align="center" wrap-count="26"></a-text>
       <!-- Quiz boxes (2 x 2) -->
       <a-box class="interactable quiz-option-s1" id="s1-quiz-a" data-correct="false" position="-0.82 1.28 0.08" width="1.4" height="0.38" depth="0.06" material="color:#1a2040;roughness:0.5">
         <a-text id="s1-quiz-a-text" value="A: ..." color="#c8d8f0" scale="0.15 0.15 0.15" position="-0.65 0 0.04" align="left" wrap-count="18"></a-text>
@@ -1531,7 +1549,7 @@
              material="color:#1e3060;roughness:0.7;opacity:0.9;transparent:true"></a-box>
       <a-text value="Protokolle lesen  [ E ]" color="#88ccff" scale="0.20 0.20 0.20" position="0 2.35 0.12" align="center" material="shader:flat"></a-text>
       <!-- Quiz question -->
-      <a-text id="s2-quiz-question" value="Lies zuerst die Info-Tafel [ E ]" color="#aabbcc" scale="0.14 0.14 0.14" position="0 1.72 0.09" align="center" wrap-count="28"></a-text>
+      <a-text id="s2-quiz-question" value="Lies zuerst die Info-Tafel [ E ]" color="#ffffff" scale="0.2 0.2 0.2" position="0 1.75 0.09" align="center" wrap-count="26"></a-text>
       <!-- Quiz boxes (2 x 2) -->
       <a-box class="interactable quiz-option-s2" id="s2-quiz-a" data-correct="false" position="-0.82 1.28 0.08" width="1.4" height="0.38" depth="0.06" material="color:#1a2040;roughness:0.5">
         <a-text id="s2-quiz-a-text" value="A: ..." color="#c8d8f0" scale="0.15 0.15 0.15" position="-0.65 0 0.04" align="left" wrap-count="18"></a-text>

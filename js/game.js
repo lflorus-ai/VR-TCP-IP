@@ -85,6 +85,139 @@ function setArrowTarget(x, z) {
   if (el) el.style.display = _arrowTarget ? 'block' : 'none';
 }
 
+// S5-Wegpunkte: Regal A (links, Pakete abholen) ↔ Versandraum (rechts, LKW-
+// Paletten). Der Richtungspfeil zeigt beim Tragen zum Versandraum und mit leeren
+// Händen zurück zum Regal.
+const _S5_REGAL       = { x: -5, z: -9  };
+const _S5_VERSANDRAUM = { x: 16, z: -10 };
+// Trifft die IP-Sortierphase von S5 — im Lern-Durchlauf (S5_ACTIVE) wie auch in
+// der Paketverlust-Fehlerbehandlung (S2-Mechanik, aber Rückkehr nach S5).
+function _isS5SortContext() {
+  return gameState === 'S5_ACTIVE' ||
+         (gameState === 'S2_ACTIVE' && lostPacketReturn === 's5');
+}
+
+// ── Aufgaben-Leine ────────────────────────────────────────────────────────────
+// Warnt den Spieler, wenn er sich während einer laufenden Aufgabe von ihr
+// entfernt (Dozenten-Feedback). Solange die Aufgabe läuft (gameState === ZONE_*),
+// ist sie per Definition noch nicht abgeschlossen.
+function hideTaskLeash() {
+  const el = document.getElementById('task-leash');
+  if (el) el.classList.remove('visible');
+}
+function updateTaskLeash(pos) {
+  const el = document.getElementById('task-leash');
+  if (!el) return;
+  let msg = '';
+  if (gameState === 'ZONE_S3' || gameState === 'ZONE_S4') {
+    // Nordflügel: Verlassen = z steigt Richtung Tür (z > -16)
+    if (pos.z > -16) {
+      msg = '⚠ Aufgabe noch nicht fertig! Geh zurück und ordne alle Pakete zu.';
+    }
+  }
+  // Kein Leash für S5: Sortieren + Fehlerbehandlung finden in der Haupthalle
+  // (LKW-Paletten, x ≥ 0) statt im Büro statt. Der Spieler MUSS das Büro
+  // verlassen, um die Aufgabe zu erledigen — eine "Geh zurück ins Büro"-Warnung
+  // wäre daher falsch (galt für ZONE_S5 + S5_ACTIVE im geführten, freien und
+  // Assessment-Durchlauf).
+  if (msg) { el.textContent = msg; el.classList.add('visible'); }
+  else el.classList.remove('visible');
+}
+
+// ── Avatar-Hilfe ("Hey Kollege, ich weiß nicht weiter") ──────────────────────
+// Szenario-spezifische Hilfe, abrufbar über den Hilfe-Knopf im HUD. Jeder
+// Eintrag hat einen konkreten Handlungs-Tipp (tip) sowie ein Mini-Glossar
+// (terms) mit den Fachbegriffen, die im jeweiligen Szenario vorkommen — so
+// bekommt man Begriffe wie API, DNS oder Routing direkt erklärt.
+const _helpHints = {
+  ZONE_S1: {
+    tip: 'Lies zuerst die Info-Tafel (schau sie an, drücke [E]). Beantworte dann die Frage: Die Internet-Schicht liegt direkt UNTER der Transportschicht.',
+    terms: [
+      ['TCP/IP-Modell', 'Bauplan des Internets aus 4 gestapelten Schichten. Jede Schicht hat eine feste Aufgabe und nutzt die Schicht darunter.'],
+      ['Schicht (Layer)', 'Eine Ebene mit klarer Zuständigkeit — z.B. „Transport“ oder „Anwendung“. Wie Abteilungen in einer Firma.'],
+      ['Protokoll', 'Eine vereinbarte „Sprache“/Regel, nach der zwei Computer Daten austauschen (z.B. TCP, HTTP).'],
+    ],
+  },
+  ZONE_S2: {
+    tip: 'Schau dir die Protokoll-Tafel an [E]. Merke: TCP & UDP gehören zur Transportschicht, HTTP/DNS/FTP/SMTP zur Anwendungsschicht.',
+    terms: [
+      ['Protokoll', 'Regelwerk für die Kommunikation zwischen Computern.'],
+      ['Transportschicht', 'Sorgt für den Datentransport zwischen zwei Geräten — hier wohnen TCP und UDP.'],
+      ['Anwendungsschicht', 'Die oberste Schicht, mit der Programme arbeiten — hier wohnen HTTP, DNS, FTP, SMTP.'],
+    ],
+  },
+  ZONE_S3: {
+    tip: 'Nimm ein Paket mit [E] (es schwebt vor dir). Geh nah an ein Förderband und drücke erneut [E]. TCP = zuverlässig (E-Mail, Datei, Web), UDP = schnell (Video, Gaming, VoIP).',
+    terms: [
+      ['TCP', 'Zuverlässiges Protokoll: bestätigt jedes Paket und sendet Verlorenes erneut. Nutze es, wenn nichts fehlen darf (E-Mail, Datei, Webseite).'],
+      ['UDP', 'Schnelles Protokoll ohne Empfangsbestätigung. Nutze es, wenn Tempo wichtiger ist als Vollständigkeit (Video, Online-Spiel, Telefonie).'],
+      ['Paket', 'Ein kleines Datenstück. Große Daten werden in viele Pakete zerlegt und einzeln verschickt.'],
+    ],
+  },
+  ZONE_S4: {
+    tip: 'Nimm ein Paket [E] und trag es bis zum passenden Briefkasten (max. 5 m). HTTP = Web, DNS = Domain→IP, FTP = Datei, SMTP = E-Mail.',
+    terms: [
+      ['HTTP', 'Hypertext Transfer Protocol — überträgt Webseiten zwischen Browser und Server.'],
+      ['DNS', 'Domain Name System — das „Telefonbuch“ des Internets: übersetzt Namen (google.de) in IP-Adressen.'],
+      ['FTP', 'File Transfer Protocol — zum Hoch- und Herunterladen von Dateien.'],
+      ['SMTP', 'Simple Mail Transfer Protocol — verschickt E-Mails zwischen Mailservern.'],
+      ['API', 'Application Programming Interface — eine definierte Schnittstelle, über die ein Programm Dienste eines anderen anspricht (oft per HTTP).'],
+    ],
+  },
+  ZONE_S5: {
+    tip: 'Nimm ein Paket aus dem Regal [E]. Schau die IP an: die ersten drei Zahlen sind das Zielnetz. Trag es zur passenden LKW-Palette (10.0.0.x → LKW 2, 192.168.1.x → LKW 1, 172.16.5.x → LKW 3).',
+    terms: [
+      ['IP-Adresse', 'Eindeutige Adresse eines Geräts im Netz, z.B. 192.168.1.10 — wie eine Hausnummer.'],
+      ['Netz / Subnetz', 'Die ersten Zahlenblöcke der IP bilden das Zielnetz (192.168.1.x). Alle Geräte mit gleichem Netz gehören zusammen.'],
+      ['Router', 'Gerät, das Pakete anhand ihrer Ziel-IP an das richtige Netz weiterleitet — die „Poststelle“.'],
+      ['Paketverlust', 'Ein Paket geht unterwegs verloren. Bei TCP wird es erkannt und erneut gesendet (Retransmission).'],
+    ],
+  },
+};
+_helpHints.S5_ACTIVE = _helpHints.ZONE_S5;
+
+function showHelp() {
+  const overlay = document.getElementById('help-overlay');
+  const body    = document.getElementById('help-body');
+  if (!overlay || !body) return;
+  const entry = _helpHints[gameState];
+  const fallback = 'Folge dem Richtungspfeil unten und der Aufgabe oben links. Grüne Tafeln/Räume startest du mit [E]. Viel Erfolg!';
+  while (body.firstChild) body.removeChild(body.firstChild);
+
+  const tipEl = document.createElement('p');
+  tipEl.className = 'help-tip';
+  tipEl.textContent = entry ? entry.tip : fallback;
+  body.appendChild(tipEl);
+
+  if (entry && entry.terms && entry.terms.length) {
+    const heading = document.createElement('div');
+    heading.className = 'help-terms-heading';
+    heading.textContent = 'Begriffe kurz erklärt';
+    body.appendChild(heading);
+
+    const dl = document.createElement('dl');
+    dl.className = 'help-terms';
+    entry.terms.forEach(([term, def]) => {
+      const dt = document.createElement('dt');
+      dt.textContent = term;
+      const dd = document.createElement('dd');
+      dd.textContent = def;
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+    body.appendChild(dl);
+  }
+
+  overlay.classList.remove('hidden');
+  document.exitPointerLock();
+}
+function hideHelp() {
+  const overlay = document.getElementById('help-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  const canvas = document.querySelector('a-scene canvas');
+  if (canvas) canvas.requestPointerLock();
+}
+
 // Hard-gate collision boxes (added dynamically, removed when gate opens)
 const _gates = {
   s3door:   { box: { xmin: 4.5,   xmax: 7.5,   zmin:-16.2, zmax:-15.7 }, entityId: 'gate-s3',       open: false },
@@ -445,6 +578,10 @@ function chooseMode(mode) {
 document.getElementById('mode-guided-btn').addEventListener('click', () => chooseMode(Mode.GUIDED));
 document.getElementById('mode-free-btn').addEventListener('click', () => chooseMode(Mode.FREE));
 
+// Avatar-Hilfe: Knopf im HUD + Schließen des Hilfe-Overlays
+document.getElementById('help-button')?.addEventListener('click', showHelp);
+document.getElementById('help-close-btn')?.addEventListener('click', hideHelp);
+
 // Auto-Neustart nach Reload aus der Gesamtauswertung: gewählten Modus direkt
 // setzen (überspringt die Modus-Auswahl; das Steuer-Tutorial läuft normal).
 (() => {
@@ -682,6 +819,14 @@ function showS2Transition(returnTo) {
   const waypoint = document.getElementById('computer-waypoint');
   if (waypoint) waypoint.setAttribute('visible', 'true');
 
+  // Proximity-Flags des Büro-Computers zurücksetzen, damit das E-Gate erneut
+  // feuert. Ohne das bleibt `triggered` aus einem vorherigen Durchlauf (z.B.
+  // geführte S5-Fehlerbehandlung) true → tick() bricht ab → _hintVisible wird
+  // nie true → E startet die Fehlerbehandlung im Assessment nicht.
+  const compEl = document.getElementById('office-computer-entity');
+  const comp = compEl && compEl.components['computer-proximity'];
+  if (comp) { comp.triggered = false; comp._hintVisible = false; }
+
   // Lieferschein-Liste leeren (S2 hat eigene Pakete)
   const listEl = document.getElementById('lieferschein-list');
   if (listEl) while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
@@ -909,7 +1054,7 @@ const _scenarioDoneContent = {
     avatar: '\u{1F69A}', // 🚚
     topic: 'Transportschicht gemeistert!',
     body:
-      'Du hast jedes Paket dem richtigen Transportprotokoll zugeordnet &mdash; <strong>TCP</strong> oder <strong>UDP</strong>.'
+      '<strong>Alle Pakete verteilt!</strong> Du hast jedes Paket dem richtigen Transportprotokoll zugeordnet &mdash; <strong>TCP</strong> oder <strong>UDP</strong>.'
       + '<div class="overlay-learn-box">'
       + '<div class="olb-header">\u{1F69A} Was du getan hast &mdash; Transportschicht</div>'
       + '<ul class="olb-list">'
@@ -922,7 +1067,7 @@ const _scenarioDoneContent = {
     avatar: '\u{1F4EE}', // 📮
     topic: 'Anwendungsschicht gemeistert!',
     body:
-      'Du hast jedes Paket in den richtigen <strong>Protokoll-Briefkasten</strong> der Anwendungsschicht einsortiert.'
+      '<strong>Alle Pakete verteilt!</strong> Du hast jedes Paket in den richtigen <strong>Protokoll-Briefkasten</strong> der Anwendungsschicht einsortiert.'
       + '<div class="overlay-learn-box">'
       + '<div class="olb-header">\u{1F4EE} Was du getan hast &mdash; Anwendungsschicht</div>'
       + '<ul class="olb-list">'
@@ -938,6 +1083,9 @@ const _scenarioDoneContent = {
 function showScenarioDone({ id, mode, score, maxScore, btnLabel, onNext }) {
   const cfg = _scenarioDoneContent[id];
   if (!cfg) { if (onNext) onNext(); return; }
+  // Score-Anzeige wieder einblenden (S3/S4-Lern-Modus hatte sie ausgeblendet).
+  const _sp = document.getElementById('score-pill');
+  if (_sp) _sp.style.display = '';
   const num = id.slice(1);
   playSoundComplete();
   document.exitPointerLock();
@@ -1380,6 +1528,13 @@ function interactWithPaket(el) {
   const binEl = document.getElementById('binary-display');
   binEl.textContent = ipToBinary(ip);
   binEl.style.display = 'block';
+
+  // In der S5-Sortierphase: Pfeil zum Versandraum (LKW-Paletten, rechts) drehen,
+  // sobald ein Paket in der Hand ist.
+  if (_isS5SortContext()) {
+    setArrowTarget(_S5_VERSANDRAUM.x, _S5_VERSANDRAUM.z);
+    setInstruction('Trag das Paket in den Versandraum (rechts) zur passenden LKW-Palette');
+  }
 }
 
 const maxFeedbackMessages = [
@@ -1452,6 +1607,17 @@ function interactWithPalette(pal) {
     document.getElementById('selected-badge').classList.remove('visible');
     document.getElementById('binary-display').style.display = 'none';
     refreshScoreHud();
+
+    // S5: nach korrekter Ablage Pfeil zurück zum Regal (nächstes Paket abholen) —
+    // solange noch offene Pakete existieren. Ist es das letzte, übernimmt die
+    // Abschluss-/Übergangslogik den Pfeil.
+    if (_isS5SortContext()) {
+      const openList = (gameState === 'S2_ACTIVE') ? s2LostPackets : lieferschein;
+      if (openList.some(x => !x.done)) {
+        setArrowTarget(_S5_REGAL.x, _S5_REGAL.z);
+        setInstruction('Hol das nächste Paket aus dem Regal (links)');
+      }
+    }
 
     const stateAtDelivery = gameState;
     setTimeout(() => {
@@ -1674,7 +1840,8 @@ function setClipboardText(entries, header) {
     e.done ? 'v ' + e.id + ' erledigt' : '  ' + e.id + '  ' + e.ip
   ).join('\n');
   const th = document.getElementById('ls-text-hand');
-  if (th) th.setAttribute('value', (header || 'MusterFirma GmbH\n14.01.2026') + '\n\nID      IP\n' + rows);
+  const _val = (header || 'MusterFirma GmbH\n14.01.2026') + '\n\nID      IP\n' + rows;
+  if (th) th.setAttribute('value', window.deumlaut ? window.deumlaut(_val) : _val);
 }
 
 function updateLieferschein() {
@@ -2146,7 +2313,8 @@ function updateClipboard(entries, title) {
   const rows = entries.map(e =>
     e.done ? 'v ' + e.id + ' erledigt' : '  ' + e.id + '  ' + e.ip
   ).join('\n');
-  th.setAttribute('value', title + '\n\nID      IP\n' + rows);
+  const _val = title + '\n\nID      IP\n' + rows;
+  th.setAttribute('value', window.deumlaut ? window.deumlaut(_val) : _val);
 }
 
 function updateS3Lieferschein() {
@@ -2724,10 +2892,12 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
     gameState = 'S5_ACTIVE';
     const canvas = document.querySelector('a-scene canvas');
     if (canvas) canvas.requestPointerLock();
-    setArrowTarget(0, -5);
+    // Erst zum Regal (links) — dort werden die Pakete abgeholt. Beim Aufnehmen
+    // dreht der Pfeil dann zum Versandraum (siehe interactWithPaket).
+    setArrowTarget(_S5_REGAL.x, _S5_REGAL.z);
     setInstruction(_assessmentMode
-      ? 'Assessment: Sortiere 8 IP-Pakete (inkl. 10.1.0.x → LKW 4)'
-      : 'Geh zurück zur Lagerhalle und sortiere die IP-Pakete');
+      ? 'Assessment: Hol die IP-Pakete aus dem Regal (links) und sortiere sie'
+      : 'Hol ein Paket aus dem Regal (links) und sortiere es in den Versandraum');
   });
 
   // S5-Abschluss: Gesamtauswertung anzeigen
@@ -2802,15 +2972,22 @@ document.querySelector('a-scene').addEventListener('loaded', () => {
         enterZoneS5();
       }
     }
-    // Exit — Nordflügel zurück in Haupthalle
-    if (pos.z >= -15.5) {
+    // Leine (Dozenten-Feedback): Warnung, wenn man die laufende Aufgabe verlässt,
+    // bevor man den Flügel/Raum ganz verlässt (Abbruch erst weiter draußen).
+    updateTaskLeash(pos);
+
+    // Exit — Nordflügel zurück in Haupthalle (Puffer bis z=-14, damit die
+    // Leinen-Warnung vorher sichtbar ist, bevor abgebrochen wird).
+    if (pos.z >= -14) {
       if (gameState === 'ZONE_S3') {
         P2S3.teardown(); gameState = 'S1_ACTIVE';
+        hideTaskLeash();
         hideStepBanner(); setInstruction('');
         const t = document.getElementById('task-text');
         if (t) t.textContent = 'Haupthalle — S3 abgebrochen. Geh erneut in den Transport-Flügel (rechts).';
       } else if (gameState === 'ZONE_S4') {
         P2S4.teardown(); gameState = 'S1_ACTIVE';
+        hideTaskLeash();
         hideStepBanner(); setInstruction('');
         const t = document.getElementById('task-text');
         if (t) t.textContent = 'Haupthalle — S4 abgebrochen. Geh erneut in den Anwendungs-Flügel (links).';

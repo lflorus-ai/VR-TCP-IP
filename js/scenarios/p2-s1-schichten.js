@@ -47,8 +47,9 @@ const P1 = (() => {
 
   function _setupQuiz(q) {
     const quiz = q || QUIZ;
+    const _t = window.deumlaut || (x => x);
     const el = document.getElementById('s1-quiz-question');
-    if (el) el.setAttribute('value', quiz.question);
+    if (el) el.setAttribute('value', _t(quiz.question));
     const ids = ['a', 'b', 'c', 'd'];
     quiz.options.forEach((opt, i) => {
       const box = document.getElementById('s1-quiz-' + ids[i]);
@@ -58,7 +59,7 @@ const P1 = (() => {
         box.setAttribute('material', 'color:#1a2a3a;roughness:0.5');
       }
       const txt = document.getElementById('s1-quiz-' + ids[i] + '-text');
-      if (txt) txt.setAttribute('value', ['A','B','C','D'][i] + ': ' + opt.text);
+      if (txt) txt.setAttribute('value', _t(['A','B','C','D'][i] + ': ' + opt.text));
     });
   }
 
