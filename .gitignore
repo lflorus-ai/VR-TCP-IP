@@ -1,0 +1,29 @@
+# === Dependencies (aus package.json neu installierbar) ===
+node_modules/
+
+# === Claude Code / Agenten-Tooling (lokale Entwicklungsumgebung) ===
+.agents/
+.claude/
+.superpowers/
+.firecrawl/
+.playwright/
+.playwright-cli/
+.playwright-mcp/
+skills-lock.json
+CLAUDE.md
+docs/superpowers/
+
+# === Test-Output ===
+test-results/
+playwright-report/
+
+# === Debug-Screenshots (keine Spiel-Assets) ===
+max-*.png
+screenshot-current.png
+s0-overlay-verification.png
+
+# === Seminararbeit (nicht Teil des Deploys) ===
+Integrationsseminar_Gruppe08.pdf
+
+# === OS / Editor ===
+.DS_Store
