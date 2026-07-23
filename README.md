@@ -280,3 +280,6 @@ Namensnennung der Urheber ist damit verpflichtend:
 | [Warehouse Forklift Gameready](https://sketchfab.com/3d-models/warehouse-forklift-gameready-94e21059f00c4e989c6403ada034516e) | `warehouse_forklift_gameready.glb` | Kamran Mughal (@absologixemployee) | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | [LCT 3000 '07 – Low poly model](https://sketchfab.com/3d-models/lct-3000-07-low-poly-model-3be03b6a43aa41898c9ca806b8787052) | `lct_3000_07-_low_poly_model.glb` | Daniel Zhabotinsky (@DanielZhabotinsky) | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | [Stropalschik](https://sketchfab.com/3d-models/stropalschik-a9f0edc67f774faa829e74f3413255dd) | `stropalschik.glb` | tu_ugmk | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+
+## Miro-Board Link
+[Miro-Board](https://miro.com/app/board/uXjVGVPP8Eo=/?share_link_id=404550879590)
